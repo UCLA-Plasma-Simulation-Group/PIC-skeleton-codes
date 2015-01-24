@@ -1,2 +1,10 @@
-# PIC-skeleton-codes
-A fully-functional but simple Particle-In-Cell Plasma Simulation Code with several parallel implementations ( OPEN MP, SSE, AVX, CUDA). This code is meant to highlight the parallelization methods of the core PIC algorithm while implementing only a minimal feature set in favor of clarity, ease of use, and extensibility.
+# Particle-In-Cell Skeleton Codes
+Succinct PIC Implementation 
+
+__All source code in this repository is confidential.__
+
+If you're viewing this and don't have explicit permission from the OSIRIS Consortium to access this repository please contact Warren Mori (mori@physics.ucla.edu).
+
+## UCLA Plasma Simulation Group
+
+Viktor Fill in whatevery you like here
