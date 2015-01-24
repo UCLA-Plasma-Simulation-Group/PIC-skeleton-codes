@@ -7,4 +7,4 @@ If you're viewing this and don't have explicit permission from the OSIRIS Consor
 
 ## UCLA Plasma Simulation Group
 
-Viktor Fill in whatevery you like here
+Viktor you can change this file to wahtver you like...
