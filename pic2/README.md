@@ -60,13 +60,13 @@ file for the default input parameters is included in the file output.
 In more detail, the inner loop of the code contains the following
 procedures in Fortran (C):
 
-#Deposit section:
+_Deposit section_:
 |Fortran Name|C Name| description|
 | ---------- | ---- | ---------- |
 |GPOST2L|cgpost2l|deposit charge density|
 |AGUARD2L|caguard2l)|add charge density guard cells|
 
-#Field solve section:
+__Field solve section__:
 |Fortran Name|C Name| description|
 | ---------- | ---- | ---------- |
 |WFFT2RX|cwfft2rx|FFT charge density to fourier space
