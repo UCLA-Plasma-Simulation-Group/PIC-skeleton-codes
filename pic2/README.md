@@ -66,14 +66,14 @@ __Deposit section__:
 |Fortran Name|C Name| description|
 | ---------- | ---- | ---------- |
 |GPOST2L|cgpost2l|deposit charge density|
-|AGUARD2L|caguard2l)|add charge density guard cells|
+|AGUARD2L|caguard2)|add charge density guard cells|
 
 __Field solve section__:
 
 |Fortran Name|C Name| description|
 | ---------- | ---- | ---------- |
 |WFFT2RX|cwfft2rx|FFT charge density to fourier space
-|POIS22|cpois22)|calculate smoothed longitudinal electric field in fourier space.|
+|POIS22|cpois22|calculate smoothed longitudinal electric field in fourier space.|
 |WFFT2R2|cwfft2r2|FFT smoothed electric field to real space|
 
 #Particle Push section:
@@ -86,7 +86,7 @@ __Field solve section__:
 #Input Paramters
 There is no input file. For simplicity, input parameters are set at within the source code near at the start of the _main_ sections of each programs (i.e at the top of the the file `pic2.c` for the C version and `pic2.f90` for the Fortran version ). Repository versions come with resonable defaults and do not require editing if you wish to jsut run a simulation out-of-the-box.
 
-The inputs to the code are the grid parameters ( _indx_, _indy_) the particle
+The inputs to the code are the grid parameters (_indx_, _indy_) the particle
 number parameters (_npx_, _npy_), the time parameters (_tend_, _dt_), the velocity
 parameters (_vtx_, _vty_, _vx0_, _vy0_), and the sorting parameter _sortime_.
 
