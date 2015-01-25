@@ -11,7 +11,7 @@ Welcome! There is a large collection of PIC codes here with a range of complexit
 
 1. Each directory is a complete, standalone PIC implemenation.
 
-2. *Where to Start*? The directory `pic2` is the basic, classic serial Particle-In-Cell code. For those new to PIC it is the perfect place to start.. no bells or whistles.. just a simple way to see how PIC codes work. For people already experienced with PIC, `pic2` can be used in benchmarking or as unit-testing scaffolding.
+2. *Where to Start*? The directory `pic2` is the basic, classic serial Particle-In-Cell code. For those new to PIC it is the perfect place to start.. no bells or whistles.. just a simple way to see how PIC codes work. For people already experienced with PIC, `pic2` can be used in benchmarking or as unit-testing scaffolding. See the [Basic Serial Code](#basic-serial-codes) section below for details. See see what else is availiable, also check out [Overview of Codes Included](#overview-of-codes-included) section.
 
 3. These codes have no external dependecies - You should be able to set basic coniguration and then `make`.. For full instructions see the readme files in each directory.
 
@@ -33,7 +33,7 @@ Welcome! There is a large collection of PIC codes here with a range of complexit
 
 &nbsp;&nbsp;&nbsp;A flat data structure is used, using only basic integer and floating point types, without the use of derived types or structs.  This is primarily to expose as much as possible without hiding features in a multi-layered hierarchy.  We believe this makes it easier to understand the changes made when increasing the levels of parallelism.  But another reason is that the PIC community has not yet agreed on standard objects and it would be more difficult to reuse software from the skeleton codes if the types or structs we chose conflicted.
 
-###Overview of What's Here
+###Overview of Codes Included
 In the following discussion, timings refer to the 2.67 GHz Intel i7 CPUs (Dual Intel Xeon-X5650), unless otherwise mentioned.
 ###Skeleton Codes
 ##Basic Serial Codes
