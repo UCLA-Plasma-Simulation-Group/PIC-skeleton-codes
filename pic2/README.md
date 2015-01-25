@@ -151,13 +151,17 @@ make program_name
 
 where program_name is either: fpic2 or cpic2, or execute:
 
+```
 make
+```
 
 to create both programs.
 
 To execute, type the name of the executable:
 
+```
 ./program_name
+```
 
 where program_name is either fpic2 or cpic2.
 
