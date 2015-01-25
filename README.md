@@ -7,7 +7,7 @@ If you're viewing this and don't have explicit permission from the UCLA Plasma P
 
 ## Quick Start
 
-Welcome! There is a large collection of PIC codes here with a range of complexity. They are all deigned to be easy to read, understand, and adapt. 
+Welcome! There is a large collection of PIC codes here with a range of complexity. They are all designed to be easy to read, understand, and adapt. 
 
 1. Each directory is a complete, standalone PIC implemenation.
 
