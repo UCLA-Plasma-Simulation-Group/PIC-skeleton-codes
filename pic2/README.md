@@ -92,18 +92,21 @@ parameters (_vtx_, _vty_, _vx0_, _vy0_), and the sorting parameter _sortime_.
 In more detail:
 
 |Parameter|description|
+| ------- | --------- |
 |indx|exponent which determines length in x direction, nx=2**indx|
 |indy|exponent which determines length in y direction, ny=2**indy|
 
    These ensure the system lengths are a power of 2.
 
 |Parameter|description|
+| ------- | --------- |
 |npx|exponent which determines length in x direction, nx=2**indx|
 |npy|exponent which determines length in y direction, ny=2**indy|
 
    The total number of particles in the simulation is npx*npy.
 
 |Parameter|description|
+| ------- | --------- |
 |tend| time at end of simulation, in units of plasma frequency.|
 |dt|time interval between successive calculations.|
 
@@ -111,6 +114,7 @@ In more detail:
    dt should be less than .2 for the electrostatic code.
 
 |Parameter|description|
+| ------- | --------- |
 |vtx/vty|thermal velocity of electrons in x/y direction. A typical value is 1.0. |
 |vx0/vy0|drift velocity of electrons in x/y direction.|
 |sortime|number of time steps between electron sorting. This is used to improve cache performance.  sortime=0 to suppress.|
