@@ -53,15 +53,30 @@ Here's a table showing which directories have which feature (ES mean Electrostat
 
 | Category | directory name        | Field Type  | Language  | Parallelism |
 | -------- | --------------------- | ----------- | --------- | -----------:|
-|__Basic Serial Codes__|
-||ppic2|ES|C,Fortran| None-Serial|
+|__Basic Serial__|
+||pic2|ES|C,Fortran| None-Serial|
 ||bpic2|EM|C,Fortran| None-Serial|
-||ppic2|ES|C,Fortran| None-Serial|
-||ppic2|ES|C,Fortran| None-Serial|
-||ppic2|ES|C,Fortran| None-Serial|
-||ppic2|ES|C,Fortran| None-Serial|
-||ppic2|ES|C,Fortran| None-Serial|
-
+|__1 Level Parallel__|
+||mpic2|ES|C,Fortran|OpenMP|
+||mbpic2|EM|C,Fortran|OpenMP|
+||ppic2|ES|C,Fortran|MPI|
+||pbpic2|EM|C,Fortran|MPI|
+||vpic2|ES|C,Fortran|SSE|
+||vpic2|EM|C,Fortran|SSE|
+|__2 Level Parallel__|
+||gpupic2|ES|C,Fortran|CUDA(C)|
+||gpubpic2|EM|C,Fortran|CUDA(C)|
+||gpufpic2|ES|C,Fortran|CUDA(Fortran)|
+||gpufbpic2|EM|C,Fortran|CUDA(Fortran)|
+||mppic2|ES|C,Fortran|OpenMP+MPI|
+||mpbpic2|EM|C,Fortran|OpenMP+MPI|
+||mppic2|ES|C,Fortran|OpenMP+SSE|
+||mpbpic2|EM|C,Fortran|OpenMP+SEE|
+|__3 Level Parallel__|
+||gpuppic2|ES|C,Fortran|MPI+CUDA(C)|
+||gpupbpic2|EM|C,Fortran|MPI+CUDA(C)|
+||gpufppic2|ES|C,Fortran|MPI+CUDA(Fortran)|
+||gpufpbpic2|EM|C,Fortran|MPI+CUDA(Fortran)|
 
 
 ##Future Work
