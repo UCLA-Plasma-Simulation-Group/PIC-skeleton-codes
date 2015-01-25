@@ -35,7 +35,7 @@ Welcome! There is a large collection of PIC codes here with a range of complexit
 
 ###Overview of Codes Included
 In the following discussion, timings refer to the 2.67 GHz Intel i7 CPUs (Dual Intel Xeon-X5650), unless otherwise mentioned.
-###Skeleton Codes
+
 ##Basic Serial Codes
 &nbsp;&nbsp;&nbsp;The basic serial codes do not make use of any parallelism, and are the base codes for students or researchers who are unfamiliar with PIC codes.  For the electrostatic code there are 8 procedures in the inner loop, only 3 of which are computationally intensive, and this code contains about 2,000 lines of code in each language.   A typical execution time for the particle part of this code is about 33 ns/particle/time-step. For the electromagnetic code there are 15 procedures in the inner loop, only 4 of which are computationally intensive, and this code contains approximately 4,000 lines of code in each language.  A typical execution time for the particle part of this code is about 110 ns/particle/time-step.
 ##MPI Codes with one level of parallelism
