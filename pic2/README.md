@@ -73,11 +73,11 @@ procedures in Fortran (C):
 |POIS22|cpois22)|calculate smoothed longitudinal electric field in fourier space.|
 |WFFT2R2|cwfft2r2|FFT smoothed electric field to real space|
 
-Particle Push section:
+#Particle Push section:
 |Fortran Name|C Name| description|
 | ---------- | ---- | ---------- |
 |CGUARD2L|ccguard2l|fill in guard cells for smoothed electric field|
-|GPUSH2L|cgpush2l|update particle co-ordinates with smoothed electric field: <br> x(t)->x(t+dt); v(t-dt/2)->v(t+dt/2)|
+|GPUSH2L|cgpush2l|update particle co-ordinates with smoothed electric field: x(t)->x(t+dt); v(t-dt/2)->v(t+dt/2)|
 |DSORTP2YL|cdsortp2yl|sort particles by cell|
 
 The inputs to the code are the grid parameters indx, indy, the particle
