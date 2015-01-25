@@ -142,7 +142,7 @@ and .h adhere to the C99 standard.
 The makefile is setup to use gcc and gfortran with Linux.  A version for
 Mac OS X is also in the Makefile, but is commented out.  
 
-Two executables can be created, _fpic_2 for Fortran and _cpic2_ for C.
+Two executables can be created, _fpic2_ for Fortran and _cpic2_ for C.
 
 To compile program, execute:
 
