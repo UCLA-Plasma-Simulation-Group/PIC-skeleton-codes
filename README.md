@@ -62,7 +62,7 @@ Here's a table showing which directories have which feature (ES mean Electrostat
 ||ppic2|ES|C,Fortran|MPI|
 ||pbpic2|EM|C,Fortran|MPI|
 ||vpic2|ES|C,Fortran|SSE|
-||vpic2|EM|C,Fortran|SSE|
+||vbpic2|EM|C,Fortran|SSE|
 |__2 Level Parallel__|
 ||gpupic2|ES|C,Fortran|CUDA(C)|
 ||gpubpic2|EM|C,Fortran|CUDA(C)|
