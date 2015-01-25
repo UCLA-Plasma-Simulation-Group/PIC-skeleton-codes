@@ -57,10 +57,11 @@ copy guard cell procedure, a particle push, and a particle sorting
 procedure.  The final energy and timings are printed.  A sample output
 file for the default input parameters is included in the file output.
 
+#Code Description
 In more detail, the inner loop of the code contains the following
 procedures in Fortran (C):
 
-_Deposit section_:
+__Deposit section__:
 
 |Fortran Name|C Name| description|
 | ---------- | ---- | ---------- |
@@ -82,35 +83,50 @@ __Field solve section__:
 |GPUSH2L|cgpush2l|update particle co-ordinates with smoothed electric field: <br> x(t)->x(t+dt); v(t-dt/2)->v(t+dt/2)|
 |DSORTP2YL|cdsortp2yl|sort particles by cell|
 
-The inputs to the code are the grid parameters indx, indy, the particle
-number parameters npx, npy, the time parameters tend, dt, the velocity
-parameters vtx, vty, vx0, vy0, and the sorting parameter sortime.
+#Input Paramters
+There is no input file. For simplicity, input parameters are set at within the source code near at the start of the _main_ sections of each programs (i.e at the top of the the file `pic2.c` for the C version and `pic2.f90` for the Fortran version ).
+The inputs to the code are the grid parameters ( _indx_, _indy_) the particle
+number parameters (_npx_, _npy_), the time parameters (_tend_, _dt_), the velocity
+parameters (_vtx_, _vty_, _vx0_, _vy0_), and the sorting parameter _sortime_.
 
 In more detail:
-indx = exponent which determines length in x direction, nx=2**indx.
-indy = exponent which determines length in y direction, ny=2**indy.
+
+|Parameter|description|
+|indx|exponent which determines length in x direction, nx=2**indx|
+|indy|exponent which determines length in y direction, ny=2**indy|
+
    These ensure the system lengths are a power of 2.
-npx = number of electrons distributed in x direction.
-npy = number of electrons distributed in y direction.
+
+|Parameter|description|
+|npx|exponent which determines length in x direction, nx=2**indx|
+|npy|exponent which determines length in y direction, ny=2**indy|
+
    The total number of particles in the simulation is npx*npy.
-tend = time at end of simulation, in units of plasma frequency.
-dt = time interval between successive calculations.
+
+|Parameter|description|
+|tend| time at end of simulation, in units of plasma frequency.|
+|dt|time interval between successive calculations.|
+
    The number of time steps the code runs is given by tend/dt.
    dt should be less than .2 for the electrostatic code.
-vtx/vty = thermal velocity of electrons in x/y direction
-   a typical value is 1.0.
-vx0/vy0 = drift velocity of electrons in x/y direction.
-sortime = number of time steps between electron sorting.
-   This is used to improve cache performance.  sortime=0 to suppress.
 
+|Parameter|description|
+|vtx/vty|thermal velocity of electrons in x/y direction. A typical value is 1.0. |
+|vx0/vy0|drift velocity of electrons in x/y direction.|
+|sortime|number of time steps between electron sorting. This is used to improve cache performance.  sortime=0 to suppress.|
+
+# File listing
 The major program files contained here include:
-pic2.f90    Fortran90 main program 
-pic2.c      C main program
-push2.f     Fortran77 procedure library
-push2_h.f90 Fortran90 procedure interface (header) library
-push2.c     C procedure library
-push2.h     C procedure header library
-dtimer.c    C timer function, used by both C and Fortran
+
+|File|description|
+|pic2.f90|Fortran90 main program|
+|pic2.c| C main program|
+|push2.f|Fortran77 procedure library|
+|push2_h.f90|Fortran90 procedure interface (header) library|
+|push2.c| C procedure library|
+|push2.h| C procedure header library|
+|dtimer.c|C timer function, used by both C and Fortran|
+
 
 Files with the suffix .f90 adhere to the Fortran 90 standard, files with
 the suffix .f adhere to the Fortran77 standard, files with the suffix .c
