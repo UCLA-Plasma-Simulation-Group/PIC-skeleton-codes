@@ -62,17 +62,20 @@ procedures in Fortran (C):
 
 #Deposit section:
 |Fortran Name|C Name| description|
+| ---------- | ---- | ---------- |
 |GPOST2L|cgpost2l|deposit charge density|
 |AGUARD2L|caguard2l)|add charge density guard cells|
 
 #Field solve section:
 |Fortran Name|C Name| description|
+| ---------- | ---- | ---------- |
 |WFFT2RX|cwfft2rx|FFT charge density to fourier space
 |POIS22|cpois22)|calculate smoothed longitudinal electric field in fourier space.|
 |WFFT2R2|cwfft2r2|FFT smoothed electric field to real space|
 
 Particle Push section:
 |Fortran Name|C Name| description|
+| ---------- | ---- | ---------- |
 |CGUARD2L|ccguard2l|fill in guard cells for smoothed electric field|
 |GPUSH2L|cgpush2l)|update particle co-ordinates with smoothed
                        electric field:
