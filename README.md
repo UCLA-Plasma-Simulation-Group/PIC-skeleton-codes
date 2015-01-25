@@ -51,9 +51,17 @@ In the following discussion, timings refer to the 2.67 GHz Intel i7 CPUs (Dual I
 ## What's What
 Here's a table showing which directories have which feature (ES mean Electrostatic, EM mean electomagnetic)
 
-| directory name        | Field Type  | Language  | Parallelism |
-| --------------------- | ----------- | --------- | -----------:|
-|ppic2|ES|C,Fortran| None-Serial|
+| Category | directory name        | Field Type  | Language  | Parallelism |
+| -------- | --------------------- | ----------- | --------- | -----------:|
+|__Basic Serial Codes__|
+||ppic2|ES|C,Fortran| None-Serial|
+||bpic2|EM|C,Fortran| None-Serial|
+||ppic2|ES|C,Fortran| None-Serial|
+||ppic2|ES|C,Fortran| None-Serial|
+||ppic2|ES|C,Fortran| None-Serial|
+||ppic2|ES|C,Fortran| None-Serial|
+||ppic2|ES|C,Fortran| None-Serial|
+
 
 
 ##Future Work
