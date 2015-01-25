@@ -61,12 +61,14 @@ In more detail, the inner loop of the code contains the following
 procedures in Fortran (C):
 
 _Deposit section_:
+
 |Fortran Name|C Name| description|
 | ---------- | ---- | ---------- |
 |GPOST2L|cgpost2l|deposit charge density|
 |AGUARD2L|caguard2l)|add charge density guard cells|
 
 __Field solve section__:
+
 |Fortran Name|C Name| description|
 | ---------- | ---- | ---------- |
 |WFFT2RX|cwfft2rx|FFT charge density to fourier space
