@@ -77,7 +77,7 @@ procedures in Fortran (C):
 |Fortran Name|C Name| description|
 | ---------- | ---- | ---------- |
 |CGUARD2L|ccguard2l|fill in guard cells for smoothed electric field|
-|GPUSH2L|cgpush2l|update particle co-ordinates with smoothed electric field: x(t)->x(t+dt); v(t-dt/2)->v(t+dt/2)|
+|GPUSH2L|cgpush2l|update particle co-ordinates with smoothed electric field: <br> x(t)->x(t+dt); v(t-dt/2)->v(t+dt/2)|
 |DSORTP2YL|cdsortp2yl|sort particles by cell|
 
 The inputs to the code are the grid parameters indx, indy, the particle
