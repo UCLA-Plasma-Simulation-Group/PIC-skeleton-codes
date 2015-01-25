@@ -84,7 +84,8 @@ __Field solve section__:
 |DSORTP2YL|cdsortp2yl|sort particles by cell|
 
 #Input Paramters
-There is no input file. For simplicity, input parameters are set at within the source code near at the start of the _main_ sections of each programs (i.e at the top of the the file `pic2.c` for the C version and `pic2.f90` for the Fortran version ).
+There is no input file. For simplicity, input parameters are set at within the source code near at the start of the _main_ sections of each programs (i.e at the top of the the file `pic2.c` for the C version and `pic2.f90` for the Fortran version ). Repository versions come with resonable defaults and do not require editing if you wish to jsut run a simulation out-of-the-box.
+
 The inputs to the code are the grid parameters ( _indx_, _indy_) the particle
 number parameters (_npx_, _npy_), the time parameters (_tend_, _dt_), the velocity
 parameters (_vtx_, _vty_, _vx0_, _vy0_), and the sorting parameter _sortime_.
@@ -141,7 +142,7 @@ and .h adhere to the C99 standard.
 The makefile is setup to use gcc and gfortran with Linux.  A version for
 Mac OS X is also in the Makefile, but is commented out.  
 
-Two executables can be created, fpic2 for Fortran and cpic2 for C.
+Two executables can be created, _fpic_2 for Fortran and _cpic2_ for C.
 
 To compile program, execute:
 
@@ -149,7 +150,7 @@ To compile program, execute:
 make program_name
 ```
 
-where program_name is either: fpic2 or cpic2, or execute:
+where program_name is either: _fpic2_ or _cpic2_, or execute:
 
 ```
 make
@@ -163,7 +164,7 @@ To execute, type the name of the executable:
 ./program_name
 ```
 
-where program_name is either fpic2 or cpic2.
+where program_name is either _fpic2_ or _cpic2_.
 
 The file output contains the results produced for the default parameters.
 
@@ -171,6 +172,6 @@ The Fortran version can be compiled to run with double precision by
 changing the Makefile (typically by setting the compiler options flags
 -r8).
 
-The library push2.c contains wrapper functions to allow the C library to
-be called from Fortran. The library push2_f.c contains wrapper functions
+The library `push2.c` contains wrapper functions to allow the C library to
+be called from Fortran. The library `push2_f.c` contains wrapper functions
 to allow the Fortran library to be called from C.
