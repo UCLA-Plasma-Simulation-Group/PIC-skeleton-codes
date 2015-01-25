@@ -123,6 +123,7 @@ In more detail:
 The major program files contained here include:
 
 |File|description|
+| -- | --------- |
 |pic2.f90|Fortran90 main program|
 |pic2.c| C main program|
 |push2.f|Fortran77 procedure library|
