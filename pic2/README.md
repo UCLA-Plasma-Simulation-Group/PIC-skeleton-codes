@@ -86,9 +86,9 @@ __Field solve section__:
 #Input Paramters
 There is no input file. For simplicity, input parameters are set at within the source code near at the start of the _main_ sections of each programs (i.e at the top of the the file `pic2.c` for the C version and `pic2.f90` for the Fortran version ). Repository versions come with resonable defaults and do not require editing if you wish to jsut run a simulation out-of-the-box.
 
-The inputs to the code are the grid parameters (_indx_, _indy_) the particle
+The inputs to the code are the grid parameters (_indx_, _indy_), the particle
 number parameters (_npx_, _npy_), the time parameters (_tend_, _dt_), the velocity
-parameters (_vtx_, _vty_, _vx0_, _vy0_), and the sorting parameter _sortime_.
+parameters (_vtx_, _vty_, _vx0_, _vy0_), and the sorting parameter (_sortime_).
 
 In more detail:
 
