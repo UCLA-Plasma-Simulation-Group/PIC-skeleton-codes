@@ -1,0 +1,218 @@
+!-----------------------------------------------------------------------
+! Basic parallel PIC library for GPU-MPI communications interface to C
+! written by viktor k. decyk, ucla
+      module fgpplib2_c
+      use cudafor
+      use iso_c_binding
+      use fgpplib2
+      implicit none
+      private
+!
+      contains
+!
+!-----------------------------------------------------------------------
+      subroutine cgppcaguard2l(g_q,g_qe,g_scs,scs,scr,nx,nyp,kstrt,nvp, &
+     &nxe,nypmx,nxvh,kypd) bind(C,name='fgppcaguard2l')
+      implicit none
+      integer(c_int), value :: nx, nyp, kstrt, nvp, nxe, nypmx, nxvh
+      integer(c_int), value :: kypd
+      type (c_devptr), value :: g_q, g_qe, g_scs
+      type (c_ptr), value :: scs, scr
+! local data
+      complex, device, dimension(:,:), allocatable :: d_q
+      real, device, dimension(:,:), allocatable :: d_qe
+      complex, device, dimension(:), allocatable :: d_scs
+      complex, dimension(:), pointer :: rcs, rcr
+      call c_f_pointer(g_q,d_q,(/nxvh,kypd/))
+      call c_f_pointer(g_qe,d_qe,(/nxe,nypmx/))
+      call c_f_pointer(g_scs,d_scs,(/nxvh/))
+      call c_f_pointer(scs,rcs,(/nxvh/))
+      call c_f_pointer(scr,rcr,(/nxvh/))
+      call GPPCAGUARD2L(d_q,d_qe,d_scs,rcs,rcr,nx,nyp,kstrt,nvp,nxe,    &
+     &nypmx,nxvh,kypd)
+      end subroutine
+!
+!-----------------------------------------------------------------------
+      subroutine cgppccguard2l(g_fxy,g_fxye,g_scs,scs,scr,nx,nyp,kstrt, &
+     &nvp,ndim,nxe,nypmx,nxvh,kypd) bind(C,name='fgppccguard2l')
+      implicit none
+      integer(c_int), value :: nx, nyp, kstrt, nvp, ndim, nxe, nypmx
+      integer(c_int), value :: nxvh, kypd
+      type (c_devptr), value :: g_fxy, g_fxye, g_scs
+      type (c_ptr), value :: scs, scr
+! local data
+      complex, device, dimension(:,:,:), allocatable :: d_fxy
+      real, device, dimension(:,:,:), allocatable :: d_fxye
+      complex, device, dimension(:), allocatable :: d_scs
+      complex, dimension(:), pointer :: rcs, rcr
+      call c_f_pointer(g_fxy,d_fxy,(/nxvh,ndim,kypd/))
+      call c_f_pointer(g_fxye,d_fxye,(/ndim,nxe,nypmx/))
+      call c_f_pointer(g_scs,d_scs,(/nxvh*ndim/))
+      call c_f_pointer(scs,rcs,(/nxvh*ndim/))
+      call c_f_pointer(scr,rcr,(/nxvh*ndim/))
+      call GPPCCGUARD2L(d_fxy,d_fxye,d_scs,rcs,rcr,nx,nyp,kstrt,nvp,ndim&
+     &,nxe,nypmx,nxvh,kypd)
+      end subroutine
+!
+!-----------------------------------------------------------------------
+      subroutine cwappfft2rcs(g_f,g_g,g_bsm,g_brm,bsm,brm,isign,g_mixup,&
+     &g_sct,ttp,indx,indy,kstrt,nvp,kxpd,kyp,nxhd,nyd,kypd,nxhyd,nxyhd) &
+     &bind(C,name='fwappfft2rcs')
+      implicit none
+      integer(c_int), value :: isign, indx, indy, kstrt, nvp, kxpd, kyp
+      integer(c_int), value :: nxhd, nyd, kypd, nxhyd, nxyhd
+      type (c_devptr), value :: g_f, g_g, g_bsm, g_brm, g_mixup, g_sct
+      type (c_ptr), value :: bsm, brm, ttp
+! local data
+      complex, device, dimension(:,:), allocatable :: d_f, d_g
+      complex, device, dimension(:,:), allocatable :: d_bsm, d_brm
+      integer, device, dimension(:), allocatable :: d_mixup
+      complex, device, dimension(:), allocatable :: d_sct
+      complex, dimension(:,:), pointer :: csm, crm
+      real, dimension(:), pointer :: stp
+      call c_f_pointer(g_f,d_f,(/nxhd,kypd/))
+      call c_f_pointer(g_g,d_g,(/nyd,kxpd/))
+      call c_f_pointer(g_bsm,d_bsm,(/kxpd*kyp,nvp/))
+      call c_f_pointer(g_brm,d_brm,(/kxpd*kyp,nvp/))
+      call c_f_pointer(g_mixup,d_mixup,(/nxhyd/))
+      call c_f_pointer(g_sct,d_sct,(/nxyhd/))
+      call c_f_pointer(bsm,csm,(/kxpd*kyp,nvp/))
+      call c_f_pointer(brm,crm,(/kxpd*kyp,nvp/))
+      call c_f_pointer(ttp,stp,(/2/))
+      call WAPPFFT2RCS(d_f,d_g,d_bsm,d_brm,csm,crm,isign,d_mixup,d_sct, &
+     &stp,indx,indy,kstrt,nvp,kxpd,kyp,nxhd,nyd,kypd,nxhyd,nxyhd)
+
+      end subroutine
+!
+!-----------------------------------------------------------------------
+      subroutine cwappfft2rcsn(g_fn,g_gn,g_bsm,g_brm,bsm,brm,isign,     &
+     &g_mixup,g_sct,ttp,indx,indy,kstrt,nvp,ndim,kxpd,kyp,nxhd,nyd,kypd,&
+     &nxhyd,nxyhd) bind(C,name='fwappfft2rcsn')
+      implicit none
+      integer(c_int), value :: isign, indx, indy, kstrt, nvp, ndim, kxpd
+      integer(c_int), value :: kyp, nxhd, nyd, kypd, nxhyd, nxyhd
+      type (c_devptr), value :: g_fn, g_gn, g_bsm, g_brm, g_mixup, g_sct
+      type (c_ptr), value :: bsm, brm, ttp
+! local data
+      complex, device, dimension(:,:,:), allocatable :: d_fn, d_gn
+      complex, device, dimension(:,:), allocatable :: d_bsm, d_brm
+      integer, device, dimension(:), allocatable :: d_mixup
+      complex, device, dimension(:), allocatable :: d_sct
+      complex, dimension(:,:), pointer :: csm, crm
+      real, dimension(:), pointer :: stp
+      call c_f_pointer(g_fn,d_fn,(/nxhd,ndim,kypd/))
+      call c_f_pointer(g_gn,d_gn,(/nyd,ndim,kxpd/))
+      call c_f_pointer(g_bsm,d_bsm,(/kxpd*ndim*kyp,nvp/))
+      call c_f_pointer(g_brm,d_brm,(/kxpd*ndim*kyp,nvp/))
+      call c_f_pointer(g_mixup,d_mixup,(/nxhyd/))
+      call c_f_pointer(g_sct,d_sct,(/nxyhd/))
+      call c_f_pointer(bsm,csm,(/kxpd*ndim*kyp,nvp/))
+      call c_f_pointer(brm,crm,(/kxpd*ndim*kyp,nvp/))
+      call c_f_pointer(ttp,stp,(/2/))
+      call WAPPFFT2RCSN(d_fn,d_gn,d_bsm,d_brm,csm,crm,isign,d_mixup,    &
+     &d_sct,stp,indx,indy,kstrt,nvp,ndim,kxpd,kyp,nxhd,nyd,kypd,nxhyd,  &
+     &nxyhd)
+      end subroutine
+!
+!-----------------------------------------------------------------------
+      subroutine cgpuppfft2rrcu(g_f,g_g,g_bsm,g_brm,bsm,brm,isign,ttp,  &
+     &indx,indy,kstrt,nvp,kxpd,kyp,nxhd,nyd,kypd)                       &
+     &bind(C,name='fgpuppfft2rrcu')
+      implicit none
+      integer(c_int), value :: isign, indx, indy, kstrt, nvp, kxpd, kyp
+      integer(c_int), value :: nxhd, nyd, kypd
+      type (c_devptr), value :: g_f, g_g, g_bsm, g_brm
+      type (c_ptr), value :: bsm, brm, ttp
+! local data
+      complex, device, dimension(:,:), allocatable :: d_f, d_g
+      complex, device, dimension(:,:), allocatable :: d_bsm, d_brm
+      complex, dimension(:,:), pointer :: csm, crm
+      real, dimension(:), pointer :: stp
+      call c_f_pointer(g_f,d_f,(/nxhd,kypd/))
+      call c_f_pointer(g_g,d_g,(/nyd,kxpd/))
+      call c_f_pointer(g_bsm,d_bsm,(/kxpd*kyp,nvp/))
+      call c_f_pointer(g_brm,d_brm,(/kxpd*kyp,nvp/))
+      call c_f_pointer(bsm,csm,(/kxpd*kyp,nvp/))
+      call c_f_pointer(brm,crm,(/kxpd*kyp,nvp/))
+      call c_f_pointer(ttp,stp,(/2/))
+      call GPUPPFFT2RRCU(d_f,d_g,d_bsm,d_brm,csm,crm,isign,stp,indx,indy&
+     &,kstrt,nvp,kxpd,kyp,nxhd,nyd,kypd)
+      end subroutine
+!
+!-----------------------------------------------------------------------
+      subroutine cgpuppfft2rrcun(g_fn,g_gn,g_bsm,g_brm,bsm,brm,isign,   &
+     &ttp,indx,indy,kstrt,nvp,ndim,kxpd,kyp,nxhd,nyd,kypd)              &
+     &bind(C,name='fgpuppfft2rrcun')
+      implicit none
+      integer(c_int), value :: isign, indx, indy, kstrt, nvp, ndim, kxpd
+      integer(c_int), value :: kyp, nxhd, nyd, kypd
+      type (c_devptr), value :: g_fn, g_gn, g_bsm, g_brm
+      type (c_ptr), value :: bsm, brm, ttp
+! local data
+      complex, device, dimension(:,:,:), allocatable :: d_fn, d_gn
+      complex, device, dimension(:,:), allocatable :: d_bsm, d_brm
+      complex, dimension(:,:), pointer :: csm, crm
+      real, dimension(:), pointer :: stp
+      call c_f_pointer(g_fn,d_fn,(/nxhd,ndim,kypd/))
+      call c_f_pointer(g_gn,d_gn,(/nyd,ndim,kxpd/))
+      call c_f_pointer(g_bsm,d_bsm,(/kxpd*ndim*kyp,nvp/))
+      call c_f_pointer(g_brm,d_brm,(/kxpd*ndim*kyp,nvp/))
+      call c_f_pointer(bsm,csm,(/kxpd*ndim*kyp,nvp/))
+      call c_f_pointer(brm,crm,(/kxpd*ndim*kyp,nvp/))
+      call c_f_pointer(ttp,stp,(/2/))
+      call GPUPPFFT2RRCUN(d_fn,d_gn,d_bsm,d_brm,csm,crm,isign,stp,indx, &
+     &indy,kstrt,nvp,ndim,kxpd,kyp,nxhd,nyd,kypd)
+      end subroutine
+!
+!-----------------------------------------------------------------------
+      subroutine cgpporder2l(g_ppart,g_ppbuff,g_sbufl,g_sbufr,g_kpic,   &
+     &g_ncl,g_ihole,g_ncll,g_nclr,sbufl,sbufr,rbufl,rbufr,ncll,nclr,mcll&
+     &,mclr,ttp,noff,nyp,kstrt,nvp,idimp,nppmx,nx,ny,mx,my,mx1,myp1,    &
+     &npbmx,ntmax,nbmax,g_irc) bind(C,name='fgpporder2l')
+      implicit none
+      integer(c_int), value :: noff, nyp, kstrt, nvp, idimp, nppmx
+      integer(c_int), value :: nx, ny, mx, my, mx1, myp1
+      integer(c_int), value :: npbmx, ntmax, nbmax
+      type (c_devptr), value :: g_ppart, g_ppbuff, g_sbufl, g_sbufr
+      type (c_devptr), value :: g_kpic, g_ncl, g_ihole, g_ncll, g_nclr
+      type (c_devptr), value :: g_irc
+      type (c_ptr), value :: sbufl, sbufr, rbufl, rbufr
+      type (c_ptr), value :: ncll, nclr, mcll, mclr, ttp
+! local data
+      real, device, dimension(:,:,:), allocatable :: d_ppart
+      real, device, dimension(:,:,:), allocatable :: d_ppbuff
+      real, device, dimension(:), allocatable :: d_sbufl, d_sbufr
+      integer, device, dimension(:), allocatable :: d_kpic
+      integer, device, dimension(:,:), allocatable :: d_ncl
+      integer, device, dimension(:,:,:), allocatable :: d_ihole
+      integer, device, dimension(:,:), allocatable :: d_ncll, d_nclr
+      integer, device, dimension(:), allocatable :: d_irc
+      real, dimension(:), pointer :: tbufl, tbufr, ubufl, ubufr
+      integer, dimension(:,:), pointer :: jcll, jclr, kcll, kclr
+      real, dimension(:), pointer :: stp
+      call c_f_pointer(g_ppart,d_ppart,(/nppmx,idimp,mx1*myp1/))
+      call c_f_pointer(g_ppbuff,d_ppbuff,(/npbmx,idimp,mx1*myp1/))
+      call c_f_pointer(g_sbufl,d_sbufl,(/idimp*nbmax/))
+      call c_f_pointer(g_sbufr,d_sbufr,(/idimp*nbmax/))
+      call c_f_pointer(g_kpic,d_kpic,(/mx1*myp1/))
+      call c_f_pointer(g_ncl,d_ncl,(/8,mx1*myp1/))
+      call c_f_pointer(g_ihole,d_ihole,(/2,ntmax+1,mx1*myp1/))
+      call c_f_pointer(g_ncll,d_ncll,(/3,mx1/))
+      call c_f_pointer(g_nclr,d_nclr,(/3,mx1/))
+      call c_f_pointer(g_irc,d_irc,(/1/))
+      call c_f_pointer(sbufl,tbufl,(/idimp*nbmax/))
+      call c_f_pointer(sbufr,tbufr,(/idimp*nbmax/))
+      call c_f_pointer(rbufl,ubufl,(/idimp*nbmax/))
+      call c_f_pointer(rbufr,ubufr,(/idimp*nbmax/))
+      call c_f_pointer(ncll,jcll,(/3,mx1/))
+      call c_f_pointer(nclr,jclr,(/3,mx1/))
+      call c_f_pointer(mcll,kcll,(/3,mx1/))
+      call c_f_pointer(mclr,kclr,(/3,mx1/))
+      call c_f_pointer(ttp,stp,(/2/))
+      call GPPORDER2L(d_ppart,d_ppbuff,d_sbufl,d_sbufr,d_kpic,d_ncl,    &
+     &d_ihole,d_ncll,d_nclr,tbufl,tbufr,ubufl,ubufr,jcll,jclr,kcll,kclr,&
+     &stp,noff,nyp,kstrt,nvp,idimp,nppmx,nx,ny,mx,my,mx1,myp1,npbmx,    &
+     &ntmax,nbmax,d_irc)
+      end subroutine
+!
+      end module

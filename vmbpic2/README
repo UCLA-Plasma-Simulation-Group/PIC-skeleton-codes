@@ -1,0 +1,309 @@
+Skeleton 2-1/2D Electromagnetic OpenMP/Vector Particle-in-Cell (PIC)
+codes
+by Viktor K. Decyk
+copyright 2014, regents of the university of california
+
+This program contains sample codes for illustrating the basic structure
+of a 2-1/2D Electromagnetic OpenMP/Vector Particle-in-Cell (PIC) code,
+in both  Fortran and C. The codes have no diagnosics except for initial
+and final energies.  Their primary purpose is to provide example codes
+for physical science students learning about OpenMP/Vector PIC codes.
+They are also intended as benchmark reference codes to aid in developing
+new codes and in evaluating new computer architectures.  An
+OpenMP/serial version of this code with the same structure (mbpic2) also
+exists, and can be compared to this code in order to understand the
+Vector algorithms.
+
+PIC codes are widely used in plasma physics.  They model plasmas as
+particles which interact self-consistently via the electromagnetic
+fields they themselves produce.  PIC codes generally have three
+important procedures in the main iteration loop.  The first is the
+deposit, where some particle quantity, such as a charge, is accumulated
+on a grid via interpolation to produce a source density.  The second
+important procedure is the field solver, which solves Maxwell’s equation
+or a subset to obtain the electric and/or magnetic fields from the
+source densities.  Finally, once the fields are obtained, the particle
+forces are found by interpolation from the grid, and the particle
+co-ordinates are updated, using Newton’s second law and the Lorentz
+force.  The particle processing parts dominate over the field solving
+parts in a typical PIC application.
+
+More details about PIC codes can be found in the texts by C. K. Birdsall
+and A. B. Langdon, Plasma Physics via Computer Simulation, 1985,
+R. W. Hockney and J. W. Eastwood, Computer Simulation Using Particles,
+1981, and John M. Dawson, "Particle simulation of plasmas", Rev. Mod.
+Phys. 55, 403 (1983).  Details about the mathematical equations and
+units used in this code is given in the companion article,
+"Description of Electromagnetic Spectral Code from the UPIC Framework"
+by Viktor K. Decyk, UCLA, in the file EMModels.pdf.
+
+Details abut OpenMP can be found in the book by Rohit Chandra, Leonardo
+Dagum, Dave Kohr, Dror Maydan, Jeff McDonald, and Ramesh Menon, Parallel
+Programming in OpenMP, Morgan Kaufmann, 2001.
+
+Vectorization today is largely based on exploiting Single Instruction
+Multiple Data (SIMD) processors that can perform the same instruction
+on multiple data items.  Such processors are widely available on Intel,
+IBM, and other CPUs.  Two approaches are used for vectorization.  The
+simplest is to use vectorization tools that will analyze and compile
+Fortran and C/C++ codes to run on the SIMD processors.  Alternatively,
+Intel also provides vector intrinsincs, which are assembly-coded
+functions that allow direct access to vector assembly language
+instructions in C/C++.  Compiler vectorization is normally implemented
+from loops.  Vector instrinics are implemented as a vector language.
+Further details about Intel compiler vectorization can be found at:
+https://software.intel.com/en-us/intel-vectorization-tools
+Further details about Intel vector intrinsics can be found at:
+https://software.intel.com/sites/products/documentation/doclib/iss/2013/
+compiler/cpp-lin/index.htm#GUID-28F49E4A-615D-4373-A36E-C8A92E913325.htm
+and at https://software.intel.com/sites/landingpage/IntrinsicsGuide/.
+
+No warranty for proper operation of this software is given or implied.
+Software or information may be copied, distributed, and used at own
+risk; it may not be distributed without this notice included verbatim
+with each file.  If use of these codes results in a publication, an
+acknowledgement is requested.
+
+The code here uses the complete electromagnetic interaction, obtained by
+solving Maxwell's equation.  A spectral method using Fast Fourier
+Transforms (FFTs) is used to solve the Maxwell and Poisson equations.  A
+real to complex FFT is used, and the data in Fourier space is stored in
+a packed format, where the input and output sizes are the same.  The
+boundary conditions are periodic, only electron species are included,
+and linear interpolation is used.
+
+For parallelization, the code uses a tiling (or blocking) technique.
+Space is divided into small 2D tiles (with typically 16x16 grid points
+in a tile), and particles are organized so that their co-ordinates in x
+and y lie within the same tile and are stored together in memory.
+Assigning different threads to different tiles avoids data collisions
+(where 2 threads try to write to the same memory location at the same
+time).  The size of the tiles should be smaller than the L1 cache and
+the number of tiles should be equal to or greater than the number of
+processing cores.  There are 4 major procedures which make use of the
+tiled data structure, the charge and current deposits, the particle
+push, and the particle reordering.  In the deposit procedures, each
+thread first deposits to a small local density array the size of a tile
+plus guard cells.  After all the particles in a tile have been processed
+the small density array is added to the global density arrays.  The
+particle push is similar, where each thread first copies the global
+field arrays to small local field arrays which are then used for field
+interpolation.  The particle reordering procedure (VPPORDERF2LT) moves
+particles which are leaving one tile into the appropriate location in
+another tile.  This is done by first copying outgoing particles into an
+ordered particle buffer.  Then particles are copied from the buffer into
+the new locations in the particle array.  Performing this in two steps
+allows one to avoid data collisions when running in parallel.  Further
+information about this tiling parallel algorithm used can be found in
+the companion presentation OpenMP-PIC.pdf and in the article:
+V. K. Decyk and T. V. Singh, "Particle-in-Cell Algorithms for Emerging
+Computer Architectures," Computer Physics Communications, 185, 708,
+2014, available at http://dx.doi.org/10.1016/j.cpc.2013.10.013.
+
+For vectorization, both approaches discussed above are illustrated in
+this Skeleton code.  One version uses the SSE2 vector instrinsics.
+Three libraries, sseflib2.c, sselib2.c and ssembpush2.c, implement the
+functionality of the OpenMP/serial mbpush2.c file in the mbpic2
+directory.  This is very low level programming and difficult to
+understand, but gives the best performance.  The second version made use
+of compiler directives.  Two libraries, vmbpush2.f and vmbpush2.c,
+reimplemented the OpenMP/serial mbpush2.f and mbpush2.c files in such a
+way that the compiler could automatically vectorize the inner loops.
+Details of about this process for this code are described in the file
+mVectorPIC.pdf.  A parameter kvec in the main codes selects which
+version will run.
+
+The default particle push and current deposit procedures calculate the
+list of particles leaving the tiles.  This was done because the code was
+faster.  There are, however, versions of the push (VGBPPUSH23LT,
+VGRBPPUSH23LT) and current deposit (VGJPPOST2LT,VGRJPPOST2LT) procedures
+which do not calculate the list, and are easier to understand.  These
+versions of the push and deposit require a different reordering
+procedure (VPPORDER2LT) which calculates the list.
+
+Important differences between the relativistic push and deposit
+procedures (in vmbpush2.f and vmbpush2.c) and the OpenMP/serial versions
+(in mbpush2.f and mbpush2.c in the mbpic2 directory) are highlighted in
+the files dvmbpush2_f.pdf and dvmbpush2_c.pdf, respectively.
+
+Differences between the main codes (vmbpic2.f90 and vmbpic2.c) and the
+main codes in the OpenMP/serial versions in the mbpic2 directory 
+(mbpic2.f90 and mbpic2.c) are highlighted in the files dvmbpic2_f90.pdf
+and dvmbpic2_c.pdf, respectively.
+
+Particles are initialized with a uniform distribution in space and a
+gaussian distribution in velocity space.  This describes a plasma in
+thermal equilibrium.  The inner loop contains a current and charge
+deposit, add guard cell procedures, a vector and scalar FFT, a
+transverse current procedure, Maxwell and Poisson solvers, vector FFTs,
+copy guard cell procedures, a particle push, and a particle reordering
+procedure.  The final energy and timings are printed.  A sample output
+file for the default input parameters is included in the file output.
+
+In more detail, the inner loop of the code contains the following
+procedures in Fortran (C):
+
+Deposit section:
+   VGRJPPOSTF2LT (cvgrjppostf2lt): relativistic current deposit, and
+             or csse2grjppostf2lt  update position. also calculate
+                                    locations of particles leaving tile
+                                    for VPPORDERF2LT.
+                                    x(t+dt/2)->x(t+dt)
+   VGJPPOSTF2LT (cvgjppostf2lt): deposit current density, and update
+            or csse2gjppostf2lt  position. also calculate locations of
+                                 particles leaving tile for VPPORDERF2LT
+                                 x(t+dt/2)->x(t+dt)
+   VPPORDERF2LT (cvpporderf2lt): move particles to appropriate tile from
+             or csse2pporder2lt  list supplied by VGRJPPOSTF2LT or
+                                 VGJPPOSTF2LT
+   VGPPOST2LT (cvgppost2lt): deposit charge density
+          or csse2gppost2lt
+   ACGUARD2L (cacguard2l): add current density guard cells
+        or csse2acguard2l
+   AGUARD2L (caguard2l): add charge density guard cells
+       or csse2aguard2l
+
+Field solve section:
+   WFFT2RVMX (cwfft2rvmx): FFT charge density to fourier space
+         or csse2wfft2rmx
+   WFFT2RVM3 (cwfft2rvm3): FFT current density to fourier space
+         or csse2wfft2rm3
+   MCUPERP2 (cmcuperp2): take transverse part of current
+       or csse2cmuperp2 
+   VMIBPOIS23 (cvmibpois23): calculate initial magnetic field in fourier
+          or csse2mibpois23  space
+   VMMAXWEL2 (cvmmaxwel2): update transverse electromagnetic fields in
+         or csse2mmaxwel2  fourier space
+   VMPOIS23 (cvmpois23): calculate smoothed longitudinal electric field
+        or csse2mpois23  in fourier space
+   VMEMFIELD2 (cvmemfield2): add smoothed longitudinal and transverse
+          or csse2memfield2  electric fields
+   VMEMFIELD2 (cvmemfield2)  copy smoothed magnetic field
+          or csse2memfield2
+   WFFT2RVM3 (cwfft2rvm3): FFT smoothed electric field to real space
+         or csse2wfft2rm3                  
+   WFFT2RVM3 (cwfft2rvm3): FFT smoothed magnetic field to real space
+         or csse2wfft2rm3
+
+Particle Push section:
+   BGUARD2L (cbguard2l): fill in guard cells for smoothed electric field
+       or csse2bguard2l
+   BGUARD2L (cbguard2l): fill in guard cells for smoothed magnetic field
+       or csse2bguard2l
+   VGRBPPUSHF23LT (cvgrbppushf23lt): update relativistic particle
+              or csse2grbppush23flt  co-ordinates with smoothed electric
+                                     and magnetic fields. also
+                                     calculates locations of particles
+                                     leaving tile for VPPORDERF2LT.
+                                     x(t)->x(t+dt/2);
+                                     v(t-dt/2)->v(t+dt/2)
+   VGBPPUSHF23LT (cvgbppushf23lt): update particle co-ordinates with
+            or csse2grbppush23flt  smoothed electric and magnetic fields
+                                   also calculates locations of
+                                   particles leaving tile for
+                                   VPPORDERF2LT.
+                                   x(t)->x(t+dt/2); v(t-dt/2)->v(t+dt/2)
+   VPPORDERF2LT (cvpporderf2lt): move particles to appropriate tile from
+             or csse2pporder2lt  list supplied by VGRJPPOSTF2LT or
+                                 VGJPPOSTF2LT
+
+The inputs to the code are the grid parameters indx, indy, the particle
+number parameters npx, npy, the time parameters tend, dt, and the
+velocity paramters vtx, vty, vtz, vx0, vy0, vz0, the inverse speed of
+light ci, the flag relativity.  In addition, a tile size mx, my, and
+overflow size xtras are defined as well as the version selector kvec.
+
+In more detail:
+indx = exponent which determines length in x direction, nx=2**indx.
+indy = exponent which determines length in y direction, ny=2**indy.
+   These ensure the system lengths are a power of 2.
+npx = number of electrons distributed in x direction.
+npy = number of electrons distributed in y direction.
+   The total number of particles in the simulation is npx*npy.
+tend = time at end of simulation, in units of plasma frequency.
+dt = time interval between successive calculations.
+   The number of time steps the code runs is given by tend/dt.
+   dt should be less than .45*ci for the electromagnetic code.
+vtx/vty/vtz = thermal velocity of electrons in x/y/z direction.
+   a typical value is 1.0.
+vx0/vy0/vz0 = drift velocity of electrons in x/y/z direction.
+ci = reciprocal of velocity of light
+relativity = (no,yes) = (0,1) = relativity is used
+mx/my = number of grids points in x and y in each tile
+   should be less than or equal to 32.
+kvec = (1,2) = run (autovector,SSE2) version
+
+The major program files contained here include:
+vmbpic2.f90      Fortran90 main program
+vmbpic2.f03      Fortran2003 main program 
+vmbpic2.c        C main program
+omplib.f         Fortran77 OpenMP utility library
+omplib_h.f90     Fortran90 OpenMP utility interface (header) library
+omplib.c         C OpenMP utility library
+omplib.h         C OpenMP utility header library
+vmbpush2.f       Fortran77 procedure library
+vmbpush2_h.f90   Fortran90 procedure interface (header) library
+vmbpush2.c       C procedure library
+vmbpush2.h       C procedure header library
+sselib2.c        C Vector intrinsics utility library
+sselib2.h        C Vector intrinsics utility header library
+sseflib2.c       C Vector intrinsics utility library for Fortran90
+                 arrays
+sselib2_h.f90    Fortran90 Vector intrinsics utility header library
+sseflib2_h.f90   Fortran90 Vector intrinsics utility header library
+                 for Fortran90 arrays
+sselib2_c.f03    Fortran2003 Vector intrinsics utility header library
+ssembpush2.c     C Vector intrinsics procedure library
+ssembpush2.h     C Vector intrinsics procedure header library
+ssembpush2_h.f90 Fortran90 Vector intrinsics procedure header library
+ssembpush2_c.f03 Fortran2003 Vector intrinsics procedure header library
+dtimer.c         C timer function, used by both C and Fortran
+
+Files with the suffix.f90 adhere to the Fortran 90 standard, files with
+the suffix .f adhere to the Fortran77 standard, files with the suffix
+.f03 adhere to the Fortran2003 standard, and files with the suffix .c
+and .h adhere to the C99 standard.
+
+The makefile is setup to use icc and ifort with Linux.  Definitions for
+other compilers are in the Makefile, but are commented out. 
+
+Three executables can be created, fvmbpic2 for Fortran90, f03vmbpic2 for
+Fortran2003, and cvmbpic2 for C.  The only differences between the
+Fortran90 and Fortran2003 codes is how the interface to C is handled.
+Interoperability with C is part of Fortran2003, but is still unfamiliar
+to many programmers.
+
+To compile program, execute:
+
+Make program_name
+
+where program_name is either: fvmbpic2, f03vmbpic2 or cvmbpic2
+
+To create all of them, execute:
+
+make
+
+To execute, type the name of the executable:
+
+./program_name
+
+where program_name is either fvmbpic2, f03vmbpic2 or cvmbpic2.  By
+default, OpenMP will use the maximum number of processors it can find.
+If the user wants to control the number of threads, a parameter nvp can
+be set in the main program.  In addition, the environment variable
+OMP_NUM_THREADS may need to be set to the maximum number of threads
+expected.  Finally, if OpenMP 3.1 is available, setting the environment
+variable OMP_PROC_BIND=true generally gives better performance by
+preventing threads from moving between CPUs.
+
+The file output contains the results produced for the default parameters
+The file output.sse2 contains result for the SSE2 version.
+
+The Fortran version can be compiled to run with double precision by
+changing the Makefile (typically by setting the compiler options flags
+-r8), but only when the runtime parameter kvec = 1.
+
+The libraries omplib.c and vmbpush2.c contain wrapper functions to allow
+the C libraries to be called from Fortran.  The libraries omplib_f.c and
+vmbpush2_f.c contain wrapper functions to allow the Fortran libraries to
+be called from C.

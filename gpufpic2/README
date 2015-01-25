@@ -1,0 +1,227 @@
+Skeleton 2D Electrostatic GPU Particle-in-Cell (PIC) codes
+by Viktor K. Decyk
+copyright 2013, regents of the university of california
+
+This program contains sample codes for illustrating the basic structure
+of a 2D Electrostatic GPU Particle-in-Cell (PIC) code.  The GPU
+procedures are written in CUDA Fortran, and the main programs themselves
+are written in both Fortran and C.  The codes have no diagnosics except
+for initial and final energies.  Their primary purpose is to provide
+example codes for physical science students learning about GPU PIC
+codes.  They are also intended as benchmark reference codes to aid in
+developing new codes and in evaluating new computer architectures.  An
+OpenMP version of this code with the same structure (mpic2) also exists,
+and can be compared to this code in order to understand the parallel
+algorithms on the GPU.
+
+PIC codes are widely used in plasma physics.  They model plasmas as
+particles which interact self-consistently via the electromagnetic
+fields they themselves produce.  PIC codes generally have three
+important procedures in the main iteration loop.  The first is the
+deposit, where some particle quantity, such as a charge, is accumulated
+on a grid via interpolation to produce a source density.  The second
+important procedure is the field solver, which solves Maxwell’s equation
+or a subset to obtain the electric and/or magnetic fields from the
+source densities.  Finally, once the fields are obtained, the particle
+forces are found by interpolation from the grid, and the particle
+co-ordinates are updated, using Newton’s second law and the Lorentz
+force.  The particle processing parts dominate over the field solving
+parts in a typical PIC application.
+
+More details about PIC codes can be found in the texts by C. K. Birdsall
+and A. B. Langdon, Plasma Physics via Computer Simulation, 1985,
+R. W. Hockney and J. W. Eastwood, Computer Simulation Using Particles,
+1981, and John M. Dawson, "Particle simulation of plasmas", Rev. Mod.
+Phys. 55, 403 (1983).  Details about the mathematical equations and
+units used in this code is given in the companion article,
+"Description of Electrostatic Spectral Code from the UPIC Framework" by
+Viktor K. Decyk, UCLA, in the file ESModels.pdf.
+
+Details abut Cuda Fortran can be found in the book by Gregory Reutsch
+and Massimiliano Fatica, CUDA Fortran for Scientists and Engineers,
+Morgan Kaufmann, 2014.
+
+No warranty for proper operation of this software is given or implied.
+Software or information may be copied, distributed, and used at own
+risk; it may not be distributed without this notice included verbatim
+with each file.  If use of these codes results in a publication, an
+acknowledgement is requested.
+
+The code here uses the simplest force, the electrostatic Coulomb
+interaction, obtained by solving a Poisson equation.  A spectral method
+using Fast Fourier Transforms (FFTs) is used to solve the Poisson
+equation.  A real to complex FFT is used, and the data in Fourier space
+is stored in an unpacked format, where the input and output sizes are
+not the same.  The boundary conditions are periodic, only electron
+species are included, and linear interpolation is used.
+
+For parallelization, the code uses two levels of parallelism.  The
+outermost level uses a tiling (or blocking) technique.  Space is divided
+into small 2D tiles (with typically 16x16 grid points in a tile), and
+particles are organized so that their co-ordinates in x and y lie within
+the same tile and are stored together in memory.  A group of threads
+(called a thread block) is assigned to each tile.  This introduces a
+second level of parallelism which uses a vector or data parallel
+technique, where each thread in a block executes the same instruction in
+lock step.  Using multiple threads within a tile allows for the
+possibility of data collisions (where 2 or more threads try to write to
+the same memory location at the same time), which may have to be
+resolved.  The size of the tiles should be smaller than the shared
+memory size and the number of tiles should be greater than the number of
+multiprocessors on the GPU.
+
+There are 3 major procedures which make use of the tiled data structure,
+the charge deposit, the particle push, and the particle reordering.  In
+the deposit procedure, each thread in a block first deposits to a small
+shared memory density array the size of a tile plus guard cells.  Atomic
+operations (atomicAdd) in shared memory are needed to resolve data
+collisions.  After all the particles in a tile have been processed the
+shared memory density array is added to the global charge density array.
+The particle push is similar, where each thread block first copies the
+global field array to a shared memory field array which is then used for
+field interpolation.  An atomic operation is used only when counting how
+many particles are leaving a tile.  The particle reordering procedure
+(fgpupporder2l) moves particles which are leaving one tile into the
+appropriate location in another tile.  This is done by first copying
+outgoing particles into an ordered particle buffer.  Then incoming
+particles are copied from the buffers into the new locations in the
+particle array.  Performing this in two steps allows one to avoid data
+collisions by different blocks when writing and reading these buffers.
+The two steps are performed on each multipprocessor using atomic
+operations and data parallel techniques.  Inserting incoming particles
+into the particle array is performed by first calculating locations for
+the writes in parallel, then performing the actual writes.  Further
+information about this tiling parallel algorithm used can be found in
+the companion presentation GPU-PIC.pdf and in the article: V. K. Decyk
+and T. V. Singh, "Particle-in-Cell Algorithms for Emerging Computer
+Architectures," Computer Physics Communications, 185, 708 (2014),
+available at http://dx.doi.org/10.1016/j.cpc.2013.10.013.
+
+The default particle push does not calculate the list of particles
+leaving the tiles, as does the push in the OpenMP version in mpic2.
+This was done because the code was simpler to understand.  There is,
+however, a version of the push (fgpuppush2f2l) which does calculate the
+list.  This version of the push requires a different reordering
+procedure (fgpupporderf2l) which does not recalculate the list.  The
+difference in performance on the GPU between these versions is not
+great.
+
+The default real to complex GPU FFT is similar to the OpenMP version in
+mpic2, except that the data is not in a packed format, and it is
+vectorized.  There is also an FFT based on the the NVIDIA cuFFT library,
+which is faster, but its internal behavior is opaque.  The default FFT
+is intended to illustrate how one can parallelize such an FFT.
+
+Important differences between the push and deposit kernels (gpuppushf2l
+and gpu2ppost2l in gpupush2.cuf) and the OpenMP versions (in mpush2.f in
+the mpic2 directory) are highlighted in the file dgpumpush2_cuf.pdf
+
+Differences between the main code (gpupic2.cuf) and the main code in the
+OpenMP version in the mpic2 directory (mpic2.f90) are highlighted in the
+file dgpumpic2_cuf.pdf. 
+
+Particles are initialized with a uniform distribution in space and a
+gaussian distribution in velocity space.  This describes a plasma in
+thermal equilibrium.  The particle data is then copied to the GPU.  The
+inner loop contains a charge deposit, add guard cell procedures, a
+scalar FFT, a Poisson solver, a vector FFT, copy guard cell procedures,
+a particle push, and a particle reordering procedure.  The final energy
+and timings are calculated, copied to the host, and printed.  A sample
+output file for the default input parameters is included in the file
+output.
+
+In more detail, the inner loop of the code contains the following
+procedures:
+
+Deposit section:
+   fgpu2ppost2l: deposit charge density
+   fgpucaguard2l: add and copy charge density guard cells
+
+Field solve section:
+   fgpuwfft2rcs: FFT charge density to fourier space
+   fgpupois22t: calculate smoothed longitudinal electric field in
+                fourier space.
+   fgpuwfft2rcsn: FFT smoothed electric field to real space
+
+Particle Push section:
+   fgpuccguard2l: fill in guard cells for smoothed electric field
+   fgpuppush2l: update particle co-ordinates with smoothed electric
+                field. 
+                x(t)->x(t+dt); v(t-dt/2)->v(t+dt/2)
+   fgpuppord2l: move particles to appropriate tile
+
+The inputs to the code are the grid parameters indx, indy, the particle
+number parameters npx, npy, the time parameters tend, dt, and the
+velocity paramters vtx, vty, vx0, vy0.  In addition, a tile size mx, my,
+and overflow size xtras are defined.
+
+In more detail:
+indx = exponent which determines length in x direction, nx=2**indx.
+indy = exponent which determines length in y direction, ny=2**indy.
+   These ensure the system lengths are a power of 2.
+npx = number of electrons distributed in x direction.
+npy = number of electrons distributed in y direction.
+   The total number of particles in the simulation is npx*npy.
+tend = time at end of simulation, in units of plasma frequency.
+dt = time interval between successive calculations.
+   The number of time steps the code runs is given by tend/dt.
+   dt should be less than .2 for the electrostatic code.
+vtx/vty = thermal velocity of electrons in x/y direction
+   a typical value is 1.0.
+vx0/vy0 = drift velocity of electrons in x/y direction.
+mx/my = number of grids points in x and y in each tile.
+
+The major program files contained here include:
+gpupic2.cuf  Cuda Fortran main program
+gpupic2_f.c  Cuda C main program 
+gpulib2.cuf  Cuda Fortran utility library
+fgpulib2.h   C interface (header) to Cuda Fortran utility library
+gpulib2s.cu  Cuda C utility library
+gpulib2s.h   Cuda C utility header library
+gpupush2.cuf Cuda Fortran procedure library
+fgpupush2.h  C interface (header) to Cuda Fortran procedure library
+gpufft2.cuf  Cuda Fortran FFT library
+fgpufft2.h   C interface (header) to Cuda Fortran FFT library
+push2.f      Fortran77 procedure library
+push2_h.f90  Fortran90 procedure interface (header) library
+push2.c      C procedure library
+push2.h      C procedure header library
+dtimer.c     C timer function, used by both C and Fortran
+
+Files with the suffix .cuf are Cuda Fortran files which adhere to the
+Fortran2003 standard with extensions, files with the suffix .f90 adhere
+to the Fortran 90 standard, files with the suffix .f adhere to the
+Fortran77 standard, files with the .cu extension are Cuda C files, files
+with the suffix .c and .h adhere to the C99 standard.
+
+The makefile is setup to use PGI Cuda Fortan with Linux. 
+
+Two executables can be created, fgpufpic2 for Fortran, and cgpupic2_f
+for C. The libraries gpulib2_c.cuf, gpupush2_c.cuf, and gpufft2_c.cuf
+contain wrapper functions to allow the Cuda Fortran libraries to be
+called from C.
+
+To compile program, execute:
+
+Make program_name
+
+where program_name is either: fgpufpic2 or cgpupic2_f, or execute:
+
+make
+
+to create just the Fortran version.
+
+To execute, type the name of the executable:
+
+./program_name
+
+where program_name is either fgpufpic2 or cgpupic2_f.  By default, CUDA
+will use a blocksize of 128 and sets the cache size to 16 KB.  If the
+user wants to control the blocksize or cache size, the parameters
+nblock and nscache can be set in the main program.
+
+The file output contains the results produced for the default parameters.
+
+The Fortran version can be compiled to run with double precision by
+changing the Makefile (typically by setting the compiler options flags
+-r8).

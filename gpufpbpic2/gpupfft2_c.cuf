@@ -1,0 +1,136 @@
+!-----------------------------------------------------------------------
+! CUDA Fortran Parallel FFT Library interface to C
+! written by Viktor K. Decyk, UCLA
+      module fgpupfft2_c
+      use cudafor
+      use iso_c_binding
+      use fgpupfft2
+      implicit none
+      private
+!
+      contains
+!
+!-----------------------------------------------------------------------	
+      subroutine cgpupfft2rrcuinit(nx,kypp,ndim)                           &
+     &bind(C,name='fgpupfft2rrcuinit')
+      implicit none
+      integer(c_int), value :: nx, kypp, ndim
+      call fgpupfft2rrcuinit(nx,kypp,ndim)
+      end subroutine
+!
+!-----------------------------------------------------------------------	
+      subroutine cgpupft2cuinit(kxpp,ny,ndim)                             &
+     &bind(C,name='fgpupfft2cuinit')
+      implicit none
+      integer(c_int), value :: kxpp, ny, ndim
+      call fgpupfft2cuinit(kxpp,ny,ndim)
+      end subroutine
+!
+!-----------------------------------------------------------------------
+      subroutine cgpupfft2rrcudel() bind(C,name='fgpupfft2rrcudel')
+      implicit none
+      call fgpupfft2rrcudel()
+      end subroutine
+!
+!-----------------------------------------------------------------------
+      subroutine cgpupfft2cudel() bind(C,name='fgpupfft2cudel')
+      implicit none
+      call fgpupfft2cudel()
+      end subroutine
+!
+!-----------------------------------------------------------------------
+      subroutine cgpupfft2rrcux(f,bsm,isign,indx,indy,kstrt,nvp,kxp1,kyp&
+     &,nxh1d,kypd) bind(C,name='fgpupfft2rrcux')
+      implicit none
+      integer(c_int), value :: isign, indx, indy, kstrt, nvp, kxp1, kyp
+      integer(c_int), value :: nxh1d, kypd
+      type (c_devptr), value :: f, bsm
+! local data
+      complex, device, dimension(:,:), allocatable :: g_f
+      complex, device, dimension(:,:), allocatable :: g_bsm
+      call c_f_pointer(f,g_f,(/nxh1d,kypd/))
+      call c_f_pointer(bsm,g_bsm,(/kxp1*kyp,nvp-1/))
+      call fgpupfft2rrcux(g_f,g_bsm,isign,indx,indy,kstrt,nvp,kxp1,kyp  &
+     &,nxh1d,kypd)
+      end subroutine
+!
+!-----------------------------------------------------------------------
+      subroutine cgpupfft2rrcuy(g,brm,isign,indx,indy,kstrt,nvp,kxp1,kyp&
+     &,nyd) bind(C,name='fgpupfft2rrcuy')
+      implicit none
+      integer(c_int), value :: isign, indx, indy, kstrt, nvp, kxp1, kyp
+      integer(c_int), value :: nyd
+      type (c_devptr), value :: g, brm
+! local data
+      complex, device, dimension(:,:), allocatable :: g_g
+      complex, device, dimension(:,:), allocatable :: g_brm
+      call c_f_pointer(g,g_g,(/nyd,kxp1/))
+      call c_f_pointer(brm,g_brm,(/kxp1*kyp,nvp-1/))
+      call fgpupfft2rrcuy(g_g,g_brm,isign,indx,indy,kstrt,nvp,kxp1,kyp, &
+     &nyd)
+      end subroutine
+!
+!-----------------------------------------------------------------------
+      subroutine cgpupfft2rrcuxn(fn,bsm,isign,indx,indy,ndim,kstrt,nvp, &
+     &kxp1,kyp,nxh1d,kypd) bind(C,name='fgpupfft2rrcuxn')
+      implicit none
+      integer(c_int), value :: isign, indx, indy, ndim, kstrt, nvp, kxp1
+      integer(c_int), value :: kyp, nxh1d, kypd
+      type (c_devptr), value :: fn, bsm
+! local data
+      complex, device, dimension(:,:,:), allocatable :: g_fn
+      complex, device, dimension(:,:), allocatable :: g_bsm
+      call c_f_pointer(fn,g_fn,(/nxh1d,ndim,kypd/))
+      call c_f_pointer(bsm,g_bsm,(/kxp1*ndim*kyp,nvp-1/))
+      call fgpupfft2rrcuxn(g_fn,g_bsm,isign,indx,indy,ndim,kstrt,nvp,   &
+     &kxp1,kyp,nxh1d,kypd)
+      end subroutine
+!
+!-----------------------------------------------------------------------
+      subroutine cgpupfft2rrcuyn(gn,brm,isign,indx,indy,ndim,kstrt,nvp, &
+     &kxp1,kyp,nyd) bind(C,name='fgpupfft2rrcuyn')
+      implicit none
+      integer(c_int), value :: isign, indx, indy, ndim, kstrt, nvp, kxp1
+      integer(c_int), value :: kyp, nyd
+      type (c_devptr), value :: gn, brm
+! local data
+      complex, device, dimension(:,:), allocatable :: g_gn
+      complex, device, dimension(:,:), allocatable :: g_brm
+      call c_f_pointer(gn,g_gn,(/nyd,ndim,kxp1/))
+      call c_f_pointer(brm,g_brm,(/kxp1*ndim*kyp,nvp-1/))
+      call fgpupfft2rrcuyn(g_gn,g_brm,isign,indx,indy,ndim,kstrt,nvp,   &
+     &kxp1,kyp,nyd)
+      end subroutine
+!
+!-----------------------------------------------------------------------
+      subroutine cgpuppsltpose(f,g,ani,nx,ny,kxp,kyp,kstrt,nxv,nyv)     &
+     & bind(C,name='fgpuppsltpose')
+      implicit none
+      integer(c_int), value :: nx, ny, kxp, kyp, kstrt, nxv, nyv
+      real(c_float), value :: ani
+      type (c_devptr), value :: f, g
+! local data
+      complex, device, dimension(:,:), allocatable :: g_f
+      complex, device, dimension(:,:), allocatable :: g_g
+      call c_f_pointer(f,g_f,(/nxv,kyp/))
+      call c_f_pointer(g,g_g,(/nyv,kxp/))
+      call fgpuppsltpose(g_f,g_g,ani,nx,ny,kxp,kyp,kstrt,nxv,nyv)
+      end subroutine
+!
+!-----------------------------------------------------------------------
+      subroutine cgpuppsltposen(fn,gn,ani,nx,ny,kxp,kyp,kstrt,ndim,nxv, &
+     &nyv) bind(C,name='fgpuppsltposen')
+      implicit none
+      integer(c_int), value :: nx, ny, kxp, kyp, kstrt, ndim, nxv, nyv
+      real(c_float), value :: ani
+      type (c_devptr), value :: fn, gn
+! local data
+      complex, device, dimension(:,:,:), allocatable :: g_fn
+      complex, device, dimension(:,:,:), allocatable :: g_gn
+      call c_f_pointer(fn,g_fn,(/nxv,ndim,kyp/))
+      call c_f_pointer(gn,g_gn,(/nyv,ndim,kxp/))
+      call fgpuppsltposen(g_fn,g_gn,ani,nx,ny,kxp,kyp,kstrt,ndim,nxv,nyv&
+     &)
+      end subroutine
+!
+      end module

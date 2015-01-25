@@ -1,0 +1,488 @@
+!-----------------------------------------------------------------------
+! CUDA Fortran FFT Library 
+! written by Viktor K. Decyk, UCLA
+      module fgpufft2
+      use cudafor
+      use iso_c_binding
+      use fgpulib2, only : nblock_size, maxgsx
+      use fgpupush2, only : gpuctpose4, gpuctpose4n
+      implicit none
+!
+      integer, parameter :: CUFFT_FORWARD = -1, CUFFT_INVERSE = 1
+      integer, parameter :: CUFFT_C2C = Z'29', CUFFT_Z2Z = Z'69'
+      integer, parameter :: CUFFT_R2C = Z'2a', CUFFT_C2R = Z'2c'
+      integer, parameter :: CUFFT_D2Z = Z'6a', CUFFT_Z2D = Z'6c'
+      integer :: crc = 0, cfrc = 0
+      type (c_ptr) :: planrx, planxr, planrxn, planxrn
+      type (c_ptr) :: plany, planyn
+      save
+!
+      interface
+         integer(c_int) function cufftPlan1d(plan,nx,type,batch)        &
+     &bind(C,name='cufftPlan1d')
+         use iso_c_binding
+         implicit none
+         type (c_ptr) :: plan
+         integer(c_int), value :: nx, type, batch
+         end function
+      end interface
+!
+      interface
+         integer(c_int) function cufftDestroy(plan)                     &
+     &bind(C,name='cufftDestroy')
+         use iso_c_binding
+         implicit none
+         type (c_ptr), value :: plan
+         end function
+      end interface
+!
+      interface
+         integer(c_int) function cufftExecC2C(plan,idata,odata,direction&
+     &) bind(C,name='cufftExecC2C')
+         use iso_c_binding
+         implicit none
+         type (c_ptr), value :: plan
+         complex, device, dimension(*) :: idata, odata
+         integer(c_int), value :: direction
+         end function
+      end interface
+!
+      interface
+         integer(c_int) function cufftExecZ2Z(plan,idata,odata,direction&
+     &) bind(C,name='cufftExecZ2Z')
+         use iso_c_binding
+         implicit none
+         type (c_ptr), value :: plan
+         complex, device, dimension(*) :: idata, odata
+         integer(c_int), value :: direction
+         end function
+      end interface
+!
+      interface
+         integer(c_int) function cufftExecR2C(plan,idata,odata)         &
+     &bind(C,name='cufftExecR2C')
+         use iso_c_binding
+         implicit none
+         type (c_ptr), value :: plan
+         complex, device, dimension(*) :: idata, odata
+         end function
+      end interface
+!
+      interface
+         integer(c_int) function cufftExecC2R(plan,idata,odata)         &
+     &bind(C,name='cufftExecC2R')
+         use iso_c_binding
+         implicit none
+         type (c_ptr), value :: plan
+         complex, device, dimension(*) :: idata, odata
+         end function
+      end interface
+!
+      interface
+         integer(c_int) function cufftExecD2Z(plan,idata,odata)         &
+     &bind(C,name='cufftExecD2Z')
+         use iso_c_binding
+         implicit none
+         type (c_ptr), value :: plan
+         complex, device, dimension(*) :: idata, odata
+         end function
+      end interface
+!
+      interface
+         integer(c_int) function cufftExecZ2D(plan,idata,odata)         &
+     &bind(C,name='cufftExecZ2D')
+         use iso_c_binding
+         implicit none
+         type (c_ptr), value :: plan
+         complex, device, dimension(*) :: idata, odata
+         end function
+      end interface
+!
+      private
+      public :: fgpufft2rrcuinit, fgpufft2cuinit
+      public :: fgpufft2rrcudel, fgpufft2cudel
+      public :: fgpufft2rrcu, fgpufft2rrcun
+!
+      contains
+!
+!-----------------------------------------------------------------------
+      attributes(global) subroutine gpusctpose4(f,g,ani,nx,ny,nxv,nyv)
+! scaled complex transpose using blocking algorithm with gaps
+      implicit none
+      integer, value :: nx, ny, nxv, nyv
+      real, value :: ani
+      complex, dimension(nxv,nyv) :: f
+      complex, dimension(nyv,nxv) :: g
+! local data
+      integer :: j, k, js, ks, joff, koff, mx, mxv
+! The size of the shared memory array is as follows:
+! complex shm2((blockDim%x+1)*blockDim%x)
+      complex, shared, dimension((blockDim%x+1)*blockDim%x) :: shm2
+      mx = blockDim%x
+      mxv = mx + 1
+      joff = mx*(blockIdx%x - 1)
+      koff = mx*(blockIdx%y - 1)
+      js = threadIdx%x
+      ks = threadIdx%y
+! copy into block
+      j = js + joff
+      k = ks + koff
+      if ((j <= nx) .and. (k <= ny)) then
+         shm2(js+mxv*(ks-1)) = f(j,k)
+      endif
+      call syncthreads()
+! copy out from block with scaling
+      j = ks + joff
+      k = js + koff
+      if ((j <= nx) .and. (k <= ny)) then
+         g(k,j) = ani*shm2(ks+mxv*(js-1))
+      endif
+      end subroutine
+!
+!-----------------------------------------------------------------------
+      attributes(global) subroutine gpusctpose4n(fn,gn,ani,nx,ny,ndim,  &
+     &nxv,nyv)
+! complex vector transpose using blocking algorithm with gaps
+! ndim = vector dimension
+      implicit none
+      integer, value :: nx, ny, ndim, nxv, nyv
+      real, value :: ani
+      complex, dimension(nxv,ndim,nyv) :: fn
+      complex, dimension(nyv,ndim,nxv) :: gn
+! local data
+      integer :: i, j, k, js, ks, joff, koff, mx, mxv, nmxv, jj, kk
+! The size of the shared memory array is as follows:
+! complex shm2((blockDim%x+1)*ndim*blockDim%x)
+      complex, shared, dimension((blockDim%x+1)*ndim*blockDim%x) ::     &
+     &shmn2
+      mx = blockDim%x
+      mxv = mx + 1
+      joff = mx*(blockIdx%x - 1)
+      koff = mx*(blockIdx%y - 1)
+      js = threadIdx%x
+      ks = threadIdx%y
+      nmxv = ndim*mxv
+! copy into block
+      j = js + joff
+      k = ks + koff
+      if ((j <= nx) .and. (k <= ny)) then
+         kk = js + nmxv*(ks - 1)
+         do i = 1, ndim
+            shmn2(kk+mxv*(i-1)) = fn(j,i,k)
+         enddo
+      endif
+      call syncthreads()
+! copy out from block with scaling
+      j = ks + joff
+      k = js + koff
+      if ((j <= nx) .and. (k <= ny)) then
+         jj = ks + nmxv*(js - 1)
+         do i = 1, ndim
+            gn(k,i,j) = ani*shmn2(jj+mxv*(i-1))
+         enddo
+      endif
+      end subroutine
+!
+!-----------------------------------------------------------------------	
+      subroutine fgpufft2rrcuinit(nx,ny,ndim)
+      implicit none
+      integer, intent(in) :: nx, ny, ndim
+! local data
+      integer :: type
+      real :: f
+      if (sizeof(f)==8) then
+         type = CUFFT_D2Z
+      else
+         type = CUFFT_R2C
+      endif
+      cfrc = cufftPlan1d(planrx,nx,type,ny)
+      if (cfrc /= 0) then
+         write (*,*) 'cufftPlan1d planrx error=', cfrc
+         stop
+      endif
+      cfrc = cufftPlan1d(planrxn,nx,type,ndim*ny)
+      if (cfrc /= 0) then
+         write (*,*) 'cufftPlan1d planrxn error=', cfrc
+         stop
+      endif
+      if (sizeof(f)==8) then
+         type = CUFFT_Z2D
+      else
+         type = CUFFT_C2R
+      endif
+      cfrc = cufftPlan1d(planxr,nx,type,ny)
+      if (cfrc /= 0) then
+         write (*,*) 'cufftPlan1d planxr error=', cfrc
+         stop
+      endif
+      cfrc = cufftPlan1d(planxrn,nx,type,ndim*ny)
+      if (cfrc /= 0) then
+         write (*,*) 'cufftPlan1d planxrn error=', cfrc
+         stop
+      endif
+      end subroutine
+!
+!-----------------------------------------------------------------------	
+      subroutine fgpufft2cuinit(nx,ny,ndim)
+      implicit none
+      integer, intent(in) :: nx, ny, ndim
+! local data
+      integer :: nxh1, type
+      complex :: z
+      nxh1 = nx/2 + 1
+      if (sizeof(z)==16) then
+         type = CUFFT_Z2Z
+      else
+         type = CUFFT_C2C
+      endif
+      cfrc = cufftPlan1d(plany,ny,type,nxh1)
+      if (cfrc /= 0) then
+         write (*,*) 'cufftPlan1d plany error=', cfrc
+         stop
+      endif
+      cfrc = cufftPlan1d(planyn,ny,type,ndim*nxh1)
+      if (cfrc /= 0) then
+         write (*,*) 'cufftPlan1d planyn error=', cfrc
+         stop
+      endif
+      end subroutine
+!
+!-----------------------------------------------------------------------
+      subroutine fgpufft2rrcudel()
+      implicit none
+      cfrc = cufftDestroy(planrx)
+      if (cfrc /= 0) then
+         write (*,*) 'cufftDestroy planrx error=', cfrc
+         stop
+      endif
+      cfrc = cufftDestroy(planxr)
+      if (cfrc /= 0) then
+         write (*,*) 'cufftDestroy planxr error=', cfrc
+         stop
+      endif
+      cfrc = cufftDestroy(planrxn)
+      if (cfrc /= 0) then
+         write (*,*) 'cufftDestroy planrxn error=', cfrc
+         stop
+      endif
+      cfrc = cufftDestroy(planxrn)
+      if (cfrc /= 0) then
+         write (*,*) 'cufftDestroy planxrn error=', cfrc
+         stop
+      endif
+      end subroutine
+!
+!-----------------------------------------------------------------------
+      subroutine fgpufft2cudel()
+      implicit none
+      cfrc = cufftDestroy(plany)
+      if (cfrc /= 0) then
+         write (*,*) 'cufftDestroy plany error=', cfrc
+         stop
+      endif
+      cfrc = cufftDestroy(planyn)
+      if (cfrc /= 0) then
+         write (*,*) 'cufftDestroy planyn error=', cfrc
+         stop
+      endif
+      end subroutine
+!
+!-----------------------------------------------------------------------
+      subroutine fgpufft2rrcu(f,g,isign,indx,indy,nxh1d,nyd)
+! wrapper function for real to complex fft, without packed data
+! uses 1D real to complex and complex to complex NVIDIA FFTs
+! nxh1d must be = nx/2+1
+      implicit none
+      integer, intent(in) :: isign, indx, indy, nxh1d, nyd
+      complex, device, dimension(nxh1d,nyd) :: f
+      complex, device, dimension(nyd,nxh1d) :: g
+! local data
+      integer :: nx, nxh1, ny, ns
+      integer :: mx = 16
+      real :: ani
+      complex :: z
+      type (dim3) :: dimBlock, dimBlockt, dimGridtx, dimGridty
+      dimBlock = dim3(nblock_size,1,1)
+      dimBlockt = dim3(mx,mx,1)
+! calculate range of indices
+      nx = 2**indx
+      nxh1 = nx/2 + 1
+      ny = 2**indy
+      dimGridtx = dim3((nxh1-1)/mx+1,(ny-1)/mx+1,1)
+      dimGridty = dim3((ny-1)/mx+1,(nxh1-1)/mx+1,1)
+      ns = (mx+1)*mx*sizeof(z)
+! inverse fourier transform
+      if (isign < 0) then
+! perform x fft
+         if (sizeof(ani)==8) then
+            cfrc = cufftExecD2Z(planrx,f,f)
+         else
+            cfrc = cufftExecR2C(planrx,f,f)
+         endif
+!        crc = cudaThreadSynchronize()
+         if (cfrc /= 0) then
+            write (*,*) 'cufftExecR2C(-1) planrx error=', cfrc
+            stop
+         endif
+! transpose f to g and normalize
+         ani = 1.0/(real(nx)*real(ny))
+         crc = cudaGetLastError()
+         call gpusctpose4<<<dimGridtx,dimBlockt,ns>>>(f,g,ani,nxh1,ny,  &
+     &nxh1d,nyd)
+!        crc = cudaThreadSynchronize()
+         crc = cudaGetLastError()
+         if (crc /= 0) then
+            write (*,*) 'gpusctpose4 error=',crc,':',                   &
+     &cudaGetErrorString(crc)
+            stop
+         endif
+! perform y fft
+         if (sizeof(z)==16) then
+            cfrc = cufftExecZ2Z(plany,g,g,CUFFT_FORWARD)
+         else
+            cfrc = cufftExecC2C(plany,g,g,CUFFT_FORWARD)
+         endif
+         crc = cudaThreadSynchronize()
+         if (cfrc /= 0) then
+            write (*,*) 'cufftExecC2C(-1) plany error=', cfrc
+            stop
+         endif
+! forward fourier transform
+      else if (isign > 0) then
+! perform y fft
+         if (sizeof(z)==16) then
+            cfrc = cufftExecZ2Z(plany,g,g,CUFFT_INVERSE)
+         else
+            cfrc = cufftExecC2C(plany,g,g,CUFFT_INVERSE)
+         endif
+!        crc = cudaThreadSynchronize()
+         if (cfrc /= 0) then
+            write (*,*) 'cufftExecC2C() plany error=', cfrc
+            stop
+         endif
+! transpose g to f
+         crc = cudaGetLastError()
+         call gpuctpose4<<<dimGridty,dimBlockt,ns>>>(g,f,ny,nxh1,nyd,   &
+     &nxh1d)
+!        crc = cudaThreadSynchronize()
+         crc = cudaGetLastError()
+         if (crc /= 0) then
+            write (*,*) 'gpuctpose4 error=',crc,':',                    &
+     &cudaGetErrorString(crc)
+            stop
+         endif
+! perform x fft
+         if (sizeof(ani)==8) then
+            cfrc = cufftExecZ2D(planxr,f,f)
+         else
+            cfrc = cufftExecC2R(planxr,f,f)
+         endif
+         crc = cudaThreadSynchronize()
+         if (cfrc /= 0) then
+            write (*,*) 'cufftExecC2R(1) planxr error=', cfrc
+            stop
+         endif
+      endif
+      end subroutine
+!
+!-----------------------------------------------------------------------
+      subroutine fgpufft2rrcun(fn,gn,isign,indx,indy,ndim,nxh1d,nyd)
+! wrapper function for real to complex fft, without packed data
+! for vector data
+! uses 1D real to complex and complex to complex NVIDIA FFTs
+! ndim = vector dimension
+! nxh1d must be = nx/2+1
+      implicit none
+      integer, intent(in) :: isign, indx, indy, ndim, nxh1d, nyd
+      complex, device, dimension(nxh1d,ndim,nyd) :: fn
+      complex, device, dimension(nyd,ndim,nxh1d) :: gn
+! local data
+      integer :: nx, nxh1, ny, ns
+      integer :: mx = 16
+      real :: ani
+      complex :: z
+      type (dim3) :: dimBlock, dimBlockt, dimGridtx, dimGridty
+      dimBlock = dim3(nblock_size,1,1)
+      dimBlockt = dim3(mx,mx,1)
+! calculate range of indices
+      nx = 2**indx
+      nxh1 = nx/2 + 1
+      ny = 2**indy
+      dimGridtx = dim3((nxh1-1)/mx+1,(ny-1)/mx+1,1)
+      dimGridty = dim3((ny-1)/mx+1,(nxh1-1)/mx+1,1)
+      ns = ndim*(mx+1)*mx*sizeof(z)
+! inverse fourier transform
+      if (isign < 0) then
+! perform x fft
+         if (sizeof(ani)==8) then
+            cfrc = cufftExecD2Z(planrxn,fn,fn)
+         else
+            cfrc = cufftExecR2C(planrxn,fn,fn)
+         endif
+!        crc = cudaThreadSynchronize()
+         if (cfrc /= 0) then
+            write (*,*) 'cufftExecR2C(-1) planrxn error=', cfrc
+            stop
+         endif
+! transpose f to g and normalize
+         ani = 1.0/(real(nx)*real(ny))
+         crc = cudaGetLastError()
+         call gpusctpose4n<<<dimGridtx,dimBlockt,ns>>>(fn,gn,ani,nxh1,ny&
+     &,ndim,nxh1d,nyd)
+!        crc = cudaThreadSynchronize()
+         crc = cudaGetLastError()
+         if (crc /= 0) then
+            write (*,*) 'gpusctpose4n error=',crc,':',                  &
+     &cudaGetErrorString(crc)
+            stop
+         endif
+! perform y fft
+         if (sizeof(z)==16) then
+            cfrc = cufftExecZ2Z(planyn,gn,gn,CUFFT_FORWARD)
+         else
+            cfrc = cufftExecC2C(planyn,gn,gn,CUFFT_FORWARD)
+         endif
+         crc = cudaThreadSynchronize()
+         if (cfrc /= 0) then
+            write (*,*) 'cufftExecC2C(-1) planyn error=', cfrc
+            stop
+         endif
+! forward fourier transform
+      else if (isign > 0) then
+! perform y fft
+         if (sizeof(z)==16) then
+            cfrc = cufftExecZ2Z(planyn,gn,gn,CUFFT_INVERSE)
+         else
+            cfrc = cufftExecC2C(planyn,gn,gn,CUFFT_INVERSE)
+         endif
+!        crc = cudaThreadSynchronize()
+         if (cfrc /= 0) then
+            write (*,*) 'cufftExecC2C() planyn error=', cfrc
+            stop
+         endif
+! transpose g to f
+         crc = cudaGetLastError()
+         call gpuctpose4n<<<dimGridty,dimBlockt,ns>>>(gn,fn,ny,nxh1,ndim&
+     &,nyd,nxh1d)
+!        crc = cudaThreadSynchronize()
+         crc = cudaGetLastError()
+         if (crc /= 0) then
+            write (*,*) 'gpuctpose4n error=',crc,':',                   &
+     &cudaGetErrorString(crc)
+            stop
+         endif
+! perform x fft
+         if (sizeof(ani)==8) then
+            cfrc = cufftExecZ2D(planxrn,fn,fn)
+         else
+            cfrc = cufftExecC2R(planxrn,fn,fn)
+         endif
+         crc = cudaThreadSynchronize()
+         if (cfrc /= 0) then
+            write (*,*) 'cufftExecC2R(1) planxrn error=', cfrc
+            stop
+         endif
+      endif
+      end subroutine
+!
+      end module

@@ -1,0 +1,39 @@
+ j=            0 :CUDA_DEVICE_NAME=Tesla M2090
+     CUDA_MULTIPROCESSOR_COUNT=           16
+     CUDA_GLOBAL_MEM_SIZE=               5636554752 (    5.249451     GB)
+     Capability=           20
+ j=            1 :CUDA_DEVICE_NAME=Tesla M2090
+     CUDA_MULTIPROCESSOR_COUNT=           16
+     CUDA_GLOBAL_MEM_SIZE=               5636554752 (    5.249451     GB)
+     Capability=           20
+ j=            2 :CUDA_DEVICE_NAME=Tesla M2090
+     CUDA_MULTIPROCESSOR_COUNT=           16
+     CUDA_GLOBAL_MEM_SIZE=               5636554752 (    5.249451     GB)
+     Capability=           20
+ using device j=            0
+ using device j=            1
+ using device j=            2
+ Initial Field, Kinetic and Total Energies:
+ 0.1723102E-03 0.9439148E+07 0.9439148E+07
+ ntime =           100
+ MPI nodes nvp =             3 , GPUs per host =             3
+ Final Field, Kinetic and Total Energies:
+ 0.7758228E+04 0.9431428E+07 0.9439186E+07
+ 
+ deposit time =    8.7366000E-02
+ guard time =    1.5551994E-02
+ solver time =    4.1230023E-03
+ fft times =    0.1229770       5.3965036E-02   6.9011994E-02
+ push time =    0.1118220    
+ move time =    1.3494999E-02
+ sort time =    0.1747630    
+ total solver time =    0.1426520    
+ total particle time =    0.3874460    
+ total time =    0.5300980    
+ 
+ Push Time (nsec) =    0.1184909    
+ Deposit Time (nsec) =    9.2576347E-02
+ Sort Time (nsec) =    0.1851856    
+ Move Time (nsec) =    1.4299816E-02
+ Total Particle Time (nsec) =    0.4105525
+

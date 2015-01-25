@@ -1,0 +1,485 @@
+!-----------------------------------------------------------------------
+! CUDA Fortran Library for Skeleton 2-1/2D Electromagnetic GPU-MPI PIC
+! interface to C
+! written by Viktor K. Decyk, UCLA
+      module fgpupbpush2_c
+      use cudafor
+      use iso_c_binding
+      use fgpupbpush2
+      implicit none
+      private
+!
+      contains
+!
+!-----------------------------------------------------------------------
+      subroutine cgpuppgbppush23l(ppart,fxy,bxy,kpic,noff,nyp,qbm,dt,dtc&
+     &,ek,idimp,nppmx,nx,ny,mx,my,nxv,nypmx,mx1,mxyp1,ipbc)             &
+     &bind(C,name='fgpuppgbppush23l')
+      implicit none
+      integer(c_int), value :: noff, nyp, idimp, nppmx, nx, ny, mx, my
+      integer(c_int), value :: nxv, nypmx, mx1, mxyp1, ipbc
+      real(c_float), value :: qbm, dt, dtc
+      type (c_devptr), value :: ppart, fxy, bxy, kpic, ek
+! local data
+      real, device, dimension(:,:,:), allocatable :: g_ppart
+      real, device, dimension(:,:,:), allocatable :: g_fxy, g_bxy
+      integer, device, dimension(:), allocatable :: g_kpic
+      real, device, dimension(:), allocatable :: g_ek
+      call c_f_pointer(ppart,g_ppart,(/nppmx,idimp,mxyp1/))
+      call c_f_pointer(fxy,g_fxy,(/3,nxv,nypmx/))
+      call c_f_pointer(bxy,g_bxy,(/3,nxv,nypmx/))
+      call c_f_pointer(kpic,g_kpic,(/mxyp1/))
+      call c_f_pointer(ek,g_ek,(/mxyp1/))
+      call fgpuppgbppush23l(g_ppart,g_fxy,g_bxy,g_kpic,noff,nyp,qbm,dt, &
+     &dtc,g_ek,idimp,nppmx,nx,ny,mx,my,nxv,nypmx,mx1,mxyp1,ipbc)
+      end subroutine
+!
+!-----------------------------------------------------------------------
+      subroutine cgpuppgrbppush23l(ppart,fxy,bxy,kpic,noff,nyp,qbm,dt,  &
+     &dtc,ci,ek,idimp,nppmx,nx,ny,mx,my,nxv,nypmx,mx1,mxyp1,ipbc)       &
+     &bind(C,name='fgpuppgrbppush23l')
+      implicit none
+      integer(c_int), value :: noff, nyp, idimp, nppmx, nx, ny, mx, my
+      integer(c_int), value :: nxv, nypmx, mx1, mxyp1, ipbc
+      real(c_float), value :: qbm, dt, dtc, ci
+      type (c_devptr), value :: ppart, fxy, bxy, kpic, ek
+! local data
+      real, device, dimension(:,:,:), allocatable :: g_ppart
+      real, device, dimension(:,:,:), allocatable :: g_fxy, g_bxy
+      integer, device, dimension(:), allocatable :: g_kpic
+      real, device, dimension(:), allocatable :: g_ek
+      call c_f_pointer(ppart,g_ppart,(/nppmx,idimp,mxyp1/))
+      call c_f_pointer(fxy,g_fxy,(/3,nxv,nypmx/))
+      call c_f_pointer(bxy,g_bxy,(/3,nxv,nypmx/))
+      call c_f_pointer(kpic,g_kpic,(/mxyp1/))
+      call c_f_pointer(ek,g_ek,(/mxyp1/))
+      call fgpuppgrbppush23l(g_ppart,g_fxy,g_bxy,g_kpic,noff,nyp,qbm,dt,&
+     &dtc,ci,g_ek,idimp,nppmx,nx,ny,mx,my,nxv,nypmx,mx1,mxyp1,ipbc)
+      end subroutine
+!
+!-----------------------------------------------------------------------
+      subroutine cgpu2ppgppost2l(ppart,q,kpic,noff,qm,idimp,nppmx,mx,my,&
+     &nxv,nypmx,mx1,mxyp1) bind(C,name='fgpu2ppgppost2l')
+      implicit none
+      integer(c_int), value :: noff, idimp, nppmx, mx, my, nxv, nypmx
+      integer(c_int), value :: mx1, mxyp1
+      real(c_float), value :: qm
+      type (c_devptr), value :: ppart, q, kpic
+! local data
+      real, device, dimension(:,:,:), allocatable :: g_ppart
+      real, device, dimension(:,:), allocatable :: g_q
+      integer, device, dimension(:), allocatable :: g_kpic
+      call c_f_pointer(ppart,g_ppart,(/nppmx,idimp,mxyp1/))
+      call c_f_pointer(q,g_q,(/nxv,nypmx/))
+      call c_f_pointer(kpic,g_kpic,(/mxyp1/))
+      call fgpu2ppgppost2l(g_ppart,g_q,g_kpic,noff,qm,idimp,nppmx,mx,my,&
+     &nxv,nypmx,mx1,mxyp1)
+      end subroutine
+!
+!-----------------------------------------------------------------------
+      subroutine cgpu2ppjppost2l(ppart,cu,kpic,noff,qm,dt,nppmx,idimp,nx&
+     &,ny,mx,my,nxv,nypmx,mx1,mxyp1,ipbc) bind(C,name='fgpu2ppjppost2l')
+      implicit none
+      integer(c_int), value :: noff, nppmx, idimp, nx, ny, mx, my
+      integer(c_int), value :: nxv, nypmx, mx1, mxyp1, ipbc
+      real(c_float), value :: qm, dt
+      type (c_devptr), value :: ppart, cu, kpic
+! local data
+      real, device, dimension(:,:,:), allocatable :: g_ppart
+      real, device, dimension(:,:,:), allocatable :: g_cu
+      integer, device, dimension(:), allocatable :: g_kpic
+      call c_f_pointer(ppart,g_ppart,(/nppmx,idimp,mxyp1/))
+      call c_f_pointer(cu,g_cu,(/nxv,3,nypmx/))
+      call c_f_pointer(kpic,g_kpic,(/mxyp1/))
+      call fgpu2ppjppost2l(g_ppart,g_cu,g_kpic,noff,qm,dt,nppmx,idimp,nx&
+     &,ny,mx,my,nxv,nypmx,mx1,mxyp1,ipbc)
+      end subroutine
+!
+!-----------------------------------------------------------------------
+      subroutine cgpu2pprjppost2l(ppart,cu,kpic,noff,qm,dt,ci,nppmx,    &
+     &idimp,nx,ny,mx,my,nxv,nypmx,mx1,mxyp1,ipbc)                       &
+     &bind(C,name='fgpu2pprjppost2l')
+      implicit none
+      integer(c_int), value :: noff, nppmx, idimp, nx, ny, mx, my
+      integer(c_int), value :: nxv, nypmx, mx1, mxyp1, ipbc
+      real(c_float), value :: qm, dt, ci
+      type (c_devptr), value :: ppart, cu, kpic
+! local data
+      real, device, dimension(:,:,:), allocatable :: g_ppart
+      real, device, dimension(:,:,:), allocatable :: g_cu
+      integer, device, dimension(:), allocatable :: g_kpic
+      call c_f_pointer(ppart,g_ppart,(/nppmx,idimp,mxyp1/))
+      call c_f_pointer(cu,g_cu,(/nxv,3,nypmx/))
+      call c_f_pointer(kpic,g_kpic,(/mxyp1/))
+      call fgpu2pprjppost2l(g_ppart,g_cu,g_kpic,noff,qm,dt,ci,nppmx,    &
+     &idimp,nx,ny,mx,my,nxv,nypmx,mx1,mxyp1,ipbc)
+      end subroutine
+!
+!-----------------------------------------------------------------------
+      subroutine cgpuppcaguard2xl(qc,scs,q,nyp,nx,nxe,nypmx,nxvh,kypd)  &
+     &bind(C,name='fgpuppcaguard2xl')
+      implicit none
+      integer(c_int), value :: nyp, nx, nxe, nypmx, nxvh, kypd
+      type (c_devptr), value :: qc, scs, q
+! local data
+      complex, device, dimension(:,:), allocatable :: g_qc
+      complex, device, dimension(:), allocatable :: g_scs
+      real, device, dimension(:,:), allocatable :: g_q
+      call c_f_pointer(qc,g_qc,(/nxvh,kypd/))
+      call c_f_pointer(scs,g_scs,(/nxvh/))
+      call c_f_pointer(q,g_q,(/nxe,nypmx/))
+      call fgpuppcaguard2xl(g_qc,g_scs,g_q,nyp,nx,nxe,nypmx,nxvh,kypd)
+      end subroutine
+!
+!-----------------------------------------------------------------------
+      subroutine cgpuppcaguard2yl(fc,scr,nx,nxvh,kypd)                  &
+     &bind(C,name='fgpuppcaguard2yl')
+      implicit none
+      integer(c_int), value :: nx, nxvh, kypd
+      type (c_devptr), value :: fc, scr
+! local data
+      complex, device, dimension(:,:), allocatable :: g_fc
+      complex, device, dimension(:), allocatable :: g_scr
+      call c_f_pointer(fc,g_fc,(/nxvh,kypd/))
+      call c_f_pointer(scr,g_scr,(/nxvh/))
+      call fgpuppcaguard2yl(g_fc,g_scr,nx,nxvh,kypd)
+      end subroutine
+!
+!-----------------------------------------------------------------------
+      subroutine cgpuppcacguard2xl(cuc,scs,cu,nyp,nx,nxe,nypmx,nxvh,kypd&
+     &) bind(C,name='fgpuppcacguard2xl')
+      implicit none
+      integer(c_int), value :: nyp, nx, nxe, nypmx, nxvh, kypd
+      type (c_devptr), value :: cuc, scs, cu
+! local data
+      complex, device, dimension(:,:,:), allocatable :: g_cuc
+      complex, device, dimension(:), allocatable :: g_scs
+      real, device, dimension(:,:,:), allocatable :: g_cu
+      call c_f_pointer(cuc,g_cuc,(/nxvh,3,kypd/))
+      call c_f_pointer(scs,g_scs,(/nxvh/))
+      call c_f_pointer(cu,g_cu,(/3,nxe,nypmx/))
+      call fgpuppcacguard2xl(g_cuc,g_scs,g_cu,nyp,nx,nxe,nypmx,nxvh,kypd&
+     &)
+      end subroutine
+!
+!-----------------------------------------------------------------------
+      subroutine cgpuppcacguard2yl(fvc,scr,nx,nxvh,kypd)                &
+     &bind(C,name='fgpuppcacguard2yl')
+      implicit none
+      integer(c_int), value :: nx, nxvh, kypd
+      type (c_devptr), value :: fvc, scr
+! local data
+      complex, device, dimension(:,:,:), allocatable :: g_fvc
+      complex, device, dimension(:), allocatable :: g_scr
+      call c_f_pointer(fvc,g_fvc,(/nxvh,3,kypd/))
+      call c_f_pointer(scr,g_scr,(/nxvh/))
+      call fgpuppcacguard2yl(g_fvc,g_scr,nx,nxvh,kypd)
+      end subroutine
+!
+!-----------------------------------------------------------------------
+      subroutine cgpuppcbguard2xl(fxyc,scs,fxy,nyp,nx,nxe,nypmx,nxvh,   &
+     &kypd) bind(C,name='fgpuppcbguard2xl')
+      implicit none
+      integer(c_int), value :: nyp, nx, nxe, nypmx, nxvh, kypd
+      type (c_devptr), value :: fxyc, scs, fxy
+! local data
+      complex, device, dimension(:,:,:), allocatable :: g_fxyc
+      complex, device, dimension(:,:), allocatable :: g_scs
+      real, device, dimension(:,:,:), allocatable :: g_fxy
+      call c_f_pointer(fxyc,g_fxyc,(/nxvh,3,kypd/))
+      call c_f_pointer(scs,g_scs,(/nxvh,3/))
+      call c_f_pointer(fxy,g_fxy,(/3,nxe,nypmx/))
+      call fgpuppcbguard2xl(g_fxyc,g_scs,g_fxy,nyp,nx,nxe,nypmx,nxvh,   &
+     &kypd)
+      end subroutine
+!
+!-----------------------------------------------------------------------
+      subroutine cgpuppcbguard2yl(fxy,scr,nyp,nx,nxe,nxvh,nypmx)        &
+     &bind(C,name='fgpuppcbguard2yl')
+      implicit none
+      integer(c_int), value :: nyp, nx, nxe, nxvh, nypmx
+      type (c_devptr), value :: fxy, scr
+! local data
+      real, device, dimension(:,:,:), allocatable :: g_fxy
+      complex, device, dimension(:,:), allocatable :: g_scr
+      call c_f_pointer(fxy,g_fxy,(/3,nxe,nypmx/))
+      call c_f_pointer(scr,g_scr,(/nxvh,3/))
+      call fgpuppcbguard2yl(g_fxy,g_scr,nyp,nx,nxe,nxvh,nypmx)
+      end subroutine
+!
+!-----------------------------------------------------------------------
+      subroutine cgpupppord2la(ppart,ppbuff,sbufl,sbufr,kpic,ncl,ihole, &
+     &ncll,nclr,noff,nyp,idimp,nppmx,nx,ny,mx,my,mx1,myp1,npbmx,ntmax,  &
+     &nbmax,irc) bind(C,name='fgpupppord2la')
+      implicit none
+      integer(c_int), value :: noff, nyp, idimp, nppmx, nx, ny, mx, my
+      integer(c_int), value :: mx1, myp1, npbmx, ntmax, nbmax
+      type (c_devptr), value :: ppart, ppbuff, sbufl, sbufr, kpic, ncl
+      type (c_devptr), value :: ihole, ncll, nclr, irc
+! local data
+      real, device, dimension(:,:,:), allocatable :: g_ppart, g_ppbuff
+      real, device, dimension(:), allocatable :: g_sbufl, g_sbufr
+      integer, device, dimension(:), allocatable :: g_kpic
+      integer, device, dimension(:,:), allocatable :: g_ncl
+      integer, device, dimension(:,:,:), allocatable :: g_ihole
+      integer, device, dimension(:,:), allocatable :: g_ncll, g_nclr
+      integer, device, dimension(:), allocatable :: g_irc
+      call c_f_pointer(ppart,g_ppart,(/nppmx,idimp,mx1*myp1/))
+      call c_f_pointer(ppbuff,g_ppbuff,(/npbmx,idimp,mx1*myp1/))
+      call c_f_pointer(sbufl,g_sbufl,(/nbmax*idimp/))
+      call c_f_pointer(sbufr,g_sbufr,(/nbmax*idimp/))
+      call c_f_pointer(kpic,g_kpic,(/mx1*myp1/))
+      call c_f_pointer(ncl,g_ncl,(/8,mx1*myp1/))
+      call c_f_pointer(ihole,g_ihole,(/2,ntmax+1,mx1*myp1/))
+      call c_f_pointer(ncll,g_ncll,(/3,mx1/))
+      call c_f_pointer(nclr,g_nclr,(/3,mx1/))
+      call c_f_pointer(irc,g_irc,(/1/))
+      call fgpupppord2la(g_ppart,g_ppbuff,g_sbufl,g_sbufr,g_kpic,g_ncl, &
+     &g_ihole,g_ncll,g_nclr,noff,nyp,idimp,nppmx,nx,ny,mx,my,mx1,myp1,  &
+     &npbmx,ntmax,nbmax,g_irc)
+      end subroutine
+!
+!-----------------------------------------------------------------------
+      subroutine cgpupppord2lb(ppart,ppbuff,rbufl,rbufr,kpic,ncl,ihole, &
+     &mcll,mclr,idimp,nppmx,mx1,myp1,npbmx,ntmax,nbmax,irc)             &
+     &bind(C,name='fgpupppord2lb')
+      implicit none
+      integer(c_int), value :: idimp, nppmx, mx1, myp1, npbmx, ntmax
+      integer(c_int), value :: nbmax
+      type (c_devptr), value :: ppart, ppbuff, rbufl, rbufr, kpic, ncl
+      type (c_devptr), value :: ihole, mcll, mclr, irc
+! local data
+      real, device, dimension(:,:,:), allocatable :: g_ppart, g_ppbuff
+      real, device, dimension(:), allocatable :: g_rbufl, g_rbufr
+      integer, device, dimension(:), allocatable :: g_kpic
+      integer, device, dimension(:,:), allocatable :: g_ncl
+      integer, device, dimension(:,:,:), allocatable :: g_ihole
+      integer, device, dimension(:,:), allocatable :: g_mcll, g_mclr
+      integer, device, dimension(:), allocatable :: g_irc
+      call c_f_pointer(ppart,g_ppart,(/nppmx,idimp,mx1*myp1/))
+      call c_f_pointer(ppbuff,g_ppbuff,(/npbmx,idimp,mx1*myp1/))
+      call c_f_pointer(rbufl,g_rbufl,(/nbmax*idimp/))
+      call c_f_pointer(rbufr,g_rbufr,(/nbmax*idimp/))
+      call c_f_pointer(kpic,g_kpic,(/mx1*myp1/))
+      call c_f_pointer(ncl,g_ncl,(/8,mx1*myp1/))
+      call c_f_pointer(ihole,g_ihole,(/2,ntmax+1,mx1*myp1/))
+      call c_f_pointer(mcll,g_mcll,(/3,mx1/))
+      call c_f_pointer(mclr,g_mclr,(/3,mx1/))
+      call c_f_pointer(irc,g_irc,(/1/))
+      call fgpupppord2lb(g_ppart,g_ppbuff,g_rbufl,g_rbufr,g_kpic,g_ncl, &
+     &g_ihole,g_mcll,g_mclr,idimp,nppmx,mx1,myp1,npbmx,ntmax,nbmax,g_irc&
+     &)
+      end subroutine
+!
+!-----------------------------------------------------------------------
+      subroutine cgpuppois23t(qt,fxyt,ffct,we,nx,ny,kstrt,nyv,kxp1,nyhd)&
+     & bind(C,name='fgpuppois23t')
+      implicit none
+      integer(c_int), value :: nx, ny, kstrt, nyv, kxp1, nyhd
+      type (c_devptr), value :: qt, fxyt, ffct, we
+! local data
+      complex, device, dimension(:,:), allocatable :: g_qt
+      complex, device, dimension(:,:,:), allocatable :: g_fxyt
+      complex, device, dimension(:,:), allocatable :: g_ffct
+      real, device, dimension(:), allocatable :: g_we
+      call c_f_pointer(qt,g_qt,(/nyv,kxp1/))
+      call c_f_pointer(fxyt,g_fxyt,(/nyv,3,kxp1/))
+      call c_f_pointer(ffct,g_ffct,(/nyhd,kxp1/))
+      call c_f_pointer(we,g_we,(/kxp1/))
+      call fgpuppois23t(g_qt,g_fxyt,g_ffct,g_we,nx,ny,kstrt,nyv,kxp1,   &
+     &nyhd)
+      end subroutine
+!
+!-----------------------------------------------------------------------
+      subroutine cgpuppcuperp2t(cut,nx,ny,kstrt,nyv,kxp1)               &
+     & bind(C,name='fgpuppcuperp2t')
+      implicit none
+      integer(c_int), value :: nx, ny, kstrt, nyv, kxp1
+      type (c_devptr), value :: cut
+! local data
+      complex, device, dimension(:,:,:), allocatable :: g_cut
+      call c_f_pointer(cut,g_cut,(/nyv,3,kxp1/))
+      call fgpuppcuperp2t(g_cut,nx,ny,kstrt,nyv,kxp1)
+      end subroutine
+!
+!-----------------------------------------------------------------------
+      subroutine cgpuippbpoisp23t(cut,bxyt,ffct,ci,wm,nx,ny,kstrt,nyv,  &
+     &kxp1,nyhd) bind(C,name='fgpuippbpoisp23t')
+      implicit none
+      integer(c_int), value :: nx, ny, kstrt, nyv, kxp1, nyhd
+      real(c_float), value :: ci
+      type (c_devptr), value :: cut, bxyt, ffct, wm
+! local data
+      complex, device, dimension(:,:,:), allocatable :: g_cut
+      complex, device, dimension(:,:,:), allocatable :: g_bxyt
+      complex, device, dimension(:,:), allocatable :: g_ffct
+      real, device, dimension(:), allocatable :: g_wm
+      call c_f_pointer(cut,g_cut,(/nyv,3,kxp1/))
+      call c_f_pointer(bxyt,g_bxyt,(/nyv,3,kxp1/))
+      call c_f_pointer(ffct,g_ffct,(/nyhd,kxp1/))
+      call c_f_pointer(wm,g_wm,(/kxp1/))
+      call fgpuippbpoisp23t(g_cut,g_bxyt,g_ffct,ci,g_wm,nx,ny,kstrt,nyv,&
+     &kxp1,nyhd)
+      end subroutine
+!
+!-----------------------------------------------------------------------
+      subroutine cgpuppmaxwel2t(exyt,bxyt,cut,ffct,affp,ci,dt,wf,wm,nx, &
+     &ny,kstrt,nyv,kxp1,nyhd) bind(C,name='fgpuppmaxwel2t')
+      implicit none
+      integer(c_int), value :: nx, ny, kstrt, nyv, kxp1, nyhd
+      real(c_float), value :: affp, ci, dt
+      type (c_devptr), value :: exyt, bxyt, cut, ffct, wf, wm
+! local data
+      complex, device, dimension(:,:,:), allocatable :: g_exyt, g_bxyt
+      complex, device, dimension(:,:,:), allocatable :: g_cut
+      complex, device, dimension(:,:), allocatable :: g_ffct
+      real, device, dimension(:), allocatable :: g_wf, g_wm
+      call c_f_pointer(exyt,g_exyt,(/nyv,3,kxp1/))
+      call c_f_pointer(bxyt,g_bxyt,(/nyv,3,kxp1/))
+      call c_f_pointer(cut,g_cut,(/nyv,3,kxp1/))
+      call c_f_pointer(ffct,g_ffct,(/nyhd,kxp1/))
+      call c_f_pointer(wf,g_wf,(/kxp1/))
+      call c_f_pointer(wm,g_wm,(/kxp1/))
+      call fgpuppmaxwel2t(g_exyt,g_bxyt,g_cut,g_ffct,affp,ci,dt,g_wf,   &
+     &g_wm,nx,ny,kstrt,nyv,kxp1,nyhd)
+      end subroutine
+!
+!-----------------------------------------------------------------------
+      subroutine cgpuppemfield2t(fxyt,exyt,ffct,isign,nx,ny,kstrt,nyv,  &
+     &kxp1,nyhd) bind(C,name='fgpuppemfield2t')
+      implicit none
+      integer(c_int), value :: isign, nx, ny, kstrt, nyv, kxp1, nyhd
+      type (c_devptr), value :: fxyt, exyt, ffct
+! local data
+      complex, device, dimension(:,:,:), allocatable :: g_fxyt, g_exyt
+      complex, device, dimension(:,:), allocatable :: g_ffct
+      call c_f_pointer(fxyt,g_fxyt,(/nyv,3,kxp1/))
+      call c_f_pointer(exyt,g_exyt,(/nyv,3,kxp1/))
+      call c_f_pointer(ffct,g_ffct,(/nyhd,kxp1/))
+      call fgpuppemfield2t(g_fxyt,g_exyt,g_ffct,isign,nx,ny,kstrt,nyv,  &
+     &kxp1,nyhd)
+      end subroutine
+!
+!-----------------------------------------------------------------------
+      subroutine cgpuwppfft2rcsx(f,bsm,isign,mixup,sct,indx,indy,kstrt, &
+     &nvp,kxp1,kyp,nxhd,kypd,nxhyd,nxyhd) bind(C,name='fgpuwppfft2rcsx')
+      implicit none
+      integer(c_int), value :: isign, indx, indy, kstrt, nvp, kxp1, kyp
+      integer(c_int), value :: nxhd, kypd, nxhyd, nxyhd
+      type (c_devptr), value :: f, bsm, mixup, sct
+! local data
+      complex, device, dimension(:,:), allocatable :: g_f
+      complex, device, dimension(:,:), allocatable :: g_bsm
+      integer, device, dimension(:), allocatable :: g_mixup
+      complex, device, dimension(:), allocatable :: g_sct
+      call c_f_pointer(f,g_f,(/nxhd,kypd/))
+      call c_f_pointer(bsm,g_bsm,(/kxp1*kyp,nvp-1/))
+      call c_f_pointer(mixup,g_mixup,(/nxhyd/))
+      call c_f_pointer(sct,g_sct,(/nxyhd/))
+      call fgpuwppfft2rcsx(g_f,g_bsm,isign,g_mixup,g_sct,indx,indy,kstrt&
+     &,nvp,kxp1,kyp,nxhd,kypd,nxhyd,nxyhd)
+      end subroutine
+!
+!-----------------------------------------------------------------------
+      subroutine cgpuwppfft2rcsy(g,brm,isign,mixup,sct,indx,indy,kstrt, &
+     &nvp,kxp1,kyp,nyd,nxhyd,nxyhd) bind(C,name='fgpuwppfft2rcsy')
+      implicit none
+      integer(c_int), value :: isign, indx, indy, kstrt, nvp, kxp1, kyp
+      integer(c_int), value :: nyd, nxhyd, nxyhd
+      type (c_devptr), value :: g, brm, mixup, sct
+! local data
+      complex, device, dimension(:,:), allocatable :: g_g
+      complex, device, dimension(:,:), allocatable :: g_brm
+      integer, device, dimension(:), allocatable :: g_mixup
+      complex, device, dimension(:), allocatable :: g_sct
+      call c_f_pointer(g,g_g,(/nyd,kxp1/))
+      call c_f_pointer(brm,g_brm,(/kxp1*kyp,nvp-1/))
+      call c_f_pointer(mixup,g_mixup,(/nxhyd/))
+      call c_f_pointer(sct,g_sct,(/nxyhd/))
+      call fgpuwppfft2rcsy(g_g,g_brm,isign,g_mixup,g_sct,indx,indy,kstrt&
+     &,nvp,kxp1,kyp,nyd,nxhyd,nxyhd)
+      end subroutine
+!
+!-----------------------------------------------------------------------
+      subroutine cgpuwppfft2rcsxn(fn,bsm,isign,mixup,sct,indx,indy,ndim,&
+     &kstrt,nvp,kxp1,kyp,nxhd,kypd,nxhyd,nxyhd)                         &
+     &bind(C,name='fgpuwppfft2rcsxn')
+      implicit none
+      integer(c_int), value :: isign, indx, indy, ndim, kstrt, nvp, kxp1
+      integer(c_int), value :: kyp, nxhd, kypd, nxhyd, nxyhd
+      type (c_devptr), value :: fn, bsm, mixup, sct
+! local data
+      complex, device, dimension(:,:,:), allocatable :: g_fn
+      complex, device, dimension(:,:), allocatable :: g_bsm
+      integer, device, dimension(:), allocatable :: g_mixup
+      complex, device, dimension(:), allocatable :: g_sct
+      call c_f_pointer(fn,g_fn,(/nxhd,ndim,kypd/))
+      call c_f_pointer(bsm,g_bsm,(/kxp1*ndim*kyp,nvp-1/))
+      call c_f_pointer(mixup,g_mixup,(/nxhyd/))
+      call c_f_pointer(sct,g_sct,(/nxyhd/))
+      call fgpuwppfft2rcsxn(g_fn,g_bsm,isign,g_mixup,g_sct,indx,indy,   &
+     &ndim,kstrt,nvp,kxp1,kyp,nxhd,kypd,nxhyd,nxyhd)
+      end subroutine
+!
+!-----------------------------------------------------------------------
+      subroutine cgpuwppfft2rcsyn(gn,brm,isign,mixup,sct,indx,indy,ndim,&
+     &kstrt,nvp,kxp1,kyp,nyd,nxhyd,nxyhd)                               &
+     &bind(C,name='fgpuwppfft2rcsyn')
+      implicit none
+      integer(c_int), value :: isign, indx, indy, ndim, kstrt, nvp, kxp1
+      integer(c_int), value :: kyp, nyd, nxhyd, nxyhd
+      type (c_devptr), value :: gn, brm, mixup, sct
+! local data
+      complex, device, dimension(:,:), allocatable :: g_gn
+      complex, device, dimension(:,:), allocatable :: g_brm
+      integer, device, dimension(:), allocatable :: g_mixup
+      complex, device, dimension(:), allocatable :: g_sct
+      call c_f_pointer(gn,g_gn,(/nyd,ndim,kxp1/))
+      call c_f_pointer(brm,g_brm,(/kxp1*ndim*kyp,nvp-1/))
+      call c_f_pointer(mixup,g_mixup,(/nxhyd/))
+      call c_f_pointer(sct,g_sct,(/nxyhd/))
+      call fgpuwppfft2rcsyn(g_gn,g_brm,isign,g_mixup,g_sct,indx,indy,   &
+     &ndim,kstrt,nvp,kxp1,kyp,nyd,nxhyd,nxyhd)
+      end subroutine
+!
+!-----------------------------------------------------------------------
+      subroutine cgpuppltpose(f,g,nx,ny,kxp,kyp,kstrt,nxv,nyv)          &
+     &bind(C,name='fgpuppltpose')
+      implicit none
+      integer(c_int), value :: nx, ny, kxp, kyp, kstrt, nxv, nyv
+      type (c_devptr), value :: f, g
+! local data
+      complex, device, dimension(:,:), allocatable :: g_f
+      complex, device, dimension(:,:), allocatable :: g_g
+      call c_f_pointer(f,g_f,(/nxv,kyp/))
+      call c_f_pointer(g,g_g,(/nyv,kxp/))
+      call fgpuppltpose(g_f,g_g,nx,ny,kxp,kyp,kstrt,nxv,nyv)
+      end subroutine
+!
+!-----------------------------------------------------------------------
+      subroutine cgpuppltposen(fn,gn,nx,ny,kxp,kyp,kstrt,ndim,nxv,nyv)  &
+     &bind(C,name='fgpuppltposen')
+      implicit none
+      integer(c_int), value :: nx, ny, kxp, kyp, kstrt, ndim, nxv, nyv
+      type (c_devptr), value :: fn, gn
+! local data
+      complex, device, dimension(:,:,:), allocatable :: g_fn
+      complex, device, dimension(:,:,:), allocatable :: g_gn
+      call c_f_pointer(fn,g_fn,(/nxv,ndim,kyp/))
+      call c_f_pointer(gn,g_gn,(/nyv,ndim,kxp/))
+      call fgpuppltposen(g_fn,g_gn,nx,ny,kxp,kyp,kstrt,ndim,nxv,nyv)
+      end subroutine
+!
+!-----------------------------------------------------------------------
+      subroutine cgpusum2(a,sa,nx) bind(C,name='fgpusum2')
+      implicit none
+      integer(c_int), value :: nx
+      type (c_devptr), value :: a, sa
+! local data
+      real, device, dimension(:), allocatable :: g_a, g_sa
+      call c_f_pointer(a,g_a,(/nx/))
+      call c_f_pointer(sa,g_sa,(/1/))
+      call fgpusum2(g_a,g_sa,nx)
+      end subroutine
+!
+      end module

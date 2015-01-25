@@ -1,0 +1,67 @@
+!-----------------------------------------------------------------------
+! CUDA Fortran FFT Library interface to C
+! written by Viktor K. Decyk, UCLA
+      module fgpufft2_c
+      use cudafor
+      use iso_c_binding
+      use fgpufft2
+      implicit none
+      private
+!
+      contains
+!
+!-----------------------------------------------------------------------	
+      subroutine cgpufft2rrcuinit(nx,ny,ndim)                           &
+     &bind(C,name='fgpufft2rrcuinit')
+      implicit none
+      integer(c_int), value :: nx, ny, ndim
+      call fgpufft2rrcuinit(nx,ny,ndim)
+      end subroutine
+!
+!-----------------------------------------------------------------------	
+      subroutine cgpufft2cuinit(nx,ny,ndim)                             &
+     &bind(C,name='fgpufft2cuinit')
+      implicit none
+      integer(c_int), value :: nx, ny, ndim
+      call fgpufft2cuinit(nx,ny,ndim)
+      end subroutine
+!
+!-----------------------------------------------------------------------
+      subroutine cgpufft2rrcudel() bind(C,name='fgpufft2rrcudel')
+      implicit none
+      call fgpufft2rrcudel()
+      end subroutine
+!
+!-----------------------------------------------------------------------
+      subroutine cgpufft2cudel() bind(C,name='fgpufft2cudel')
+      implicit none
+      call fgpufft2cudel()
+      end subroutine
+!
+!-----------------------------------------------------------------------
+      subroutine cgpufft2rrcu(f,g,isign,indx,indy,nxh1d,nyd)            &
+     &bind(C,name='fgpufft2rrcu')
+      implicit none
+      integer(c_int), value :: isign, indx, indy, nxh1d, nyd
+      type (c_devptr), value :: f, g
+! local data
+      complex, device, dimension(:,:), allocatable :: g_f, g_g
+      call c_f_pointer(f,g_f,(/nxh1d,nyd/))
+      call c_f_pointer(g,g_g,(/nyd,nxh1d/))
+      call fgpufft2rrcu(g_f,g_g,isign,indx,indy,nxh1d,nyd) 
+      end subroutine
+!
+!-----------------------------------------------------------------------
+      subroutine cgpufft2rrcun(fn,gn,isign,indx,indy,ndim,nxh1d,nyd)    &
+     &bind(C,name='fgpufft2rrcun')
+      implicit none
+      integer(c_int), value :: isign, indx, indy, ndim, nxh1d, nyd
+      type (c_devptr), value :: fn, gn
+! local data
+      complex, device, dimension(:,:,:), allocatable :: g_fn, g_gn
+      call c_f_pointer(fn,g_fn,(/nxh1d,ndim,nyd/))
+      call c_f_pointer(gn,g_gn,(/nyd,ndim,nxh1d/))
+      call fgpufft2rrcun(g_fn,g_gn,isign,indx,indy,ndim,nxh1d,nyd)
+      end subroutine
+!
+      end module

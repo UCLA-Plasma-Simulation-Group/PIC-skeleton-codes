@@ -1,0 +1,33 @@
+ j=            0 :CUDA_DEVICE_NAME=Tesla M2090
+     CUDA_MULTIPROCESSOR_COUNT=           16
+     CUDA_GLOBAL_MEM_SIZE=               5636554752 (    5.249451     GB)
+     Capability=           20
+ using device j=            0
+ Initial Total Field, Kinetic and Total Energies:
+ 0.1705604E+04 0.1398524E+08 0.1398695E+08
+ Initial Electrostatic, Transverse Electric and Magnetic Field Energies:
+ 0.1622225E-03 0.0000000E+00 0.1705604E+04
+ ntime =           250
+ relativity =             1
+ Final Total Field, Kinetic and Total Energies:
+ 0.9086095E+04 0.1397791E+08 0.1398700E+08
+ Final Electrostatic, Transverse Electric and Magnetic Field Energies:
+ 0.7457340E+04 0.1830114E+02 0.1610453E+04
+ 
+ deposit time =    0.6327869    
+ current deposit time =     1.787740    
+ total deposit time =     2.420527    
+ guard time =    0.1344890    
+ solver time =    0.1628903    
+ fft time =    0.8768154    
+ push time =     1.471919    
+ sort time =     2.005605    
+ total solver time =     1.174195    
+ total particle time =     5.898050    
+ total time =     7.072245    
+ 
+ Push Time (nsec) =    0.6238804    
+ Deposit Time (nsec) =     1.025953    
+ Sort Time (nsec) =    0.8500862    
+ Total Particle Time (nsec) =     2.499920
+

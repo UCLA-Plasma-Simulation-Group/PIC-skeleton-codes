@@ -1,0 +1,3086 @@
+!-----------------------------------------------------------------------
+! CUDA Fortran Library for Skeleton 2D Electrostatic GPU-MPI PIC Code
+! written by Viktor K. Decyk, UCLA
+      module fgpuppush2
+      use cudafor
+      use fgpulib2, only : nblock_size, maxgsx
+      implicit none
+!
+      integer :: lg_block = 0, crc = 0
+      real, device, dimension(:), allocatable :: scr
+      integer, device, dimension(:), allocatable :: g_block
+      save
+!
+      private
+      public :: gpuppmtposes, gpuppmtposer, gpuppmtposesn, gpuppmtposern
+      public :: fgpuppgppush2l, fgpu2ppgppost2l
+      public :: fgpuppcaguard2xl, fgpuppcaguard2yl
+      public :: fgpuppccguard2xl, fgpuppccguard2yl
+      public :: fgpupppord2la, fgpupppord2lb, fgpuppois22t
+      public :: fgpuwppfft2rcsx, fgpuwppfft2rcsy
+      public :: fgpuwppfft2rcsxn, fgpuwppfft2rcsyn
+      public :: fgpuppltpose, fgpuppltposen, fgpusum2
+!
+      contains
+!
+!-----------------------------------------------------------------------
+      attributes(device) subroutine liscan2(isdata,nths)
+! performs local prefix reduction of integer data shared by threads
+! using binary tree method.
+      implicit none
+      integer, value :: nths
+      integer, dimension(*) :: isdata
+! local data
+      integer :: l, mb, kxs, lb, kb
+      l = threadIdx%x - 1
+      mb = l
+      kxs = 1
+      do while (kxs < nths)
+         lb = kxs*mb
+         kb = 2*lb + kxs - 1
+         lb = lb + l + kxs
+         if (lb < nths) isdata(lb+1) = isdata(lb+1) + isdata(kb+1)
+         call syncthreads()
+         mb = mb/2
+         kxs = kxs + kxs
+      enddo
+      end subroutine
+!
+!-----------------------------------------------------------------------
+      attributes(device) subroutine lsum2(sdata,n)
+! finds local sum of n data items shared by threads
+! using binary tree method. input is modified
+      implicit none
+      real, dimension(*) :: sdata
+      integer, value :: n
+! local data
+      integer :: l, k
+      real :: s
+      l = threadIdx%x
+      k = blockDim%x/2
+      s = 0.0
+!
+      if (l <= n) s = sdata(l)
+      do while (k > 0)
+         if (l <= k) then
+            if ((l+k) <= n) then
+               s = s + sdata(l+k)
+               sdata(l) = s
+            endif
+         endif
+         call syncthreads()
+         k = k/2
+      enddo
+      end subroutine
+!
+!-----------------------------------------------------------------------
+      attributes(global) subroutine gpuppgppush2l(ppart,fxy,kpic,noff,  &
+     &nyp,qbm,dt,ek,nx,ny,mx,my,idimp,nppmx,nxv,nypmx,mx1,mxyp1,ipbc)
+! for 2d code, this subroutine updates particle co-ordinates and
+! velocities using leap-frog scheme in time and first-order linear
+! interpolation in space, with various boundary conditions
+! threaded version using guard cells, for distributed data
+! data read in tiles
+! particles stored segmented array
+! 42 flops/particle, 12 loads, 4 stores
+! input: all, output: ppart, ek
+! equations used are:
+! vx(t+dt/2) = vx(t-dt/2) + (q/m)*fx(x(t),y(t))*dt,
+! vy(t+dt/2) = vy(t-dt/2) + (q/m)*fy(x(t),y(t))*dt,
+! where q/m is charge/mass, and
+! x(t+dt) = x(t) + vx(t+dt/2)*dt, y(t+dt) = y(t) + vy(t+dt/2)*dt
+! fx(x(t),y(t)) and fy(x(t),y(t)) are approximated by interpolation from
+! the nearest grid points:
+! fx(x,y) = (1-dy)*((1-dx)*fx(n,m)+dx*fx(n+1,m)) + dy*((1-dx)*fx(n,m+1)
+!    + dx*fx(n+1,m+1))
+! fy(x,y) = (1-dy)*((1-dx)*fy(n,m)+dx*fy(n+1,m)) + dy*((1-dx)*fy(n,m+1)
+!    + dx*fy(n+1,m+1))
+! where n,m = leftmost grid points and dx = x-n, dy = y-m
+! ppart(n,1,m) = position x of particle n in partition in tile m
+! ppart(n,2,m) = position y of particle n in partition in tile m
+! ppart(n,3,m) = velocity vx of particle n in partition in tile m
+! ppart(n,4,m) = velocity vy of particle n in partition in tile m
+! fxy(1,j,k) = x component of force/charge at grid (j,kk)
+! fxy(2,j,k) = y component of force/charge at grid (j,kk)
+! in other words, fxy are the convolutions of the electric field
+! over the particle shape, where kk = k + noff - 1
+! kpic = number of particles per tile
+! noff = lowermost global gridpoint in particle partition.
+! nyp = number of primary (complete) gridpoints in particle partition
+! qbm = particle charge/mass
+! dt = time interval between successive calculations
+! kinetic energy/mass at time t is also calculated, using
+! ek = .125*sum((vx(t+dt/2)+vx(t-dt/2))**2+(vy(t+dt/2)+vy(t-dt/2))**2)
+! nx/ny = system length in x/y direction
+! mx/my = number of grids in sorting cell in x/y
+! idimp = size of phase space = 4
+! nppmx = maximum number of particles in tile
+! nxv = first dimension of field array, must be >= nx+1
+! nypmx = maximum size of particle partition, including guard cells.
+! mx1 = (system length in x direction - 1)/mx + 1
+! mxyp1 = mx1*myp1, where myp1=(partition length in y direction-1)/my+1
+! ipbc = particle boundary condition = (0,1,2,3) =
+! (none,2d periodic,2d reflecting,mixed reflecting/periodic)
+      implicit none
+      integer, value :: noff, nyp, nx, ny, mx, my, idimp, nppmx
+      integer, value :: nxv, nypmx, mx1, mxyp1, ipbc
+      real, value :: qbm, dt
+      real, dimension(nppmx,idimp,mxyp1) :: ppart
+      real, dimension(2,nxv,nypmx) :: fxy
+      integer, dimension(mxyp1) :: kpic
+      real, dimension(mxyp1) :: ek
+! local data
+      integer :: noffp, moffp, nppp, mxv
+      integer :: mnoff, i, j, k, ii, nn, mm
+      real :: qtm, edgelx, edgely, edgerx, edgery, dxp, dyp, amx, amy
+      real :: x, y, dx, dy, vx, vy
+! The sizes of the shared memory arrays are as follows:
+! real sfxy(2*(mx+1)*(my+1)), sek(blockDim%x)
+! to conserve memory, sek overlaps with sfxy
+! and the name sfxy is used instead of sek
+      real, shared, dimension(*) :: sfxy
+      double precision :: sum1
+      qtm = qbm*dt
+      sum1 = 0.0d0
+! set boundary values
+      edgelx = 0.0
+      edgely = 1.0
+      edgerx = real(nx)
+      edgery = real(ny-1)
+      if ((ipbc==2).or.(ipbc==3)) then
+         edgelx = 1.0
+         edgerx = real(nx-1)
+      endif
+      mxv = mx + 1
+! k = tile number
+      k = blockIdx%x+gridDim%x*(blockIdx%y-1)
+! loop over tiles
+      if (k <= mxyp1) then
+         noffp = (k - 1)/mx1
+         moffp = my*noffp
+         noffp = mx*(k - mx1*noffp - 1)
+         nppp = kpic(k)
+         mnoff = moffp + noff
+! load local fields from global array
+         nn = min(mx,nx-noffp) + 1
+         mm = min(my,nyp-moffp) + 1
+         ii = threadIdx%x
+         do while (ii <= mxv*(my+1))
+            j = (ii - 1)/mxv
+            i = ii - mxv*j
+            j = j + 1
+            if ((i <= nn) .and. (j <= mm)) then
+               sfxy(2*ii-1) = fxy(1,i+noffp,j+moffp)
+               sfxy(2*ii) = fxy(2,i+noffp,j+moffp)
+            endif
+            ii = ii + blockDim%x
+         enddo
+! synchronize threads
+         call syncthreads()
+! loop over particles in tile
+         j = threadIdx%x
+         do while (j <= nppp)
+! find interpolation weights
+            x = ppart(j,1,k)
+            nn = x
+            y = ppart(j,2,k)
+            mm = y
+            dxp = x - real(nn)
+            dyp = y - real(mm)
+            nn = 2*(nn - noffp) + 2*mxv*(mm - mnoff) + 1
+            amx = 1.0 - dxp
+            amy = 1.0 - dyp
+! find acceleration
+            dx = amx*sfxy(nn)
+            dy = amx*sfxy(nn+1)
+            dx = amy*(dxp*sfxy(nn+2) + dx)
+            dy = amy*(dxp*sfxy(nn+3) + dy)
+            nn = nn + 2*mxv
+            vx = amx*sfxy(nn)
+            vy = amx*sfxy(nn+1)
+            dx = dx + dyp*(dxp*sfxy(nn+2) + vx)
+            dy = dy + dyp*(dxp*sfxy(nn+3) + vy)
+! new velocity
+            vx = ppart(j,3,k)
+            vy = ppart(j,4,k)
+            dx = vx + qtm*dx
+            dy = vy + qtm*dy
+! average kinetic energy
+            vx = vx + dx
+            vy = vy + dy
+            sum1 = sum1 + dble(vx*vx + vy*vy)
+            ppart(j,3,k) = dx
+            ppart(j,4,k) = dy
+! new position
+            dx = x + dx*dt
+            dy = y + dy*dt
+! reflecting boundary conditions
+            if (ipbc==2) then
+               if ((dx < edgelx).or.(dx >= edgerx)) then
+                  dx = ppart(j,1,k)
+                  ppart(j,3,k) = -ppart(j,3,k)
+               endif
+               if ((dy < edgely).or.(dy >= edgery)) then
+                  dy = ppart(j,2,k)
+                  ppart(j,4,k) = -ppart(j,4,k)
+               endif
+! mixed reflecting/periodic boundary conditions
+            else if (ipbc==3) then
+               if ((dx < edgelx).or.(dx >= edgerx)) then
+                  dx = ppart(j,1,k)
+                  ppart(j,3,k) = -ppart(j,3,k)
+               endif
+            endif
+! set new position
+            ppart(j,1,k) = dx
+            ppart(j,2,k) = dy
+            j = j + blockDim%x
+         enddo
+! synchronize threads
+         call syncthreads()
+! add kinetic energies in tile
+         sfxy(threadIdx%x) = real(sum1)
+! synchronize threads
+         call syncthreads()
+         call lsum2(sfxy,blockDim%x)
+! normalize kinetic energy of tile
+         if (threadIdx%x==1) ek(k) = 0.125*sfxy(1)
+      endif
+      end subroutine
+!
+!-----------------------------------------------------------------------
+      attributes(global) subroutine gpu2ppgppost2l(ppart,q,kpic,noff,qm,&
+     &idimp,nppmx,mx,my,nxv,nypmx,mx1,mxyp1)
+! for 2d code, this subroutine calculates particle charge density
+! using first-order linear interpolation, periodic boundaries
+! threaded version using guard cells, for distributed data
+! data deposited in tiles
+! particles stored segmented array
+! 17 flops/particle, 6 loads, 4 stores
+! input: all, output: q
+! charge density is approximated by values at the nearest grid points
+! q(n,m)=qm*(1.-dx)*(1.-dy)
+! q(n+1,m)=qm*dx*(1.-dy)
+! q(n,m+1)=qm*(1.-dx)*dy
+! q(n+1,m+1)=qm*dx*dy
+! where n,m = leftmost grid points and dx = x-n, dy = y-m
+! ppart(n,1,m) = position x of particle n in partition in tile m
+! ppart(n,2,m) = position y of particle n in partition in tile m
+! q(j,k) = charge density at grid point (j,kk),
+! where kk = k + noff - 1
+! kpic = number of particles per tile
+! noff = lowermost global gridpoint in particle partition.
+! qm = charge on particle, in units of e
+! idimp = size of phase space = 4
+! nppmx = maximum number of particles in tile
+! mx/my = number of grids in sorting cell in x/y
+! nxv = first dimension of charge array, must be >= nx+1
+! nypmx = maximum size of particle partition, including guard cells.
+! mx1 = (system length in x direction - 1)/mx + 1
+! mxyp1 = mx1*myp1, where myp1=(partition length in y direction-1)/my+1
+      implicit none
+      integer, value :: noff, idimp, nppmx, mx, my, nxv, nypmx
+      integer, value :: mx1, mxyp1
+      real, value :: qm
+      real, dimension(nppmx,idimp,mxyp1) :: ppart
+      real, dimension(nxv,nypmx) :: q
+      integer, dimension(mxyp1) :: kpic
+! local data
+      integer :: noffp, moffp, nppp, mxv
+      integer :: mnoff, i, j, k, ii, nn, np, mm, mp
+      real :: dxp, dyp, amx, amy, old
+! The size of the shared memory array is as follows:
+! real sq((mx+1)*(my+1))
+      real, shared, dimension((mx+1)*(my+1)) :: sq
+      mxv = mx + 1
+! k = tile number
+      k = blockIdx%x+gridDim%x*(blockIdx%y-1)
+! loop over tiles
+      if (k <= mxyp1) then
+         noffp = (k - 1)/mx1
+         moffp = my*noffp
+         noffp = mx*(k - mx1*noffp - 1)
+         nppp = kpic(k)
+         mnoff = moffp + noff
+! zero out local accumulator
+         i = threadIdx%x
+         do while (i <= mxv*(my+1))
+            sq(i) = 0.0
+            i = i + blockDim%x
+         enddo
+! synchronize threads
+         call syncthreads()
+! loop over particles in tile
+         j = threadIdx%x
+         do while (j <= nppp)
+! find interpolation weights
+            dxp = ppart(j,1,k)
+            nn = dxp
+            dyp = ppart(j,2,k)
+            mm = dyp
+            dxp = qm*(dxp - real(nn))
+            dyp = dyp - real(mm)
+            nn = nn - noffp + 1
+            mm = mxv*(mm - mnoff)
+            amx = qm - dxp
+            mp = mm + mxv
+            amy = 1.0 - dyp
+            np = nn + 1
+! deposit charge within tile to local accumulator
+! original deposit charge, has data hazard on GPU
+!           sq(np+mp) = sq(np+mp) + dxp*dyp
+!           sq(nn+mp) = sq(nn+mp) + amx*dyp
+!           sq(np+mm) = sq(np+mm) + dxp*amy
+!           sq(nn+mm) = sq(nn+mm) + amx*amy
+! for devices with compute capability 2.x
+            old = atomicAdd(sq(np+mp),dxp*dyp)
+            old = atomicAdd(sq(nn+mp),amx*dyp)
+            old = atomicAdd(sq(np+mm),dxp*amy)
+            old = atomicAdd(sq(nn+mm),amx*amy)
+            j = j + blockDim%x
+         enddo
+! synchronize threads
+         call syncthreads()
+! deposit charge to global array
+         nn = min(mxv,nxv-noffp)
+         mm = min(my+1,nypmx-moffp)
+         ii = threadIdx%x
+         do while (ii <= mxv*(my+1))
+            j = (ii - 1)/mxv
+            i = ii - mxv*j
+            j = j + 1
+            if ((i <= nn) .and. (j <= mm)) then
+! original deposit charge, has data hazard on GPU
+!              q(i+noffp,j+moffp) = q(i+noffp,j+moffp) + sq(ii)
+! for devices with compute capability 2.x 
+               old = atomicAdd(q(i+noffp,j+moffp),sq(ii))
+            endif
+            ii = ii + blockDim%x
+         enddo
+      endif
+      end subroutine
+!
+!-----------------------------------------------------------------------
+      attributes(global) subroutine gpuppcaguard2xl(qc,scs,q,nyp,nx,nxe,&
+     &nypmx,nxvh,kypd)
+! copy and accumulate extended periodic scalar field q in x direction
+! into complex output fields qc, scs
+! linear interpolation, for distributed data
+! scs(j) = data to send to another processor
+! nyp = number of primary (complete) gridpoints in particle partition
+! nx = system length in x direction
+! nxe = first dimension of input field array q, must be >= nx+1
+! nypmx = maximum size of particle partition, including guard cells
+! nxvh = first dimension of output field array qc, must be >= nx/2+1
+! kypd = second dimension of output field array qc, must be >= nyp
+      implicit none
+      integer, value :: nyp, nx, nxe, nypmx, nxvh, kypd
+      complex, dimension(nxvh,kypd) :: qc
+      complex, dimension(nxvh) :: scs
+      real, dimension(nxe,nypmx) :: q
+! local data
+      integer :: j, k, nxh
+      real :: at1
+      nxh = nx/2
+      k = blockIdx%x
+! copy interior points
+      if (k <= nyp) then
+         j = threadIdx%x
+         do while (j <= nxh)
+            at1 = 0.0
+            if (j==1) at1 = q(nx+1,k)
+            qc(j,k) = cmplx(q(2*j-1,k)+at1,q(2*j,k))
+            j = j + blockDim%x
+         enddo
+      endif
+! copy exterior points
+      if (k==1) then
+         j = threadIdx%x
+         do while (j <= nxh)
+            at1 = 0.0
+            if (j==1) at1 = q(nx+1,nyp+1)
+            scs(j) = cmplx(q(2*j-1,nyp+1)+at1,q(2*j,nyp+1))
+            j = j + blockDim%x
+         enddo
+      endif
+      end subroutine
+!
+!-----------------------------------------------------------------------
+      attributes(global) subroutine gpuppcaguard2yl(fc,scr,nx,nxvh,kypd)
+! this subroutine adds data from guard cells from remote processors
+! fc(j,k) = complex data for grid j,k in particle partition..
+! output: fc
+! scr(j) = complex input array for arriving data
+! nx = system length in x direction
+! nxvh = first dimension of fc, must be >= nx/2+1
+! kypd = maximum size of field partition, including guard cells.
+! linear interpolation, for distributed data
+      implicit none
+      integer, value :: nx, nxvh, kypd
+      complex, dimension(nxvh,kypd) :: fc
+      complex, dimension(nxvh) :: scr
+! local data
+      integer :: j, nxh
+      nxh = nx/2
+      j = threadIdx%x+blockDim%x*(blockIdx%x-1)
+! add up the guard cells from remote processors
+      if (j <= nxh) fc(j,1) = fc(j,1) + scr(j)
+      end subroutine
+!
+!-----------------------------------------------------------------------
+      attributes(global) subroutine gpuppccguard2xl(fxyc,scs,fxy,nyp,nx,&
+     &nxe,nypmx,nxvh,kypd)
+! copy and replicate complex input 2d vector field fxyc in x direction
+! into extended periodic fields fxy, scs
+! linear interpolation, for distributed data
+! scs(j,2) = data to send to another processor
+! nyp = number of primary (complete) gridpoints in particle partition
+! nx = system length in x direction
+! nxe = second dimension of input field array fxy, must be >= nx+1
+! nypmx = maximum size of particle partition, including guard cells
+! nxvh = first dimension of input field array fxyc, must be >= nx/2+1
+! kypd = third dimension of input field array fxyc, must be >= nyp
+      implicit none
+      integer, value :: nyp, nx, nxe, nypmx, nxvh, kypd
+      complex, dimension(nxvh,2,kypd) :: fxyc
+      complex, dimension(nxvh,2) :: scs
+      real, dimension(2,nxe,nypmx) :: fxy
+! local data
+      integer :: j, k, nxh
+      complex :: a, b
+      nxh = nx/2
+      k = blockIdx%x
+! copy interior points
+      if (k <= nyp) then
+         j = threadIdx%x
+         do while (j <= nxh)
+            a = fxyc(j,1,k)
+            b = fxyc(j,2,k)
+            fxy(1,2*j-1,k) = real(a)
+            fxy(2,2*j-1,k) = real(b)
+            fxy(1,2*j,k) = aimag(a)
+            fxy(2,2*j,k) = aimag(b)
+            j = j + blockDim%x
+         enddo
+      endif
+! copy edges of extended field
+      if (blockIdx%x==1) then
+         k = threadIdx%x
+         do while (k <= nyp)
+            a = fxyc(1,1,k)
+            b = fxyc(1,2,k)
+            fxy(1,nx+1,k) = real(a)
+            fxy(2,nx+1,k) = real(b)
+            k = k + blockDim%x
+         enddo
+! copy exterior points
+         j = threadIdx%x
+         do while (j <= nxh)
+            scs(j,1) = fxyc(j,1,1)
+            scs(j,2) = fxyc(j,2,1)
+            j = j + blockDim%x
+         enddo
+! copy edges of extended field
+         if (threadIdx%x==1) then
+            a = fxyc(1,1,1)
+            b = fxyc(1,2,1)
+            scs(nxh+1,1) = cmplx(real(a),0.0)
+            scs(nxh+1,2) = cmplx(real(b),0.0)
+         endif
+      endif
+      end subroutine
+!
+!-----------------------------------------------------------------------
+      attributes(global) subroutine gpuppccguard2yl(fxy,scr,nyp,nx,nxe, &
+     &nxvh,nypmx)
+! this subroutine copies data to guard cells from remote processors
+! fxy(j,k) = real data for grid j,k in particle partition.
+! the grid is non-uniform and includes one extra guard cell.
+! output: fxy
+! scr(j,2) = complex input array for arriving data
+! nyp = number of primary gridpoints in field partition
+! it is assumed the nyp > 0.
+! nx = system length in x direction
+! nxe = second dimension of input field array fxy, must be >= nx+1
+! nxvh = first dimension of scr, must be >= nx/2+1
+! nypmx = maximum size of field partition, including guard cell.
+! linear interpolation, for distributed data
+      implicit none
+      integer, value :: nyp, nx, nxe, nxvh, nypmx
+      real, dimension(2,nxe,nypmx) :: fxy
+      complex, dimension(nxvh,2) :: scr
+! local data
+      integer :: j, nxh
+      complex :: a, b
+      nxh = nx/2
+      j = threadIdx%x+blockDim%x*(blockIdx%x-1)
+! copy to guard cells
+      if (j <= nxh) then
+         a = scr(j,1)
+         b = scr(j,2)
+         fxy(1,2*j-1,nyp+1) = real(a)
+         fxy(1,2*j,nyp+1) = aimag(a)
+         fxy(2,2*j-1,nyp+1) = real(b)
+         fxy(2,2*j,nyp+1) = aimag(b)
+      endif
+      if (j==1) then
+         a = scr(nxh+1,1)
+         b = scr(nxh+1,2)
+         fxy(1,nx+1,nyp+1) = real(a)
+         fxy(2,nx+1,nyp+1) = real(b)
+      endif
+      end subroutine
+!
+!-----------------------------------------------------------------------
+      attributes(global) subroutine gpupppfnd2l(ppart,kpic,ncl,ihole,   &
+     &noff,nyp,idimp,nppmx,nx,ny,mx,my,mx1,myp1,ntmax,irc)
+! this subroutine performs first step of a particle sort by x,y grid
+! in tiles of mx, my, where one finds the particles leaving tile and
+! stores their number, location, and destination in ncl and ihole.
+! linear interpolation, with periodic boundary conditions
+! for distributed data, with 1d domain decomposition in y.
+! tiles are assumed to be arranged in 2D linear memory
+! input: all except ncl, ihole, irc
+! output: ncl, ihole, irc
+! ppart(n,1,k) = position x of particle n in tile k
+! ppart(n,2,k) = position y of particle n in tile k 
+! kpic(k) = number of particles in tile k
+! ncl(i,k) = number of particles going to destination i, tile k
+! ihole(1,:,k) = location of hole in array left by departing particle
+! ihole(2,:,k) = destination of particle leaving hole
+! ihole(1,1,k) = ih, number of holes left (error, if negative)
+! noff = lowermost global gridpoint in particle partition.
+! nyp = number of primary (complete) gridpoints in particle partition
+! idimp = size of phase space = 4
+! nppmx = maximum number of particles in tile
+! nx/ny = system length in x/y direction
+! mx/my = number of grids in sorting cell in x/y
+! mx1 = (system length in x direction - 1)/mx + 1
+! myp1 = (partition length in y direction - 1)/my + 1
+! ntmax = size of hole array for particles leaving tiles
+! irc = maximum overflow, returned only if error occurs, when irc > 0
+      implicit none
+      integer, value :: noff, nyp, idimp, nppmx, nx, ny, mx, my
+      integer, value :: mx1, myp1, ntmax
+      real, dimension(nppmx,idimp,mx1*myp1) :: ppart
+      integer, dimension(mx1*myp1) :: kpic
+      integer, dimension(8,mx1*myp1) :: ncl
+      integer, dimension(2,ntmax+1,mx1*myp1) :: ihole
+      integer, dimension(1) :: irc
+! local data
+      integer :: mxyp1, noffp, moffp, nppp, j, k, ih, ist, nn, mm, nths
+      integer :: old
+      real :: anx, any, edgelx, edgely, edgerx, edgery, dx, dy
+! The sizes of the shared memory arrays are as follows:
+! integer sncl(8), sih(blockDim%x), nh(1)
+      integer, shared, dimension(8) :: sncl
+      integer, shared, dimension(blockDim%x) :: sih
+      integer, shared, dimension(1) :: nh
+      mxyp1 = mx1*myp1
+      anx = real(nx)
+      any = real(ny)
+! k = tile number
+      k = blockIdx%x + gridDim%x*(blockIdx%y-1)
+! find and count particles leaving tiles and determine destination
+! update ppart, ihole, ncl
+! loop over tiles
+      if (k <= mxyp1) then
+         noffp = (k - 1)/mx1
+         moffp = my*noffp
+         noffp = mx*(k - mx1*noffp - 1)
+         nppp = kpic(k)
+         nn = min(mx,nx-noffp)
+         mm = min(my,nyp-moffp)
+         edgelx = noffp
+         edgerx = noffp + nn
+         edgely = noff + moffp
+         edgery = noff + moffp + mm
+! clear counters
+         j = threadIdx%x
+         do while (j <= 8)
+            sncl(j) = 0
+            j = j + blockDim%x
+         enddo
+         if (threadIdx%x==1) then
+            nh(1) = 0
+         endif
+! synchronize threads
+         call syncthreads()
+! loop over particles in tile
+         mm = (nppp - 1)/int(blockDim%x) + 1
+         noffp = 0
+         do nn = 1, mm
+            j = threadIdx%x + blockDim%x*(nn - 1)
+            sih(threadIdx%x) = 0
+            if (j <= nppp) then
+               dx = ppart(j,1,k)
+               dy = ppart(j,2,k)
+! find particles going out of bounds
+               ist = 0
+! count how many particles are going in each direction in ncl
+! save their address and destination in ihole
+! use periodic boundary conditions and check for roundoff error
+! ist = direction particle is going
+               if (dx >= edgerx) then
+                  if (dx >= anx) ppart(j,1,k) = dx - anx
+                  ist = 2
+               else if (dx < edgelx) then
+                  if (dx < 0.0) then
+                     dx = dx + anx
+                     if (dx < anx) then
+                        ist = 1
+                     else
+                        dx = 0.0
+                     endif
+                     ppart(j,1,k) = dx
+                  else
+                     ist = 1
+                  endif
+               endif
+               if (dy >= edgery) then
+                  if (dy >= any) ppart(j,2,k) = dy - any
+                  ist = ist + 6
+               else if (dy < edgely) then
+                  if (dy < 0.0) then
+                     dy = dy + any
+                     if (dy < any) then
+                        ist = ist + 3
+                     else
+                        dy = 0.0
+                     endif
+                     ppart(j,2,k) = dy
+                  else
+                     ist = ist + 3
+                  endif
+               endif
+! using prefix scan for ih to keep holes ordered
+               if (ist > 0) then
+                  old = atomicAdd(sncl(ist),1)
+                  sih(threadIdx%x) = 1
+               endif
+            endif
+! synchronize threads
+            call syncthreads()
+            nths = nppp - blockDim%x*(nn - 1)
+            if (nths > blockDim%x) nths = blockDim%x
+! perform local prefix reduction
+            call liscan2(sih,nths)
+            if (j <= nppp) then
+               ih = sih(threadIdx%x)
+               moffp = 0
+               if (threadIdx%x > 1) moffp = sih(threadIdx%x-1)
+! this thread has a hole present
+               if (ih > moffp) then
+                  ih = ih + noffp
+                  if (ih <= ntmax) then
+                     ihole(1,ih+1,k) = j
+                     ihole(2,ih+1,k) = ist
+                  else
+                     sih(nh) = 1
+                  endif
+               endif
+            endif
+! update number of holes in this iteration
+            if (nths > 0) noffp = noffp + sih(nths)
+! synchronize threads
+            call syncthreads()
+         enddo
+! write out counters
+         j = threadIdx%x
+         do while (j <= 8)
+            ncl(j,k) = sncl(j)
+            j = j + blockDim%x
+         enddo
+! set error and end of file flag
+         if (threadIdx%x==1) then
+! ihole overflow
+            ih  = noffp
+            if (nh(1) > 0) then
+               irc(1) = ih
+               ih = -ih
+            endif
+            ihole(1,1,k) = ih
+         endif
+      endif
+      end subroutine
+!
+!-----------------------------------------------------------------------
+      attributes(global) subroutine gpupppmov2l(ppart,ppbuff,ncl,ihole, &
+     &idimp,nppmx,mx1,myp1,npbmx,ntmax,irc)
+! this subroutine performs second step of a particle sort by x,y grid
+! in tiles of mx, my, where prefix scan of ncl is performed and
+! departing particles are buffered in ppbuff in direction order.
+! linear interpolation, with periodic boundary conditions
+! for distributed data, with 1d domain decomposition in y.
+! tiles are assumed to be arranged in 2D linear memory
+! input: all except ppbuff, irc
+! output: ppbuff, ncl, irc
+! ppart(n,i,k) = i co-ordinate of particle n in tile k 
+! ppbuff(n,i,k) = i co-ordinate of particle n in tile k
+! ncl(i,k) = number of particles going to destination i, tile k
+! ihole(1,:,k) = location of hole in array left by departing particle
+! ihole(2,:,k) = direction destination of particle leaving hole
+! all for tile k
+! ihole(1,1,k) = ih, number of holes left (error, if negative)
+! idimp = size of phase space = 4
+! nppmx = maximum number of particles in tile
+! mx1 = (system length in x direction - 1)/mx + 1
+! myp1 = (partition length in y direction - 1)/my + 1
+! npbmx = size of buffer array ppbuff
+! ntmax = size of hole array for particles leaving tiles
+! irc = maximum overflow, returned only if error occurs, when irc > 0
+      implicit none
+      integer, value :: idimp, nppmx, mx1, myp1, npbmx, ntmax
+      real, dimension(nppmx,idimp,mx1*myp1) :: ppart
+      real, dimension(npbmx,idimp,mx1*myp1) :: ppbuff
+      integer, dimension(8,mx1*myp1) :: ncl
+      integer, dimension(2,ntmax+1,mx1*myp1) :: ihole
+      integer, dimension(1) :: irc
+! local data
+      integer :: mxyp1, i, j, k, ii, nh, ist, j1, ierr
+! The sizes of the shared memory arrays are as follows:
+! integer sncl(8), ip(1)
+! blockDim%x should be >= 8
+      integer, shared, dimension(8) :: sncl
+      integer, shared, dimension(1) :: ip
+      mxyp1 = mx1*myp1
+      ierr = 0
+! k = tile number
+      k = blockIdx%x + gridDim%x*(blockIdx%y-1)
+      j = threadIdx%x
+! buffer particles that are leaving tile: update ppbuff, ncl
+! loop over tiles
+      if (k <= mxyp1) then
+! find address offset for ordered ppbuff array
+         if (j <= 8) then
+            ist = ncl(j,k)
+            sncl(j) = ist
+         endif
+         if (threadIdx%x==1) ip(1) = 0
+! synchronize threads
+         call syncthreads()
+! perform local prefix reduction
+         call liscan2(sncl,8)
+         if (j <= 8) sncl(j) = sncl(j) - ist
+! synchronize threads
+         call syncthreads()
+         nh = ihole(1,1,k)
+! loop over particles leaving tile
+         do while (j <= nh)
+! buffer particles that are leaving tile, in direction order
+            j1 = ihole(1,j+1,k)
+            ist = ihole(2,j+1,k)
+            ii = atomicAdd(sncl(ist),1) + 1
+            if (ii <= npbmx) then
+               do i = 1, idimp
+               ppbuff(ii,i,k) = ppart(j1,i,k)
+               enddo
+            else
+               ip(1) = 1
+            endif
+            j = j + blockDim%x
+         enddo
+! synchronize threads
+         call syncthreads()
+! write out counters
+         j = threadIdx%x
+         if (j <= 8) then
+            ncl(j,k) = sncl(j)
+         endif
+! set error
+         if (threadIdx%x==1) then
+            if (ip(1) > 0) ierr = max(ierr,sncl(8))
+         endif
+      endif
+! ppbuff overflow
+      if (ierr > 0) irc(1) = ierr
+      end subroutine
+!
+!-----------------------------------------------------------------------
+      attributes(global) subroutine nciscan2(ncl,ncll,nclr,nscr,mx1,myp1&
+     &)
+! calculate number number offsets for particles leaving processor
+! by performing prefix scan (running sum) for each block.  the last
+! value of each block is written to nscr to add to each block later.
+! ncl(i,k) = number of particles going to destination i, tile k
+! ncll = number offset being sent to lower processor
+! nclr = number offset being sent to upper processor
+! nscr = scratch integer array, of size 2*((mx1-1)/blockDim%x+1)
+! mx1 = (system length in x direction - 1)/mx + 1
+! myp1 = (partition length in y direction - 1)/my + 1
+      implicit none
+      integer, value :: mx1, myp1
+      integer, dimension(8,mx1*myp1) :: ncl
+      integer, dimension(3,mx1) :: ncll, nclr
+      integer, dimension(GridDim%x) :: nscr
+! local data
+      integer :: l, koff, ii, jj, kk, nths
+! The size of the shared memory array are as follows:
+! integer isdata(2*blockDim%x)
+      integer, shared, dimension(2*blockDim%x) :: isdata
+      l = threadIdx%x
+      koff = blockDim%x*(blockIdx%x-1)
+      kk = mx1*(myp1 - 1) + koff
+      nths = mx1 - koff
+      if (nths > blockDim%x) nths = blockDim%x
+      if ((l+koff) <= mx1) then
+         ii = ncl(5,l+koff) - ncl(2,l+koff)
+         isdata(l) = ii
+         jj = ncl(8,l+kk) - ncl(5,l+kk)
+         isdata(l+blockDim%x) = jj
+      endif
+! synchronize threads
+      call syncthreads()
+! perform local prefix reductions
+      call liscan2(isdata,nths)
+      call liscan2(isdata(blockDim%x+1:2*blockDim%x),nths)
+      if ((l+koff) <= mx1) then
+         ncll(1,l+koff) = ii
+         ncll(2,l+koff) = isdata(l) - ii
+         nclr(1,l+koff) = jj
+         nclr(2,l+koff) = isdata(l+blockDim%x) - jj
+      endif
+      if (l==1) then
+         ii = 0
+         jj = 0
+         if (nths > 0) then
+            ii = isdata(nths)
+            jj = isdata(nths+blockDim%x)
+         endif
+         nscr(blockIdx%x) = ii
+         nscr(blockIdx%x+gridDim%x) = jj
+      endif
+      end subroutine
+!
+!-----------------------------------------------------------------------
+      attributes(global) subroutine gpupppbuf2l(ppbuff,sbufl,sbufr,ncl, &
+     &ncll,nclr,nscr,idimp,mx1,myp1,npbmx,nbmax,irc)
+! this subroutine performs third step of a particle sort by x,y grid
+! in tiles of mx, my, where particles leaving the processor are
+! buffered in sbufl and sbufr, and particle number offsets are stored
+! in ncll and nclr.
+! gpupppbuf2l and nciscan2 should use the same blocksize.
+! linear interpolation, with periodic boundary conditions
+! for distributed data, with 1d domain decomposition in y.
+! tiles are assumed to be arranged in 2D linear memory
+! input: all except sbufl, sbufr, ncll, nclr, irc
+! output: sbufl, sbufr, ncll, nclr, irc
+! ppbuff(n,i,k) = i co-ordinate of particle n in tile k
+! sbufl = buffer for particles being sent to lower processor
+! sbufr = buffer for particles being sent to upper processor
+! kpic(k) = number of particles in tile k
+! ncl(i,k) = number of particles going to destination i, tile k
+! ncll = number offset being sent to lower processor
+! nclr = number offset being sent to upper processor
+! nscr = scratch integer array, of size 2*((mx1-1)/blockDim%x+1)
+! idimp = size of phase space = 4
+! mx1 = (system length in x direction - 1)/mx + 1
+! myp1 = (partition length in y direction - 1)/my + 1
+! npbmx = size of buffer array ppbuff
+! nbmax =  size of buffers for passing particles between processors
+! irc = maximum overflow, returned only if error occurs, when irc > 0
+      implicit none
+      integer, value :: idimp, mx1, myp1, npbmx, nbmax
+      real, dimension(npbmx,idimp,mx1*myp1) :: ppbuff
+      real, dimension(nbmax*idimp) :: sbufl, sbufr
+      integer, dimension(8,mx1*myp1) :: ncl
+      integer, dimension(3,mx1) :: ncll, nclr
+      integer, dimension(*) :: nscr
+      integer, dimension(1) :: irc
+! local data
+      integer :: i, j, k, ii, jj, nl, nr, nn, mm, nbl, kk, ll, im
+      k = blockIdx%x
+! buffer particles and their number leaving the node:
+! update sbufl, sbufr, ncll, nclr
+      nbl = (mx1 - 1)/blockDim%x + 1
+      nl = 0
+      nr = 0
+      nn = 0
+      mm = 0
+      kk = mx1*(myp1 - 1)
+! loop over row of tiles
+      if (k <= mx1) then
+         j = (k - 1)/blockDim%x + 1
+! find how many particles must be buffered
+         do i = 2, nbl
+            nl = nl + nscr(i-1)
+            nr = nr + nscr(i+nbl-1)
+! save offsets
+            if (i==j) then
+               nn = nl
+               mm = nr
+            endif
+         enddo
+         nl = nl + nscr(nbl)
+         nr = nr + nscr(2*nbl)
+         ii = ncll(1,k)
+         nn = nn + ncll(2,k)
+         im = nclr(1,k)
+         mm = mm + nclr(2,k)
+! synchronize threads
+         call syncthreads()
+         ll = ncl(2,k)
+         jj = min(ii,nl-nn)
+         j = threadIdx%x
+         do while (j <= jj)
+            do i = 1, idimp
+            sbufl(j+nn+nl*(i-1)) = ppbuff(j+ll,i,k)
+            enddo
+            j = j + blockDim%x
+         enddo
+         ll = nn - ll
+         if (threadIdx%x <= 3) then
+            ncll(threadIdx%x,k) = ncl(threadIdx%x+2,k) + ll
+         endif
+         nn = nn + ii
+         ii = im
+         ll = ncl(5,k+kk)
+         jj = min(ii,nr-mm)
+         j = threadIdx%x
+         do while (j <= jj)
+            do i = 1, idimp
+            sbufr(j+mm+nr*(i-1)) = ppbuff(j+ll,i,k+kk)
+            enddo
+            j = j + blockDim%x
+         enddo
+         ll = mm - ll
+         if (threadIdx%x <= 3) then
+            nclr(threadIdx%x,k) = ncl(threadIdx%x+5,k+kk) + ll
+         endif
+         mm = mm + ii
+      endif
+! sbufl or sbufr overflow
+      ii = max(nn,mm)
+      if (ii > nbmax) irc(1) = ii
+      end subroutine
+!
+!-----------------------------------------------------------------------
+      attributes(global) subroutine gpupppord2l(ppart,ppbuff,rbufl,     &
+     &rbufr,kpic,ncl,ihole,mcll,mclr,idimp,nppmx,mx1,myp1,npbmx,ntmax,  &
+     &nbmax,irc)
+! this subroutine performs third step of a particle sort by x,y grid
+! in tiles of mx, my, where incoming particles from other tiles are
+! copied into ppart from ppbuff, rbufl, and rbufr
+! linear interpolation, with periodic boundary conditions
+! for distributed data, with 1d domain decomposition in y.
+! tiles are assumed to be arranged in 2D linear memory
+! input: all except irc
+! output: ppart, kpic, irc
+! ppart(n,i,k) = i co-ordinate of particle n in tile k 
+! ppbuff(n,i,k) = i co-ordinate of particle n in tile k
+! rbufl = buffer for particles being received from lower processor
+! rbufr = buffer for particles being received from upper processor
+! kpic(k) = number of particles in tile k
+! ncl(i,k) = number of particles going to destination i, tile k
+! ihole(1,:,k) = location of hole in array left by departing particle
+! ihole(2,:,k) = direction destination of particle leaving hole
+! all for tile k
+! ihole(1,1,k) = ih, number of holes left (error, if negative)
+! mcll = number offset being received from lower processor
+! mclr = number offset being received from upper processor
+! idimp = size of phase space = 4
+! nppmx = maximum number of particles in tile
+! mx1 = (system length in x direction - 1)/mx + 1
+! myp1 = (partition length in y direction - 1)/my + 1
+! npbmx = size of buffer array ppbuff
+! ntmax = size of hole array for particles leaving tiles
+! nbmax =  size of buffers for passing particles between processors
+! irc = maximum overflow, returned only if error occurs, when irc > 0
+      implicit none
+      integer, value :: idimp, nppmx, mx1, myp1, npbmx, ntmax, nbmax
+      real, dimension(nppmx,idimp,mx1*myp1) :: ppart
+      real, dimension(npbmx,idimp,mx1*myp1) :: ppbuff
+      real, dimension(nbmax*idimp) :: rbufl, rbufr
+      integer, dimension(mx1*myp1) :: kpic
+      integer, dimension(8,mx1*myp1) :: ncl
+      integer, dimension(2,ntmax+1,mx1*myp1) :: ihole
+      integer, dimension(3,mx1) :: mcll, mclr
+      integer, dimension(1) :: irc
+! local data
+      integer :: mxyp1, nppp, ncoff, noff, moff, i, j, k, ii, jj, kx, ky
+      integer :: ni, nh, nn, mm, ll, ip, j1, j2, j3, kxl, kxr, kk, kl
+      integer :: kr, nr, mr, nths
+! The sizes of the shared memory arrays are as follows:
+! integer ks(8), sip(8), sj(blockDim%x), sj1(1), ist(1)
+      integer, shared, dimension(8) :: ks, sip
+      integer, shared, dimension(blockDim%x) :: sj
+      integer, shared, dimension(1) :: sj1, ist
+      mxyp1 = mx1*myp1
+      noff = 0
+      moff = 0
+! k = tile number
+      k = blockIdx%x + gridDim%x*(blockIdx%y-1)
+! copy incoming particles from buffer into ppart: update ppart, kpic
+! loop over tiles
+      if (k <= mxyp1) then
+         nppp = kpic(k)
+         ky = (k - 1)/mx1 + 1
+! loop over tiles in y
+         kk = (ky - 1)*mx1
+! find tile above
+         kl = (ky - 2)*mx1
+! find tile below
+         kr = ky*mx1
+! loop over tiles in x, assume periodic boundary conditions
+         kx = k - (ky - 1)*mx1
+         kxl = kx - 1 
+         if (kxl < 1) kxl = kxl + mx1
+         kxr = kx + 1
+         if (kxr > mx1) kxr = kxr - mx1
+! find tile number for different directions
+         if (threadIdx%x==1) then
+            ks(1) = kxr + kk
+            ks(2) = kxl + kk
+            ks(3) = kx + kr
+            ks(4) = kxr + kr
+            ks(5) = kxl + kr
+            ks(6) = kx + kl
+            ks(7) = kxr + kl
+            ks(8) = kxl + kl
+            sj1(1) = 0
+            ist(1) = 0
+         endif
+! synchronize threads
+         call syncthreads()
+! find number of incoming particles
+         kk = 0
+         if (ky==1) then
+            nr = mcll(3,mx1)
+            if (kx > 1) noff = mcll(3,kx-1)
+         endif
+         if (ky==myp1) then
+            mr = mclr(3,mx1)
+            if (kx > 1) moff = mclr(3,kx-1)
+         endif
+         ncoff = 0
+         ip = 0
+         ii = threadIdx%x
+         if (ii <= 8) then
+            kk = ks(ii)
+! ip = number of particles coming from direction ii
+            if (kk <= 0) then
+               if (ii > 6) noff = mcll(ii-6,kk+mx1)
+               ip = mcll(ii-5,kk+mx1) - noff
+               kk = noff
+            else if (kk > mxyp1) then
+               if (ii > 3) moff = mclr(ii-3,kk-mxyp1)
+               ip = mclr(ii-2,kk-mxyp1) - moff
+               kk = moff
+            else
+               if (ii > 1) ncoff = ncl(ii-1,kk)
+               ip = ncl(ii,kk) - ncoff
+               kk = ncoff + idimp*npbmx*(kk - 1)
+            endif
+            sip(ii) = ip
+         endif
+! synchronize threads
+         call syncthreads()
+! perform local prefix reduction
+         call liscan2(sip,8)
+         ni = sip(8)
+! loop over directions
+         nh = ihole(1,1,k)
+         j1 = 0
+         mm = (ni - 1)/int(blockDim%x) + 1
+         do nn = 1, mm
+            j = threadIdx%x + blockDim%x*(nn - 1)
+            sj(threadIdx%x) = 0
+            if (threadIdx%x==1) sj(1) = sj1(1)
+! synchronize threads
+            call syncthreads()
+! calculate offset for reading from particle buffer
+            if (ii <= 8) then
+! mark next location where direction ii changes
+               jj = sip(ii) - blockDim%x*(nn - 1)
+               if ((jj >= 0) .and. (jj < blockDim%x)) then
+                  if (ip > 0) sj(jj+1) = sj(jj+1) - (kk + ip)
+               endif
+            endif
+! synchronize threads
+            call syncthreads()
+! calculate offset for reading from particle buffer
+            if (ii <= 8) then
+! mark location where direction ii starts
+               jj = jj - ip
+               if ((jj >= 0) .and. (jj < blockDim%x)) then
+                  if (ip > 0) sj(jj+1) = sj(jj+1) + kk
+               endif
+            endif
+            nths = ni - blockDim%x*(nn - 1)
+            if (nths > blockDim%x) nths = blockDim%x
+! synchronize threads
+            call syncthreads()
+! perform local prefix reduction
+            call liscan2(sj,nths)
+! save last value for next time
+            if (threadIdx%x==1) then
+               jj = 0
+               if (nths > 0) jj = sj(nths)
+               sj1(1) = jj
+            endif
+            if (j <= ni) then
+! insert incoming particles into holes
+               if (j <= nh) then
+                  j1 = ihole(1,j+1,k)
+! place overflow at end of array
+               else
+                  j1 = nppp + (j - nh)
+               endif
+               if (j1 <= nppmx) then
+                  jj = sj(threadIdx%x)
+                  if ((ky==1).and.(j>sip(5)).and.(j<=sip(8))) then
+                     do i = 1, idimp
+                     ppart(j1,i,k) = rbufl(j+jj+nr*(i-1))
+                     enddo
+                  else if ((ky==myp1).and.(j>sip(2))                    &
+     &                               .and.(j<=sip(5))) then
+                     do i = 1, idimp
+                     ppart(j1,i,k) = rbufr(j+jj+mr*(i-1))
+                     enddo
+                  else
+                     j2 = idimp*npbmx
+                     j3 = (j + jj - 1)/j2
+                     j2 = j + jj - j2*j3
+                     do i = 1, idimp
+                     ppart(j1,i,k) = ppbuff(j2,i,j3+1)
+                     enddo
+                  endif
+               else
+                  ist(1) = 1
+               endif
+            endif
+! synchronize threads
+            call syncthreads()
+         enddo
+! update particle number if all holes have been filled
+         jj = ni - nh
+         if (jj > 0) nppp = nppp + jj
+! fill up remaining holes in particle array with particles from end
+         ip = nh - ni
+         if (ip > 0) then
+            mm = (ip - 1)/int(blockDim%x) + 1
+            kk = 0
+            ll = 0
+! loop over holes
+            do nn = 1, mm
+               j = threadIdx%x + blockDim%x*(nn - 1)
+! j1 = locations of particles to fill holes, in decreasing order
+               j1 = 0
+               if (j <= ip) j1 = nppp - j + 1
+! j2 = locations of holes at the end, in decreasing order
+               j2 = 0
+               jj = nh - ll - threadIdx%x + 2
+               if (jj > 1) j2 = ihole(1,jj,k)
+! holes with locations greater than npp-ip do not need to be filled
+! identify such holes
+               sj(threadIdx%x) = 1
+! synchronize threads
+               call syncthreads()
+! omit particles at end that are holes
+               ii = nppp - (j2 + blockDim%x*(nn - 1)) + 1
+               if ((ii > 0) .and. (ii <= blockDim%x)) sj(ii) = 0
+               nths = ip - blockDim%x*(nn - 1)
+               if (nths > blockDim%x) nths = blockDim%x
+! synchronize threads
+               call syncthreads()
+! perform local prefix reduction
+               call liscan2(sj,nths)
+! ii = number particles at end to be moved
+               ii = 0
+               if (nths > 0) ii = sj(nths)
+! identify which particles at end to be moved
+               if (ii < nths) then
+                  ncoff = 0
+                  if (j <= ip) then
+                     if (threadIdx%x > 1) ncoff = sj(threadIdx%x-1)
+                     jj = sj(threadIdx%x)
+                  endif
+! synchronize threads
+                  call syncthreads()
+                  if (j <= ip) then
+                     if (jj > ncoff) then
+                        sj(jj) = j1
+                     endif
+                  endif
+! synchronize threads
+                  call syncthreads()
+               endif
+! j2 = locations of holes to be filled in increasing order
+               j2 = 0
+               if (j <= ip) then
+                  j1 = nppp - j + 1
+                  jj = threadIdx%x + ni + kk
+                  if (jj <= nh) j2 = ihole(1,jj+1,k)
+               endif
+! move particles from end into remaining holes
+               if (j <= (ii+blockDim%x*(nn-1))) then
+                  if (ii < nths) j1 = sj(threadIdx%x)
+                  do i = 1, idimp
+                  ppart(j2,i,k) = ppart(j1,i,k)
+                  enddo
+               endif
+! accumulate number of holes filled
+               kk = kk + ii
+! accumulate number of holes skipped over
+               ii = nths - ii
+               ll = ll + ii
+            enddo
+! update number of particles
+            nppp = nppp - ip
+         endif
+! set error and update particle
+         if (threadIdx%x==1) then
+! ppart overflow
+            if (ist(1) > 0) irc(1) = nppp
+            kpic(k) = nppp
+         endif
+      endif
+      end subroutine
+!
+!-----------------------------------------------------------------------
+      attributes(global) subroutine gpuppois22t(qt,fxyt,ffct,we,nx,ny,  &
+     &kstrt,nyv,kxp1,nyhd)
+! this subroutine solves 2d poisson's equation in fourier space for
+! force/charge (or convolution of electric field over particle shape)
+! with periodic boundary conditions, for distributed data.
+! vector length is second dimension.
+! input: qt,ffct,nx,ny,kstrt,nyv,kxp,nyhd, output: fxyt,we
+! approximate flop count is: 33*nxc*nyc + 15*(nxc + nyc)
+! where nxc = (nx/2-1)/nvp, nyc = ny/2 - 1, and nvp = number of procs
+! the equation used is:
+! fx(kx,ky) = -sqrt(-1)*kx*g(kx,ky)*s(kx,ky)*q(kx,ky),
+! fy(kx,ky) = -sqrt(-1)*ky*g(kx,ky)*s(kx,ky)*q(kx,ky),
+! where kx = 2pi*j/nx, ky = 2pi*k/ny, and j,k = fourier mode numbers,
+! g(kx,ky) = (affp/(kx**2+ky**2))*s(kx,ky),
+! s(kx,ky) = exp(-((kx*ax)**2+(ky*ay)**2)/2), except for
+! fx(kx=pi) = fy(kx=pi) = fx(ky=pi) = fy(ky=pi) = 0, and
+! fx(kx=0,ky=0) = fy(kx=0,ky=0) = 0.
+! qt(k,j) = complex charge density for fourier mode (jj-1,k-1)
+! fxyt(k,1,j) = x component of complex force/charge,
+! fxyt(k,2,j) = y component of complex force/charge,
+! for fourier mode (jj-1,k-1), where jj = j + kxp1*(kstrt - 1)
+! kxp1 = number of data values per block for unpacked field data
+! kstrt = starting data block number
+! aimag(ffct(k,j)) = finite-size particle shape factor s
+! real(ffct(k,j)) = potential green's function g
+! for fourier mode (jj-1,k-1), where jj = j + kxp1*(kstrt - 1)
+! electric field energy is also calculated, using
+! we = nx*ny*sum((affp/(kx**2+ky**2))*|q(kx,ky)*s(kx,ky)|**2)
+! where affp = nx*ny/np, where np=number of particles
+! nx/ny = system length in x/y direction
+! nyv = first dimension of field arrays, must be >= ny
+! nyhd = first dimension of form factor array, must be >= nyh
+      implicit none
+      integer, value :: nx, ny, kstrt, nyv, kxp1, nyhd
+      real, dimension(1) :: we
+      complex, dimension(nyv,kxp1) :: qt
+      complex, dimension(nyv,2,kxp1) :: fxyt
+      complex, dimension(nyhd,kxp1) :: ffct
+! local data
+      integer :: nxh, nyh, ny2, ks, joff, kxps, j, k, j0, j1, k1
+      real :: dnx, dny, dkx, dky, at1, at2, at3, at4
+      complex :: zero, zt1, zt2
+! The size of the shared memory array is as follows:
+! real ss(blockDim%x)
+      real, shared, dimension(blockDim%x) :: ss
+      double precision :: wp
+      nxh = nx/2
+      nyh = max(1,ny/2)
+      ny2 = ny + 2
+      ks = kstrt - 1
+      joff = kxp1*ks
+      j1 = nxh + 1
+      kxps = min(kxp1,max(0,j1-joff))
+      joff = joff - 1
+      dnx = 6.28318530717959/real(nx)
+      dny = 6.28318530717959/real(ny)
+      zero = cmplx(0.0,0.0)
+! calculate force/charge and sum field energy
+      wp = 0.0d0
+      if (kstrt <= j1) then
+! mode numbers 0 < kx < nx/2 and 0 < ky < ny/2
+!        do j = 1, kxps
+         j = blockIdx%x
+         j0 = j + joff
+         dkx = dnx*real(j0)
+         if ((j0 > 0) .and. (j0 < nxh)) then
+!           do k = 2, nyh
+            k = threadIdx%x
+            do while (k <= nyh)
+               if (k > 1) then
+                  k1 = ny2 - k
+                  at1 = real(ffct(k,j))*aimag(ffct(k,j))
+                  at2 = dkx*at1
+                  at3 = dny*real(k - 1)*at1
+                  zt1 = cmplx(aimag(qt(k,j)),-real(qt(k,j)))
+                  zt2 = cmplx(aimag(qt(k1,j)),-real(qt(k1,j)))
+                  fxyt(k,1,j) = at2*zt1
+                  fxyt(k1,1,j) = at2*zt2
+                  fxyt(k,2,j) = at3*zt1
+                  fxyt(k1,2,j) = -at3*zt2
+                  wp = wp + dble(at1*(qt(k,j)*conjg(qt(k,j))            &
+     &               + qt(k1,j)*conjg(qt(k1,j))))
+               endif
+               k = k + blockDim%x
+            enddo
+         endif
+! mode numbers ky = 0, ny/2
+         if (blockIdx%x==1) then
+            k1 = nyh + 1
+!           do j = 1, kxps
+            j = threadIdx%x
+            do while (j <= kxps)
+               j0 = j + joff
+               dkx = dnx*real(j0)
+               if ((j0 > 0) .and. (j0 < nxh)) then
+                  at1 = real(ffct(1,j))*aimag(ffct(1,j))
+                  at3 = dkx*at1
+                  zt1 = cmplx(aimag(qt(1,j)),-real(qt(1,j)))
+                  fxyt(1,1,j) = at3*zt1
+                  fxyt(k1,1,j) = zero
+                  fxyt(1,2,j) = zero
+                  fxyt(k1,2,j) = zero
+                  wp = wp + dble(at1*(qt(1,j)*conjg(qt(1,j))))
+               endif
+               j = j + blockDim%x
+            enddo
+! mode numbers kx = 0
+            if (ks==0) then
+!              do k = 2, nyh
+               k = threadIdx%x
+               do while (k <= nyh)
+                  if (k > 1) then
+                     k1 = ny2 - k
+                     at1 = real(ffct(k,1))*aimag(ffct(k,1))
+                     at2 = dny*real(k - 1)*at1
+                     zt1 = cmplx(aimag(qt(k,1)),-real(qt(k,1)))
+                     fxyt(k,1,1) = zero
+                     fxyt(k1,1,1) = zero
+                     fxyt(k,2,1) = at2*zt1
+                     fxyt(k1,2,1) = at2*conjg(zt1)
+                     wp = wp + dble(at1*(qt(k,1)*conjg(qt(k,1))))
+                  endif
+                  k = k + blockDim%x
+               enddo
+               if (threadIdx%x==1) then
+                  k1 = nyh + 1
+                  fxyt(1,1,1) = zero
+                  fxyt(k1,1,1) = zero
+                  fxyt(1,2,1) = zero
+                  fxyt(k1,2,1) = zero
+               endif
+            endif
+! mode numbers kx = nx/2
+            if (ks==(nxh/kxp1)) then
+!              do k = 1, ny
+               k = threadIdx%x
+               do while (k <= ny)
+                  fxyt(k,1,kxps) = zero
+                  fxyt(k,2,kxps) = zero
+                  k = k + blockDim%x
+               enddo
+            endif
+         endif
+      endif
+      j = blockIdx%x
+      if (j <= kxps) then
+! sum potential energies for each x co-ordinate
+         ss(threadIdx%x) = real(wp)
+! synchronize threads/
+         call syncthreads()
+         call lsum2(ss,blockDim%x)
+! normalize potential energy for each x co-ordinate
+         if (threadIdx%x==1) we(j) = ss(1)*(real(nx)*real(ny))
+      endif
+      end subroutine
+!
+!-----------------------------------------------------------------------
+      attributes(global) subroutine gpufft2rcxs(f,isign,mixup,sct,indx, &
+     &indy,nyi,nyp,nxhd,nyd,nxhyd,nxyhd,nsize)
+! this subroutine performs the x part of a two dimensional real to
+! complex fast fourier transform and its inverse, for a subset of y,
+! using complex arithmetic, with data not packed
+! for isign = (-1,1), input: all, output: f
+! for isign = -1, approximate flop count: N*(5*log2(N) + 19/2)
+! for isign = 1,  approximate flop count: N*(5*log2(N) + 15/2)
+! where N = (nx/2)*ny
+! indx/indy = exponent which determines length in x/y direction,
+! where nx=2**indx, ny=2**indy
+! if isign = -1, an inverse fourier transform in x is performed
+! f(n,m) = (1/nx*ny)*sum(f(j,k)*exp(-sqrt(-1)*2pi*n*j/nx))
+! if isign = 1, a forward fourier transform in x is performed
+! f(j,k) = sum(f(n,m)*exp(sqrt(-1)*2pi*n*j/nx))
+! mixup = array of bit reversed addresses
+! sct = sine/cosine table
+! nyi = initial y index used
+! nyp = number of y indices used
+! nxhd = first dimension of f >= nx/2+1
+! nyd = second dimension of f >= ny
+! nxhyd = maximum of (nx/2,ny)
+! nxyhd = maximum of (nx,ny)/2
+! nsize = amount of scratch complex memory used
+! fourier coefficients are stored as follows:
+! f(j,k) = real, imaginary part of mode j-1,k-1, where
+! 1 <= j <= nx/2+1 and 1 <= k <= ny
+! written by viktor k. decyk, ucla
+      implicit none
+      integer, value :: isign, indx, indy, nyi, nyp, nxhd, nyd
+      integer, value :: nxhyd, nxyhd, nsize
+      complex, dimension(nxhd,nyd) :: f
+      integer, dimension(nxhyd) :: mixup
+      complex, dimension(nxyhd) :: sct
+! local data
+      integer :: indx1, indx1y, nx, nxh, nxhh, nxh2, ny, nxy, nxhy, nyt
+      integer :: nrx, i, j, k, l, j1, j2, k1, k2, ns, ns2, km, kmr, kk
+      integer :: n, nn, in, nt, nh
+      real :: ani, at1, at2
+      complex :: t1, t2, t3
+! The size of the shared memory array is as follows:
+! complex s(nsize)
+      complex, shared, dimension(nsize) :: s
+      indx1 = indx - 1
+      indx1y = max0(indx1,indy)
+      nx = 2**indx
+      nxh = nx/2
+      nxhh = nx/4
+      nxh2 = nxh + 2
+      ny = 2**indy
+      nxy = max0(nx,ny)
+      nxhy = 2**indx1y
+      nyt = nyi + nyp - 1
+! calculate extent of shared memory usage:
+! nn = size of shared memory in x
+      nn = nxh
+      in = 0
+      do while (nn > nsize)
+         nn = nn/2
+         in = in + 1
+      enddo
+! nt = number of iterations in x
+      nt = 2**in
+      in = indx1 - in
+      nh = nn/2
+! inverse fourier transform
+      if (isign < 0) then
+! bit-reverse array elements in x
+         nrx = nxhy/nxh
+         k = blockIdx%x + nyi - 1
+!        do k = nyi, nyt
+         if (k <= nyt) then
+!           do j = 1, nxh
+            j = threadIdx%x
+            do while (j <= nxh)
+               j1 = (mixup(j) - 1)/nrx + 1
+               if (j < j1) then
+                  t1 = f(j1,k)
+                  f(j1,k) = f(j,k)
+                  f(j,k) = t1
+               endif
+               j = j + blockDim%x
+            enddo
+! synchronize threads
+            call syncthreads()
+         endif
+! copy data to local memory
+         nrx = nxy/nxh
+!        do i = nyi, nyt
+         i = blockIdx%x + nyi - 1
+         if (i <= nyt) then
+            do n = 1, nt
+!              do kk = 1, nn
+               kk = threadIdx%x
+               do while (kk <= nn) 
+                  s(kk) = f(kk+nn*(n-1),i)
+                  kk = kk + blockDim%x
+               enddo
+! synchronize threads */
+               call syncthreads()
+! transform using local data in x
+               do l = 1, in
+                  ns = 2**(l - 1)
+                  ns2 = ns + ns
+                  km = nxhh/ns
+                  kmr = km*nrx
+!                 do kk = 1, nh
+                  kk = threadIdx%x
+                  do while (kk <= nh)
+                     k = (kk - 1)/ns
+                     j = kk - ns*k
+                     k = k + 1
+                     k1 = ns2*(k - 1)
+                     k2 = k1 + ns
+                     j1 = j + k1
+                     j2 = j + k2
+                     t1 = sct(1+kmr*(j-1))
+                     t3 = s(j1)
+                     t2 = t1*s(j2)
+                     s(j2) = t3 - t2
+                     s(j1) = t3 + t2
+                     kk = kk + blockDim%x
+                  enddo
+! synchronize threads
+                  call syncthreads()
+               enddo
+! copy data to global memory
+!              do kk = 1, nn
+               kk = threadIdx%x
+               do while (kk <= nn)
+                  f(kk+nn*(n-1),i) = s(kk)
+                  kk = kk + blockDim%x
+               enddo
+! synchronize threads
+               call syncthreads()
+            enddo
+! transform using global data in x
+            in = in + 1
+            do l = in, indx1
+               ns = 2**(l - 1)
+               ns2 = ns + ns
+               km = nxhh/ns
+               kmr = km*nrx
+!              do kk = 1, nxhh
+               kk = threadIdx%x
+               do while (kk <= nxhh)
+                  k = (kk - 1)/ns
+                  j = kk - ns*k
+                  k = k + 1
+                  k1 = ns2*(k - 1)
+                  k2 = k1 + ns
+                  j1 = j + k1
+                  j2 = j + k2
+                  t1 = sct(1+kmr*(j-1))
+                  t3 = f(j1,i)
+                  t2 = t1*f(j2,i)
+                  f(j2,i) = t3 - t2
+                  f(j1,i) = t3 + t2
+                  kk = kk + blockDim%x
+               enddo
+! synchronize threads
+               call syncthreads()
+            enddo
+         endif
+! unscramble coefficients and normalize
+         kmr = nxy/nx
+         ani = 0.5/(real(nx)*real(ny))
+!        do k = nyi, nyt
+         k = blockIdx%x + nyi - 1
+         if (k <= nyt) then
+!           do j = 2, nxhh
+            j = threadIdx%x
+            do while (j <= nxhh)
+               if (j > 1) then
+                  t3 = cmplx(aimag(sct(1+kmr*(j-1))),                   &
+     &                 -real(sct(1+kmr*(j-1))))
+                  t2 = conjg(f(nxh2-j,k))
+                  t1 = f(j,k) + t2
+                  t2 = (f(j,k) - t2)*t3
+                  f(j,k) = ani*(t1 + t2)
+                  f(nxh2-j,k) = ani*conjg(t1 - t2)
+               endif
+               j = j + blockDim%x
+            enddo
+            if (threadIdx%x==1) then
+               ani = 2.0*ani
+               f(nxhh+1,k) = ani*conjg(f(nxhh+1,k))
+               at1 = real(f(1,k))
+               at2 = aimag(f(1,k))
+               f(nxh+1,k) = ani*cmplx(at1-at2,0.0)
+               f(1,k) = ani*cmplx(at1+at2,0.0)
+            endif
+! synchronize threads
+            call syncthreads()
+         endif
+      endif
+! forward fourier transform
+      if (isign > 0) then
+! scramble coefficients
+         kmr = nxy/nx
+!        do k = nyi, nyt
+         k = blockIdx%x + nyi - 1
+         if (k <= nyt) then
+!           do j = 2, nxhh
+            j = threadIdx%x
+            do while (j <= nxhh)
+               if (j > 1) then
+                  t3 = cmplx(aimag(sct(1+kmr*(j-1))),                   &
+     &                 real(sct(1+kmr*(j-1))))
+                  t2 = conjg(f(nxh2-j,k))
+                  t1 = f(j,k) + t2
+                  t2 = (f(j,k) - t2)*t3
+                  f(j,k) = t1 + t2
+                  f(nxh2-j,k) = conjg(t1 - t2)
+               endif
+               j = j + blockDim%x
+            enddo
+            if (threadIdx%x==1) then
+               f(nxhh+1,k) = 2.0*conjg(f(nxhh+1,k))
+               at1 = real(f(1,k))
+               at2 = real(f(nxh+1,k))
+               f(1,k) = cmplx(at1+at2,at1-at2)
+            endif
+! synchronize threads
+            call syncthreads()
+         endif
+! bit-reverse array elements in x
+         nrx = nxhy/nxh
+!        do k = nyi, nyt
+         k = blockIdx%x + nyi - 1
+         if (k <= nyt) then
+!           do j = 1, nxh
+            j = threadIdx%x
+            do while (j <= nxh)
+               j1 = (mixup(j) - 1)/nrx + 1
+               if (j < j1) then
+                  t1 = f(j1,k)
+                  f(j1,k) = f(j,k)
+                  f(j,k) = t1
+               endif
+               j = j + blockDim%x
+            enddo
+! synchronize threads
+            call syncthreads()
+         endif
+! copy data to local memory
+         nrx = nxy/nxh
+!        do i = nyi, nyt
+         i = blockIdx%x + nyi - 1
+         if (i <= nyt) then
+            do n = 1, nt
+!              do kk = 1, nn
+               kk = threadIdx%x
+               do while (kk <= nn)
+                  s(kk) = f(kk+nn*(n-1),i)
+                  kk = kk + blockDim%x
+               enddo
+! synchronize threads */
+               call syncthreads()
+! transform using local data in x
+               do l = 1, in
+                  ns = 2**(l - 1)
+                  ns2 = ns + ns
+                  km = nxhh/ns
+                  kmr = km*nrx
+!                 do kk = 1, nh
+                  kk = threadIdx%x
+                  do while (kk <= nh)
+                     k = (kk - 1)/ns
+                     j = kk - ns*k
+                     k = k + 1
+                     k1 = ns2*(k - 1)
+                     k2 = k1 + ns
+                     j1 = j + k1
+                     j2 = j + k2
+                     t1 = conjg(sct(1+kmr*(j-1)))
+                     t3 = s(j1)
+                     t2 = t1*s(j2)
+                     s(j2) = t3 - t2
+                     s(j1) = t3 + t2
+                     kk = kk + blockDim%x
+                  enddo
+! synchronize threads
+                  call syncthreads()
+               enddo
+! copy data to global memory
+!              do kk = 1, nn
+               kk = threadIdx%x
+               do while (kk <= nn)
+                  f(kk+nn*(n-1),i) = s(kk)
+                  kk = kk + blockDim%x
+               enddo
+! synchronize threads
+               call syncthreads()
+            enddo
+! transform using global data in x
+            in = in + 1
+            do l = in, indx1
+               ns = 2**(l - 1)
+               ns2 = ns + ns
+               km = nxhh/ns
+               kmr = km*nrx
+!              do kk = 1, nxhh
+               kk = threadIdx%x
+               do while (kk <= nxhh)
+                  k = (kk - 1)/ns
+                  j = kk - ns*k
+                  k = k + 1
+                  k1 = ns2*(k - 1)
+                  k2 = k1 + ns
+                  j1 = j + k1
+                  j2 = j + k2
+                  t1 = conjg(sct(1+kmr*(j-1)))
+                  t3 = f(j1,i)
+                  t2 = t1*f(j2,i)
+                  f(j2,i) = t3 - t2
+                  f(j1,i) = t3 + t2
+                  kk = kk + blockDim%x
+               enddo
+! synchronize threads
+               call syncthreads()
+            enddo
+         endif
+      endif
+      end subroutine
+!
+!-----------------------------------------------------------------------
+      attributes(global) subroutine gpufft2rcys(g,isign,mixup,sct,indx, &
+     &indy,nxi,nxp,nxhd,nyd,nxhyd,nxyhd,nsize)
+! this subroutine performs the y part of a two dimensional real to
+! complex fast fourier transform and its inverse, for a subset of x,
+! using complex arithmetic, with data not packed
+! for isign = (-1,1), input: all, output: g
+! for isign = -1, approximate flop count: N*(5*log2(N) + 19/2)
+! for isign = 1,  approximate flop count: N*(5*log2(N) + 15/2)
+! where N = (nx/2)*ny
+! indx/indy = exponent which determines length in x/y direction,
+! where nx=2**indx, ny=2**indy
+! if isign = -1, an inverse fourier transform in y is performed
+! g(m,n) = (1/nx*ny)*sum(g(k,j)**exp(-sqrt(-1)*2pi*m*k/ny))
+! if isign = 1, a forward fourier transform in y is performed
+! g(k,j) = sum(g(m,n)*exp(sqrt(-1)*2pi*m*k/ny))
+! mixup = array of bit reversed addresses
+! sct = sine/cosine table
+! nxi = initial x index used
+! nxp = number of x indices used
+! nxhd = second dimension of g >= nx/2+1
+! nyd = first dimension of g >= ny
+! nxhyd = maximum of (nx/2,ny)
+! nxyhd = maximum of (nx,ny)/2
+! nsize = amount of scratch complex memory used
+! fourier coefficients are stored as follows:
+! g(k,j) = real, imaginary part of mode j-1,k-1, where
+! 1 <= j <= nx/2+1 and 1 <= k <= ny
+! written by viktor k. decyk, ucla
+      implicit none
+      integer, value :: isign, indx, indy, nxi, nxp, nxhd, nyd
+      integer, value :: nxhyd, nxyhd, nsize
+      complex, dimension(nyd,nxhd) :: g
+      integer, dimension(nxhyd) :: mixup
+      complex, dimension(nxyhd) :: sct
+! local data
+      integer :: indx1, indx1y, nx, ny, nyh, ny2, nxy, nxhy, nxt
+      integer :: nry, i, j, k, l, j1, j2, k1, k2, ns, ns2, km, kmr, kk
+      integer :: n, nn, in, nt, nh
+      complex :: t1, t2, t3
+! The size of the shared memory array is as follows:
+! complex s(nsize)
+      complex, shared, dimension(nsize) :: s
+      indx1 = indx - 1
+      indx1y = max0(indx1,indy)
+      nx = 2**indx
+      ny = 2**indy
+      nyh = ny/2
+      ny2 = ny + 2
+      nxy = max0(nx,ny)
+      nxhy = 2**indx1y
+      nxt = nxi + nxp - 1
+! calculate extent of shared memory usage:
+! nn = size of shared memory in y
+      nn = ny
+      in = 0
+      do while (nn > nsize)
+         nn = nn/2
+         in = in + 1
+      enddo
+! nt = number of iterations in y
+      nt = 2**in
+      in = indy - in
+      nh = nn/2
+! bit-reverse array elements in y
+      nry = nxhy/ny
+!     do j = nxi, nxt
+      j = blockIdx%x + nxi - 1
+      if (j <= nxt) then
+!        do k = 1, ny
+         k = threadIdx%x
+         do while (k <= ny)
+            k1 = (mixup(k) - 1)/nry + 1
+            if (k < k1) then
+               t1 = g(k1,j)
+               g(k1,j) = g(k,j)
+               g(k,j) = t1
+            endif
+            k = k + blockDim%x
+         enddo
+! synchronize threads
+         call syncthreads()
+      endif
+      nry = nxy/ny
+! inverse fourier transform in y
+      if (isign < 0) then
+! copy data to local memory
+!        do i = nxi, nxt
+         i = blockIdx%x + nxi - 1
+         if (i <= nxt) then
+            do n = 1, nt
+!              do kk = 1, nn
+               kk = threadIdx%x
+               do while (kk <= nn)
+                  s(kk) = g(kk+nn*(n-1),i)
+                  kk = kk + blockDim%x
+                enddo
+! synchronize threads
+               call syncthreads()
+! transform using local data in y
+               do l = 1, in
+                  ns = 2**(l - 1)
+                  ns2 = ns + ns
+                  km = nyh/ns
+                  kmr = km*nry
+!                 do kk = 1, nh
+                  kk = threadIdx%x
+                  do while (kk <= nh)
+                     k = (kk - 1)/ns
+                     j = kk - ns*k
+                     k = k + 1
+                     k1 = ns2*(k - 1)
+                     k2 = k1 + ns
+                     j1 = j + k1
+                     j2 = j + k2
+                     t1 = sct(1+kmr*(j-1))
+                     t3 = s(j1)
+                     t2 = t1*s(j2)
+                     s(j2) = t3 - t2
+                     s(j1) = t3 + t2
+                     kk = kk + blockDim%x
+                  enddo
+! synchronize threads
+                  call syncthreads()
+               enddo
+! copy data to global memory
+!              do kk = 1, nn
+               kk = threadIdx%x
+               do while (kk <= nn)
+                  g(kk+nn*(n-1),i) = s(kk)
+                  kk = kk + blockDim%x
+               enddo
+! synchronize threads
+               call syncthreads()
+            enddo
+            in = in + 1
+            do l = in, indy
+               ns = 2**(l - 1)
+               ns2 = ns + ns
+               km = nyh/ns
+               kmr = km*nry
+!              do kk = 1, nyh
+               kk = threadIdx%x
+               do while (kk <= nyh)
+                  k = (kk - 1)/ns
+                  j = kk - ns*k
+                  k = k + 1
+                  k1 = ns2*(k - 1)
+                  k2 = k1 + ns
+                  j1 = j + k1
+                  j2 = j + k2
+                  t1 = sct(1+kmr*(j-1))
+                  t3 = g(j1,i)
+                  t2 = t1*g(j2,i)
+                  g(j2,i) = t3 - t2
+                  g(j1,i) = t3 + t2
+                  kk = kk + blockDim%x
+               enddo
+! synchronize threads
+               call syncthreads()
+            enddo
+         endif
+      endif
+! forward fourier transform in y
+      if (isign > 0) then
+! copy data to local memory
+!        do i = nxi, nxt
+         i = blockIdx%x + nxi - 1
+         if (i <= nxt) then
+            do n = 1, nt
+!              do kk = 1, nn
+               kk = threadIdx%x
+               do while (kk <= nn)
+                  s(kk) = g(kk+nn*(n-1),i)
+                  kk = kk + blockDim%x
+               enddo
+! synchronize threads
+               call syncthreads()
+! transform using local data in y
+               do l = 1, in
+                  ns = 2**(l - 1)
+                  ns2 = ns + ns
+                  km = nyh/ns
+                  kmr = km*nry
+!                 do kk = 1, nh
+                  kk = threadIdx%x
+                  do while (kk <= nh)
+                     k = (kk - 1)/ns
+                     j = kk - ns*k
+                     k = k + 1
+                     k1 = ns2*(k - 1)
+                     k2 = k1 + ns
+                     j1 = j + k1
+                     j2 = j + k2
+                     t1 = conjg(sct(1+kmr*(j-1)))
+                     t3 = s(j1)
+                     t2 = t1*s(j2)
+                     s(j2) = t3 - t2
+                     s(j1) = t3 + t2
+                     kk = kk + blockDim%x
+                  enddo
+! synchronize threads
+                  call syncthreads()
+               enddo
+! copy data to global memory
+!              do kk = 1, nn
+               kk = threadIdx%x
+               do while (kk <= nn)
+                  g(kk+nn*(n-1),i) = s(kk)
+                  kk = kk + blockDim%x
+               enddo
+! synchronize threads
+               call syncthreads()
+            enddo
+! transform using global data in y
+            in = in + 1
+            do l = in, indy
+               ns = 2**(l - 1)
+               ns2 = ns + ns
+               km = nyh/ns
+               kmr = km*nry
+!              do kk = 1, nyh
+               kk = threadIdx%x
+               do while (kk <= nyh)
+                  k = (kk - 1)/ns
+                  j = kk - ns*k
+                  k = k + 1
+                  k1 = ns2*(k - 1)
+                  k2 = k1 + ns
+                  j1 = j + k1
+                  j2 = j + k2
+                  t1 = conjg(sct(1+kmr*(j-1)))
+                  t3 = g(j1,i)
+                  t2 = t1*g(j2,i)
+                  g(j2,i) = t3 - t2
+                  g(j1,i) = t3 + t2
+                  kk = kk + blockDim%x
+               enddo
+! synchronize threads
+               call syncthreads()
+            enddo
+         endif
+      endif
+      end subroutine
+!
+!-----------------------------------------------------------------------
+      attributes(global) subroutine gpuppmtposes(f,sm,nx,kxp,kyps,kstrt,&
+     &nvp,kxyp,nxv,kypd)
+! extract data to send
+      implicit none
+      integer, value :: nx, kxp, kyps, kstrt, nvp, kxyp, nxv, kypd
+      complex, dimension(nxv,kypd) :: f
+      complex, dimension(kxyp,nvp-1) :: sm
+! local data
+      integer :: ks, j, k, n, nn, id, joff, ld
+      ks = kstrt - 1
+!     do n = 1, nvp
+      n = blockIdx%y
+      if (n <= nvp) then
+         id = n - ks - 1
+         if (id < 0) id = id + nvp
+! find which node sends to itself
+         nn = 2*ks
+         if (nn >= nvp) nn = nn - nvp
+! adjust counter
+         if ((n-1) > nn) n = n - 1
+! do not send local data
+         if (id /= ks) then
+            joff = kxp*id
+            ld = min(kxp,max(0,nx-joff))
+!           do k = 1, kyps
+            k = blockIdx%x
+            if (k <= kyps) then
+!              do j = 1, ld
+               j = threadIdx%x
+               do while (j <= ld)
+                  sm(j+ld*(k-1),n) = f(j+joff,k)
+                  j = j + blockDim%x
+               enddo
+            endif
+         endif
+      endif
+      end subroutine
+!
+!-----------------------------------------------------------------------
+      attributes(global) subroutine gpuppmtposer(g,tm,ny,kyp,kxps,kstrt,&
+     &nvp,kxyp,nyv,kxpd)
+! transpose data received
+      implicit none
+      integer, value :: ny, kyp, kxps, kstrt, nvp, kxyp, nyv, kxpd
+      complex, dimension(nyv,kxpd) :: g
+      complex, dimension(kxyp,nvp-1) :: tm
+! local data
+      integer :: kt, mxv, j, k, n, nn, id, koff, ld, js, ks, jj, kk
+! The size of the shared memory array is as follows:
+! complex sc((mx + 1)*mx)
+      complex, shared, dimension((blockDim%x+1)*blockDim%x) :: sc
+      kt = kstrt - 1
+      mxv = blockDim%x + 1
+!     do n = 1, nvp
+      n = blockIdx%z
+      if (n <= nvp) then
+         id = n - kt - 1
+         if (id < 0) id = id + nvp
+! find which node sends to itself
+         nn = 2*kt
+         if (nn >= nvp) nn = nn - nvp
+! adjust counter
+         if ((n-1) > nn) n = n - 1
+! do not transpose local data 
+         if (id /= kt) then
+            koff = kyp*id
+            ld = min(kyp,max(0,ny-koff))
+            js = threadIdx%x
+            ks = threadIdx%y
+            jj = blockDim%x*(blockIdx%x - 1)
+            kk = blockDim%y*(blockIdx%y - 1)
+            j = js + jj
+            k = ks + kk
+            if ((j <= kxps) .and. (k <= ld)) then
+               sc(js+mxv*(ks-1)) = tm(j+kxps*(k-1),n)
+            endif
+! synchronize threads
+            call syncthreads()
+            j = ks + jj
+            k = js + kk
+            if ((j <= kxps) .and. (k <= ld)) then
+               g(k+koff,j) = sc(ks+mxv*(js-1))
+            endif
+         endif
+      endif
+      end subroutine
+!
+!-----------------------------------------------------------------------
+      attributes(global) subroutine gpuppmtposesn(fn,sm,nx,kxp,kyps,    &
+     &kstrt,nvp,ndim,kxyp,nxv,kypd)
+! extract vector data to send
+      implicit none
+      integer, value :: nx, kxp, kyps, kstrt, nvp, ndim, kxyp, nxv, kypd
+      complex, dimension(nxv,ndim,kypd) :: fn
+      complex, dimension(kxyp*ndim,nvp-1) :: sm
+! local data
+      integer :: ks, i, j, k, n, nn, id, joff, ld
+      ks = kstrt - 1
+!     do n = 1, nvp
+      n = blockIdx%y
+      if (n <= nvp) then
+         id = n - ks - 1
+         if (id < 0) id = id + nvp
+! find which node sends to itself
+         nn = 2*ks
+         if (nn >= nvp) nn = nn - nvp
+! adjust counter
+         if ((n-1) > nn) n = n - 1
+! do not send local data
+         if (id /= ks) then
+            joff = kxp*id
+            ld = min(kxp,max(0,nx-joff))
+!           do k = 1, kyps
+            k = blockIdx%x
+            if (k <= kyps) then
+!              do j = 1, ld
+               j = threadIdx%x
+               do while (j <= ld)
+                  do i = 1, ndim
+                     sm(j+ld*(i-1+ndim*(k-1)),n) = fn(j+joff,i,k)
+                  enddo
+                  j = j + blockDim%x
+               enddo
+            endif
+         endif
+      endif
+      end subroutine
+!
+!-----------------------------------------------------------------------
+      attributes(global) subroutine gpuppmtposern(gn,tm,ny,kyp,kxps     &
+     &,kstrt,nvp,ndim,kxyp,nyv,kxpd)
+! transpose vector data received
+      implicit none
+      integer, value :: ny, kyp, kxps, kstrt, nvp, ndim, kxyp, nyv, kxpd
+      complex, dimension(nyv,ndim,kxpd) :: gn
+      complex, dimension(kxyp*ndim,nvp-1) :: tm
+! local data
+      integer :: kt, mxv, i, j, k, n, nn, id, koff, ld, js, ks, jj, kk
+! The size of the shared memory array is as follows:
+! complex scn(ndim*(mx + 1)*mx)
+      complex, shared, dimension((blockDim%x+1)*ndim*blockDim%x) :: scn
+      kt = kstrt - 1
+      mxv = blockDim%x + 1
+!     do n = 1, nvp
+      n = blockIdx%z
+      if (n <= nvp) then
+         id = n - kt - 1
+         if (id < 0) id = id + nvp
+! find which node sends to itself
+         nn = 2*kt
+         if (nn >= nvp) nn = nn - nvp
+! adjust counter
+         if ((n-1) > nn) n = n - 1
+! do not transpose local data 
+         if (id /= kt) then
+            koff = kyp*id
+            ld = min(kyp,max(0,ny-koff))
+            js = threadIdx%x
+            ks = threadIdx%y
+            jj = blockDim%x*(blockIdx%x - 1)
+            kk = blockDim%y*(blockIdx%y - 1)
+            j = js + jj
+            k = ks + kk
+            if ((j <= kxps) .and. (k <= ld)) then
+               do i = 1, ndim
+                  scn(js+mxv*(i-1+ndim*(ks-1))) =                       &
+     &            tm(j+kxps*(i-1+ndim*(k-1)),n)
+               enddo
+            endif
+! synchronize threads
+            call syncthreads()
+            j = ks + jj
+            k = js + kk
+            if ((j <= kxps) .and. (k <= ld)) then
+               do i = 1, ndim
+                  gn(k+koff,i,j) = scn(ks+mxv*(i-1+ndim*(js-1)))
+               enddo
+            endif
+         endif
+      endif
+      end subroutine
+!
+!-----------------------------------------------------------------------
+      attributes(global) subroutine gpuppltpose(f,g,nx,ny,kxp,kyp,kstrt,&
+     &nxv,nyv)
+! transpose local data
+      integer, value :: nx, ny, kxp, kyp, kstrt, nxv, nyv
+      complex, dimension(nxv,*) :: f
+      complex, dimension(nyv,*) :: g
+! local data
+      integer :: mxv, j, k, ks, kxps, kyps, joff, koff, js, jj, kk
+! The size of the shared memory array is as follows:
+! complex sc((mx + 1)*mx)
+      complex, shared, dimension((blockDim%x+1)*blockDim%x) :: sc
+      mxv = blockDim%x + 1
+      ks = kstrt - 1
+      joff = kxp*ks
+      koff = kyp*ks
+      kxps = min(kxp,max(0,nx-joff))
+      kyps = min(kyp,max(0,ny-koff))
+      js = threadIdx%x
+      ks = threadIdx%y
+      jj = blockDim%x*(blockIdx%x - 1)
+      kk = blockDim%y*(blockIdx%y - 1)
+      j = js + jj
+      k = ks + kk
+      if ((j <= kxps) .and. (k <= kyps)) then
+         sc(js+mxv*(ks-1)) = f(j+joff,k)
+      endif
+! synchronize threads
+      call syncthreads()
+      j = ks + jj
+      k = js + kk
+      if ((j <= kxps) .and. (k <= kyps)) then
+         g(k+koff,j) = sc(ks+mxv*(js-1))
+      endif
+      end subroutine
+!
+!-----------------------------------------------------------------------
+      attributes(global) subroutine gpuppltposen(fn,gn,nx,ny,kxp,kyp,   &
+     &kstrt,ndim,nxv,nyv)
+! transpose local data
+      integer, value :: nx, ny, kxp, kyp, kstrt, ndim, nxv, nyv
+      complex, dimension(nxv,ndim,*) :: fn
+      complex, dimension(nyv,ndim,*) :: gn
+! local data
+      integer :: mxv, i, j, k, ks, kxps, kyps, joff, koff, js, jj, kk
+! The size of the shared memory array is as follows:
+! complex scn(ndim*(mx + 1)*mx)
+      complex, shared, dimension((blockDim%x+1)*ndim*blockDim%x) :: scn
+      mxv = blockDim%x + 1
+      ks = kstrt - 1
+      joff = kxp*ks
+      koff = kyp*ks
+      kxps = min(kxp,max(0,nx-joff))
+      kyps = min(kyp,max(0,ny-koff))
+      js = threadIdx%x
+      ks = threadIdx%y
+      jj = blockDim%x*(blockIdx%x - 1)
+      kk = blockDim%y*(blockIdx%y - 1)
+      j = js + jj
+      k = ks + kk
+      if ((j <= kxps) .and. (k <= kyps)) then
+         do i = 1, ndim
+            scn(js+mxv*(i-1+ndim*(ks-1))) = fn(j+joff,i,k)
+         enddo
+      endif
+! synchronize threads
+      call syncthreads()
+      j = ks + jj
+      k = js + kk
+      if ((j <= kxps) .and. (k <= kyps)) then
+         do i = 1, ndim
+            gn(k+koff,i,j) = scn(ks+mxv*(i-1+ndim*(js-1)))
+         enddo
+      endif
+      end subroutine
+!
+!-----------------------------------------------------------------------
+      attributes(global) subroutine gpusum1(a,sa,nx)
+! 1d serial sum reductions
+! nx = length of data
+! sa = sum(a)
+      implicit none
+      integer, value :: nx
+      real, dimension(8) :: a, sa
+! local data
+      integer :: j, js, jb, mx, joff, mxm
+      real :: t
+      real, shared, dimension(*) :: ss
+      mx = blockDim%x
+      js = threadIdx%x
+      jb = blockIdx%x
+      joff = mx*(jb - 1)
+      j = js + joff
+! copy global data to shared memory
+      if (j <= nx) ss(js) = a(j)
+! synchronize to make sure each thread in block has the data
+      call syncthreads()
+      if (js==1) then
+         mxm = nx - joff
+         if (mxm > mx) mxm = mx
+! perform serial local sum reduction: result in t
+         t = 0.0
+         do j = 1, mxm
+            t = t + ss(j)
+         enddo
+! accumulate results to global memory for each block
+! for devices with compute capability 2.x
+         t = atomicAdd(sa(1),t)
+      endif
+      end subroutine
+!
+!-----------------------------------------------------------------------
+      attributes(global) subroutine gpusum2(a,d,nx)
+! segmented 1d sum reductions, each of length mx = blockDim%x /
+! nx = length of data 
+! forall (j = 1:nbx); d(j) = sum(a(1+mx*(j-1):min(nx,mx*j))); end forall
+      implicit none
+      integer, value :: nx
+      real, dimension(8) :: a, d
+! local data
+      integer :: j, js, jb, mx, joff, mxm
+      real, shared, dimension(*) :: ss
+      mx = blockDim%x
+      js = threadIdx%x
+      jb = blockIdx%x
+      joff = mx*(jb - 1)
+      j = js + joff
+! copy global data to shared memory
+      if (j <= nx) ss(js) = a(j)
+! synchronize to make sure each thread in block has the data
+      call syncthreads()
+      mxm = nx - joff
+      if (mxm > mx) mxm = mx
+! perform parallel local sum reduction: result in s(1)
+      call lsum2(ss,mxm)
+! write out result to global memory for each block
+      if (js==1) d(jb) = ss(1)
+      end subroutine
+!
+!-----------------------------------------------------------------------
+      subroutine fgpuppgppush2l(ppart,fxy,kpic,noff,nyp,qbm,dt,ek,nx,ny,&
+     &mx,my,idimp,nppmx,nxv,nypmx,mx1,mxyp1,ipbc)
+! Push Interface for Fortran
+      implicit none
+      integer, intent(in) :: noff, nyp, nx, ny, mx, my, idimp, nppmx
+      integer, intent(in) :: nxv, nypmx, mx1, mxyp1, ipbc
+      real, intent(in) :: qbm, dt
+      real, device, dimension(1) :: ek
+      real, device, dimension(nppmx,idimp,mxyp1) :: ppart
+      real, device, dimension(2,nxv,nypmx) :: fxy
+      integer, device, dimension(mxyp1) :: kpic
+! local data
+      integer :: n, m, ns
+      real :: f
+      type (dim3) :: dimBlock, dimGrid
+      dimBlock = dim3(nblock_size,1,1)
+      n = mxyp1
+      m = (n - 1)/maxgsx + 1
+      n = min(n,maxgsx)
+      dimGrid = dim3(n,m,1)
+      ns = 2*(mx + 1)*(my + 1)*sizeof(f)
+      n = nblock_size*sizeof(f)
+      ns = max(ns,n)
+      crc = cudaGetLastError()
+      call gpuppgppush2l<<<dimGrid,dimBlock,ns>>>(ppart,fxy,kpic,noff,  &
+     &nyp,qbm,dt,ek,nx,ny,mx,my,idimp,nppmx,nxv,nypmx,mx1,mxyp1,ipbc)
+      crc = cudaThreadSynchronize()
+      crc = cudaGetLastError()
+      if (crc /= 0) then
+         write (*,*) 'gpuppgppush2l error=',crc,':',                    &
+     &cudaGetErrorString(crc)
+         stop
+      endif
+      end subroutine
+!
+!-----------------------------------------------------------------------
+      subroutine fgpu2ppgppost2l(ppart,q,kpic,noff,qm,idimp,nppmx,mx,my,&
+     &nxv,nypmx,mx1,mxyp1)
+! Deposit Interface for Fortran
+      implicit none
+      integer, intent(in) :: noff, idimp, nppmx, mx, my, nxv, nypmx
+      integer, intent(in) :: mx1, mxyp1
+      real, intent(in) :: qm
+      real, device, dimension(nppmx,idimp,mxyp1) :: ppart
+      real, device, dimension(nxv,nypmx) :: q
+      integer, device, dimension(mxyp1) :: kpic
+! local data
+      integer :: n, m, ns
+      real :: f
+      type (dim3) :: dimBlock, dimGrid
+      dimBlock = dim3(nblock_size,1,1)
+      n = mxyp1
+      m = (n - 1)/maxgsx + 1
+      n = min(n,maxgsx)
+      dimGrid = dim3(n,m,1)
+      ns = (mx + 1)*(my + 1)*sizeof(f)
+      crc = cudaGetLastError()
+      call gpu2ppgppost2l<<<dimGrid,dimBlock,ns>>>(ppart,q,kpic,noff,qm,&
+     &idimp,nppmx,mx,my,nxv,nypmx,mx1,mxyp1)
+      crc = cudaThreadSynchronize()
+      crc = cudaGetLastError()
+      if (crc /= 0) then
+         write (*,*) 'gpu2ppgppost2l error=',crc,':',                   &
+     &cudaGetErrorString(crc)
+         stop
+      endif
+      end subroutine
+!
+!-----------------------------------------------------------------------
+      subroutine fgpuppcaguard2xl(qc,scs,q,nyp,nx,nxe,nypmx,nxvh,kypd)
+! Guard Cell Interface for Fortran
+      implicit none
+      integer, intent(in) :: nyp, nx, nxe, nypmx, nxvh, kypd
+      complex, device, dimension(nxvh,kypd) :: qc
+      complex, device, dimension(nxvh) :: scs
+      real, device, dimension(nxe,nypmx) :: q
+! local data
+      type (dim3) :: dimBlock, dimGrid
+      dimBlock = dim3(nblock_size,1,1)
+      dimGrid = dim3(nyp,1,1)
+      crc = cudaGetLastError()
+      call gpuppcaguard2xl<<<dimGrid,dimBlock>>>(qc,scs,q,nyp,nx,nxe,   &
+     &nypmx,nxvh,kypd)
+      crc = cudaThreadSynchronize()
+      crc = cudaGetLastError()
+      if (crc /= 0) then
+         write (*,*) 'gpuppcaguard2xl error=',crc,':',                  &
+     &cudaGetErrorString(crc)
+         stop
+      endif
+      end subroutine
+!
+!-----------------------------------------------------------------------
+      subroutine fgpuppcaguard2yl(fc,scr,nx,nxvh,kypd)
+! Guard Cell Interface for Fortran
+      implicit none
+      integer, intent(in) :: nx, nxvh, kypd
+      complex, device, dimension(nxvh,kypd) :: fc
+      complex, device, dimension(nxvh) :: scr
+! local data
+      integer :: nxh
+      type (dim3) :: dimBlock, dimGrid
+      nxh = nx/2
+      dimBlock = dim3(nblock_size,1,1)
+      dimGrid = dim3((nxh-1)/nblock_size+1,1,1)
+      crc = cudaGetLastError()
+      call gpuppcaguard2yl<<<dimGrid,dimBlock>>>(fc,scr,nx,nxvh,kypd)
+      crc = cudaThreadSynchronize()
+      crc = cudaGetLastError()
+      if (crc /= 0) then
+         write (*,*) 'gpuppcaguard2yl error=',crc,':',                  &
+     &cudaGetErrorString(crc)
+         stop
+      endif
+      end subroutine
+!
+!-----------------------------------------------------------------------
+      subroutine fgpuppccguard2xl(fxyc,scs,fxy,nyp,nx,nxe,nypmx,nxvh,   &
+     &kypd)
+! Guard Cell Interface for Fortran
+      implicit none
+      integer, intent(in) :: nyp, nx, nxe, nypmx, nxvh, kypd
+      complex, device, dimension(nxvh,2,kypd) :: fxyc
+      complex, device, dimension(nxvh,2) :: scs
+      real, device, dimension(2,nxe,nypmx) :: fxy
+! local data
+      type (dim3) :: dimBlock, dimGrid
+      dimBlock = dim3(nblock_size,1,1)
+      dimGrid = dim3(nyp,1,1)
+      crc = cudaGetLastError()
+      call gpuppccguard2xl<<<dimGrid,dimBlock>>>(fxyc,scs,fxy,nyp,nx,nxe&
+     &,nypmx,nxvh,kypd)
+      crc = cudaThreadSynchronize()
+      crc = cudaGetLastError()
+      if (crc /= 0) then
+         write (*,*) 'gpuppccguard2xl error=',crc,':',                  &
+     &cudaGetErrorString(crc)
+         stop
+      endif
+      end subroutine
+!
+!-----------------------------------------------------------------------
+      subroutine fgpuppccguard2yl(fxy,scr,nyp,nx,nxe,nxvh,nypmx)
+! Guard Cell Interface for Fortran
+      implicit none
+      integer, intent(in) :: nyp, nx, nxe, nxvh, nypmx
+      real, device, dimension(2,nxe,nypmx) :: fxy
+      complex, device, dimension(nxvh,2) :: scr
+! local data
+      integer :: nxh
+      type (dim3) :: dimBlock, dimGrid
+      nxh = nx/2
+      dimBlock = dim3(nblock_size,1,1)
+      dimGrid = dim3((nxh-1)/nblock_size+1,1,1)
+      crc = cudaGetLastError()
+      call gpuppccguard2yl<<<dimGrid,dimBlock>>>(fxy,scr,nyp,nx,nxe,nxvh&
+     &,nypmx)
+      crc = cudaThreadSynchronize()
+      crc = cudaGetLastError()
+      if (crc /= 0) then
+         write (*,*) 'gpuppccguard2yl error=',crc,':',                  &
+     &cudaGetErrorString(crc)
+         stop
+      endif
+      end subroutine
+!
+!-----------------------------------------------------------------------
+      subroutine fgpupppord2la(ppart,ppbuff,sbufl,sbufr,kpic,ncl,ihole, &
+     &ncll,nclr,noff,nyp,idimp,nppmx,nx,ny,mx,my,mx1,myp1,npbmx,ntmax,  &
+     &nbmax,irc)
+! Sort Interface for Fortran
+      implicit none
+      integer, intent(in) :: noff, nyp, idimp, nppmx, nx, ny, mx, my
+      integer, intent(in) :: mx1, myp1, npbmx, ntmax, nbmax
+      real, device, dimension(nppmx,idimp,mx1*myp1) :: ppart
+      real, device, dimension(npbmx,idimp,mx1*myp1) :: ppbuff
+      real, device, dimension(nbmax*idimp) :: sbufl, sbufr
+      integer, device, dimension(mx1*myp1) :: kpic
+      integer, device, dimension(8,mx1*myp1) :: ncl
+      integer, device, dimension(2,ntmax+1,mx1*myp1) :: ihole
+      integer, device, dimension(3,mx1) :: ncll, nclr
+      integer, device, dimension(1) :: irc
+! local data
+      integer :: mxyp1, n, m, ns, nbl, ierr
+      type (dim3) :: dimBlock, dimGrid, dimGrids, dimGridg
+      dimBlock = dim3(nblock_size,1,1)
+      mxyp1 = mx1*myp1
+      m = (mxyp1 - 1)/maxgsx + 1
+      n = min(mxyp1,maxgsx)
+      dimGrid = dim3(n,m,1)
+! find which particles are leaving tile
+      ns = (nblock_size+9)*sizeof(n)
+      crc = cudaGetLastError()
+      call gpupppfnd2l<<<dimGrid,dimBlock,ns>>>(ppart,kpic,ncl,ihole,   &
+     &noff,nyp,idimp,nppmx,nx,ny,mx,my,mx1,myp1,ntmax,irc)
+!     crc = cudaThreadSynchronize()
+      crc = cudaGetLastError()
+      if (crc /= 0) then
+         write (*,*) 'gpupppfnd2l error=',crc,':',                      &
+     &cudaGetErrorString(crc)
+         stop
+      endif
+! buffer particles that are leaving tile and sum ncl
+      ns = 9*sizeof(n)
+      crc = cudaGetLastError()
+      call gpupppmov2l<<<dimGrid,dimBlock,ns>>>(ppart,ppbuff,ncl,ihole, &
+     &idimp,nppmx,mx1,myp1,npbmx,ntmax,irc)
+!     crc = cudaThreadSynchronize()
+      crc = cudaGetLastError()
+      if (crc /= 0) then
+         write (*,*) 'gpupppmov2l error=',crc,':',                      &
+     &cudaGetErrorString(crc)
+         stop
+      endif
+! find address offsets
+      nbl = (mx1 - 1)/nblock_size + 1
+      dimGrids = dim3(nbl,1,1)
+! allocate scratch memory needed by prefix scan
+      ierr = 0
+      if (lg_block < nbl) then
+         if (lg_block > 0) deallocate(g_block)
+         allocate(g_block(2*nbl))
+         lg_block = nbl
+      endif
+      ns = 2*nblock_size*sizeof(n)
+      crc = cudaGetLastError()
+      call nciscan2<<<dimGrids,dimBlock,ns>>>(ncl,ncll,nclr,g_block,mx1,&
+     &myp1)
+!     crc = cudaThreadSynchronize()
+      crc = cudaGetLastError()
+      if (crc /= 0) then
+         write (*,*) 'nciscan2 error=',crc,':', cudaGetErrorString(crc)
+         stop
+      endif
+! copy particles and offsets leaving processor
+! gpupppbuf2l and nciscan2 should use the same blocksize
+      dimGridg = dim3(mx1,1,1)
+      crc = cudaGetLastError()
+      call gpupppbuf2l<<<dimGridg,dimBlock>>>(ppbuff,sbufl,sbufr,ncl,   &
+     &ncll,nclr,g_block,idimp,mx1,myp1,npbmx,nbmax,irc)
+      crc = cudaThreadSynchronize()
+      crc = cudaGetLastError()
+      if (crc /= 0) then
+         write (*,*) 'gpupppbuf2l error=',crc,':',                      &
+     &cudaGetErrorString(crc)
+         stop
+      endif
+      end subroutine
+!
+!-----------------------------------------------------------------------
+      subroutine fgpupppord2lb(ppart,ppbuff,rbufl,rbufr,kpic,ncl,ihole, &
+     &mcll,mclr,idimp,nppmx,mx1,myp1,npbmx,ntmax,nbmax,irc)
+! Sort Interface for Fortran
+      implicit none
+      integer, intent(in) :: idimp, nppmx, mx1, myp1, npbmx, ntmax
+      integer, intent(in) :: nbmax
+      real, device, dimension(nppmx,idimp,mx1*myp1) :: ppart
+      real, device, dimension(npbmx,idimp,mx1*myp1) :: ppbuff
+      real, device, dimension(nbmax*idimp) :: rbufl, rbufr
+      integer, device, dimension(mx1*myp1) :: kpic
+      integer, device, dimension(8,mx1*myp1) :: ncl
+      integer, device, dimension(2,ntmax+1,mx1*myp1) :: ihole
+      integer, device, dimension(3,mx1) :: mcll, mclr
+      integer, device, dimension(1) :: irc
+! local data
+      integer :: mxyp1, n, m, ns
+      type (dim3) :: dimBlock, dimGrid
+      dimBlock = dim3(nblock_size,1,1)
+      mxyp1 = mx1*myp1
+      m = (mxyp1 - 1)/maxgsx + 1
+      n = min(mxyp1,maxgsx)
+      dimGrid = dim3(n,m,1)
+! copy incoming particles from ppbuff, rbufl, and rbufr into ppart
+! and update kpic
+      ns = (nblock_size+18)*sizeof(n)
+      crc = cudaGetLastError()
+      call gpupppord2l<<<dimGrid,dimBlock,ns>>>(ppart,ppbuff,rbufl,rbufr&
+     &,kpic,ncl,ihole,mcll,mclr,idimp,nppmx,mx1,myp1,npbmx,ntmax,nbmax, &
+     &irc)
+      crc = cudaThreadSynchronize()
+      crc = cudaGetLastError()
+      if (crc /= 0) then
+         write (*,*) 'gpupppord2l error=',crc,':',                      &
+     &cudaGetErrorString(crc)
+         stop
+      endif
+      end subroutine
+!
+!-----------------------------------------------------------------------
+      subroutine fgpuppois22t(qt,fxyt,ffct,we,nx,ny,kstrt,nyv,kxp1,nyhd)
+! Poisson Solver Interface for Fortran
+      implicit none
+      integer, intent(in) :: nx, ny, kstrt, nyv, kxp1, nyhd
+      complex, device, dimension(nyv,kxp1) :: qt
+      complex, device, dimension(nyv,2,kxp1) :: fxyt
+      complex, device, dimension(nyhd,kxp1) :: ffct
+      real, device, dimension(kxp1) :: we
+! local data
+      integer :: nxh1, ks, kxpp, ns
+      real :: f
+      type (dim3) :: dimBlock, dimGrid
+      dimBlock = dim3(nblock_size,1,1)
+      nxh1 = nx/2 + 1
+      ks = kstrt - 1
+      kxpp = min(kxp1,max(0,nxh1-kxp1*ks))
+      if (kxpp <= 0) return
+      dimGrid = dim3(kxpp,1,1)
+      ns = (nblock_size)*sizeof(f)
+      crc = cudaGetLastError()
+      call gpuppois22t<<<dimGrid,dimBlock,ns>>>(qt,fxyt,ffct,we,nx,ny,  &
+     &kstrt,nyv,kxp1,nyhd)
+      crc = cudaThreadSynchronize()
+      crc = cudaGetLastError()
+      if (crc /= 0) then
+         write (*,*) 'gpuppois22t error=',crc,':',                      &
+     &cudaGetErrorString(crc)
+         stop
+      endif
+      end subroutine
+!
+!-----------------------------------------------------------------------
+      subroutine fgpuwppfft2rcsx(f,bsm,isign,mixup,sct,indx,indy,kstrt, &
+     &nvp,kxp1,kyp,nxhd,kypd,nxhyd,nxyhd)
+! wrapper function for parallel real to complex fft in x,
+! without packed data
+! nxhd must be >= nx/2 + 1
+      implicit none
+      integer, intent(in) :: isign, indx, indy, kstrt, nvp, kxp1, kyp
+      integer, intent(in) :: nxhd, kypd, nxhyd, nxyhd
+      complex, device, dimension(nxhd,kypd) :: f
+      complex, device, dimension(kxp1*kyp,nvp-1) :: bsm
+      integer, device, dimension(nxhyd) :: mixup
+      complex, device, dimension(nxyhd) :: sct
+! local data
+      integer :: nxh, nxh1, ny, kypi, ks, kypp, kxyp, mx, nsize, ns
+      type (dim3) :: dimBlock, dimBlockt, dimGridy, dimGrids, dimGridty
+      complex :: c
+      data kypi, mx /1,16/
+      dimBlock = dim3(nblock_size,1,1)
+      dimBlockt = dim3(mx,mx,1)
+! calculate range of indices
+      nxh = 2**(indx - 1)
+      nxh1 = nxh + 1
+      ny = 2**indy
+      ks = kstrt - 1
+      kypp = min(kyp,max(0,ny-kyp*ks))
+      if (kypp <= 0) return
+      kxyp = kxp1*kyp
+      dimGridy = dim3(kypp,1,1)
+      dimGrids = dim3(kypp,nvp,1)
+      dimGridty = dim3((kyp-1)/mx+1,(kxp1-1)/mx+1,nvp)
+! inverse fourier transform
+      if (isign < 0) then
+         nsize = min(nxh,1024)
+         ns = nsize*sizeof(c)
+! perform x fft
+         if (kstrt <= ny) then
+            crc = cudaGetLastError()
+            call gpufft2rcxs<<<dimGridy,dimBlock,ns>>>(f,isign,mixup,sct&
+     &,indx,indy,kypi,kypp,nxhd,kypd,nxhyd,nxyhd,nsize)
+!           crc = cudaThreadSynchronize()
+            crc = cudaGetLastError()
+            if (crc /= 0) then
+               write (*,*) 'gpufft2rcxs error=',crc,':',                &
+     &cudaGetErrorString(crc)
+               stop
+            endif
+         endif
+! extract data to send
+         crc = cudaGetLastError()
+         call gpuppmtposes<<<dimGrids,dimBlock>>>(f,bsm,nxh1,kxp1,kypp, &
+     &kstrt,nvp,kxyp,nxhd,kypd)
+         crc = cudaThreadSynchronize()
+         crc = cudaGetLastError()
+         if (crc /= 0) then
+            write (*,*) 'gpuppmtposes error=',crc,':',                  &
+     &cudaGetErrorString(crc)
+            stop
+         endif
+! forward fourier transform
+      else if (isign > 0) then
+         ns = (mx+1)*mx*sizeof(c)
+! transpose data received
+         crc = cudaGetLastError()
+         call gpuppmtposer<<<dimGridty,dimBlockt,ns>>>(f,bsm,nxh1,kxp1, &
+     &kypp,kstrt,nvp,kxyp,nxhd,kypd)
+!        crc = cudaThreadSynchronize()
+         crc = cudaGetLastError()
+         if (crc /= 0) then
+            write (*,*) 'gpuppmtposer error=',crc,':',                  &
+     &cudaGetErrorString(crc)
+            stop
+         endif
+! perform x fft
+         nsize = min(nxh,1024)
+         ns = nsize*sizeof(c)
+         if (kstrt <= ny) then
+            crc = cudaGetLastError()
+            call gpufft2rcxs<<<dimGridy,dimBlock,ns>>>(f,isign,mixup,sct&
+     &,indx,indy,kypi,kypp,nxhd,kypd,nxhyd,nxyhd,nsize)
+            crc = cudaThreadSynchronize()
+            crc = cudaGetLastError()
+            if (crc /= 0) then
+               write (*,*) 'gpufft2rcxs error=',crc,':',                &
+     &cudaGetErrorString(crc)
+               stop
+            endif
+         endif
+      endif
+      end subroutine
+!
+!-----------------------------------------------------------------------
+      subroutine fgpuwppfft2rcsy(g,brm,isign,mixup,sct,indx,indy,kstrt, &
+     &nvp,kxp1,kyp,nyd,nxhyd,nxyhd)
+! wrapper function for parallel real to complex fft in y,
+! without packed data
+! nyd must be >= ny
+      implicit none
+      integer, intent(in) :: isign, indx, indy, kstrt, nvp, kxp1, kyp
+      integer, intent(in) :: nyd, nxhyd, nxyhd
+      complex, device, dimension(nyd,kxp1) :: g
+      complex, device, dimension(kxp1*kyp,nvp-1) :: brm
+      integer, device, dimension(nxhyd) :: mixup
+      complex, device, dimension(nxyhd) :: sct
+! local data
+      integer :: nxh, nxh1, ny, kxpi, ks, kxpp, kxyp, mx, nsize, ns
+      type (dim3) :: dimBlock, dimBlockt, dimGridx, dimGrids, dimGridtx
+      complex :: c
+      data kxpi, mx /1,16/
+      dimBlock = dim3(nblock_size,1,1)
+      dimBlockt = dim3(mx,mx,1)
+! calculate range of indices
+      nxh = 2**(indx - 1)
+      nxh1 = nxh + 1
+      ny = 2**indy
+      ks = kstrt - 1
+      kxpp = min(kxp1,max(0,nxh1-kxp1*ks))
+      if (kxpp <= 0) return
+      kxyp = kxp1*kyp
+      dimGridx = dim3(kxpp,1,1)
+      dimGrids = dim3(kxp1,nvp,1)
+      dimGridtx = dim3((kxp1-1)/mx+1,(kyp-1)/mx+1,nvp)
+! inverse fourier transform
+      if (isign < 0) then
+         ns = (mx+1)*mx*sizeof(c)
+! transpose data received
+         crc = cudaGetLastError()
+         call gpuppmtposer<<<dimGridtx,dimBlockt,ns>>>(g,brm,ny,kyp,kxpp&
+     &,kstrt,nvp,kxyp,nyd,kxp1)
+!        crc = cudaThreadSynchronize()
+         crc = cudaGetLastError()
+         if (crc /= 0) then
+            write (*,*) 'gpuppmtposer error=',crc,':',                  &
+     &cudaGetErrorString(crc)
+            stop
+         endif
+! perform y fft
+         nsize = min(ny,1024)
+         ns = nsize*sizeof(c)
+         if (kstrt <= nxh1) then
+            crc = cudaGetLastError()
+            call gpufft2rcys<<<dimGridx,dimBlock,ns>>>(g,isign,mixup,sct&
+     &,indx,indy,kxpi,kxpp,kxp1,nyd,nxhyd,nxyhd,nsize)
+            crc = cudaThreadSynchronize()
+            crc = cudaGetLastError()
+            if (crc /= 0) then
+               write (*,*) 'gpufft2rcys error=',crc,':',                &
+     &cudaGetErrorString(crc)
+               stop
+            endif
+         endif
+! forward fourier transform
+      else if (isign > 0) then
+         nsize = min(ny,1024)
+         ns = nsize*sizeof(c)
+! perform y fft
+         if (kstrt <= nxh1) then
+            crc = cudaGetLastError()
+            call gpufft2rcys<<<dimGridx,dimBlock,ns>>>(g,isign,mixup,sct&
+     &,indx,indy,kxpi,kxpp,kxp1,nyd,nxhyd,nxyhd,nsize)
+!           crc = cudaThreadSynchronize()
+            crc = cudaGetLastError()
+            if (crc /= 0) then
+               write (*,*) 'gpufft2rcys error=',crc,':',                &
+     &cudaGetErrorString(crc)
+               stop
+            endif
+         endif
+! extract data to send
+         crc = cudaGetLastError()
+         call gpuppmtposes<<<dimGrids,dimBlock>>>(g,brm,ny,kyp,kxpp,    &
+     &kstrt,nvp,kxyp,nyd,kxp1)
+         crc = cudaThreadSynchronize()
+         crc = cudaGetLastError()
+         if (crc /= 0) then
+            write (*,*) 'gpuppmtposes error=',crc,':',                  &
+     &cudaGetErrorString(crc)
+            stop
+         endif
+      endif
+      end subroutine
+!
+!-----------------------------------------------------------------------
+      subroutine fgpuwppfft2rcsxn(fn,bsm,isign,mixup,sct,indx,indy,ndim,&
+     &kstrt,nvp,kxp1,kyp,nxhd,kypd,nxhyd,nxyhd)
+! wrapper function for multiple parallel real to complex ffts in x,
+! without packed data
+! ndim = vector dimension
+! nxhd must be >= nx/2 + 1
+      implicit none
+      integer, intent(in) :: isign, indx, indy, ndim, kstrt, nvp, kxp1
+      integer, intent(in) :: kyp, nxhd, kypd, nxhyd, nxyhd
+      complex, device, dimension(nxhd,ndim,kypd) :: fn
+      complex, device, dimension(kxp1*ndim*kyp,nvp-1) :: bsm
+      integer, device, dimension(nxhyd) :: mixup
+      complex, device, dimension(nxyhd) :: sct
+! local data
+      integer :: nxh, nxh1, ny, kypi, ks, kypp, kxyp, mx, nkypd, nkypp
+      integer :: nsize, ns
+      type (dim3) :: dimBlock, dimBlockt, dimGridy, dimGrids, dimGridty
+      complex :: c
+      data kypi, mx /1,16/
+      dimBlock = dim3(nblock_size,1,1)
+      dimBlockt = dim3(mx,mx,1)
+! calculate range of indices
+      nxh = 2**(indx - 1)
+      nxh1 = nxh + 1
+      ny = 2**indy
+      ks = kstrt - 1
+      kypp = min(kyp,max(0,ny-kyp*ks))
+      if (kypp <= 0) return
+      kxyp = kxp1*kyp
+      nkypd = ndim*kypd
+      nkypp = ndim*kypp
+      dimGridy = dim3(nkypp,1,1)
+      dimGrids = dim3(kypp,nvp,1)
+      dimGridty = dim3((kyp-1)/mx+1,(kxp1-1)/mx+1,nvp)
+! inverse fourier transform
+      if (isign < 0) then
+         nsize = min(nxh,1024)
+         ns = nsize*sizeof(c)
+! perform x fft
+         if (kstrt <= ny) then
+            crc = cudaGetLastError()
+            call gpufft2rcxs<<<dimGridy,dimBlock,ns>>>(fn,isign,mixup,  &
+     &sct,indx,indy,kypi,nkypp,nxhd,nkypd,nxhyd,nxyhd,nsize)
+!           crc = cudaThreadSynchronize()
+            crc = cudaGetLastError()
+            if (crc /= 0) then
+               write (*,*) 'gpufft2rcxs error=',crc,':',                &
+     &cudaGetErrorString(crc)
+               stop
+            endif
+         endif
+! extract data to send
+         crc = cudaGetLastError()
+         call gpuppmtposesn<<<dimGrids,dimBlock>>>(fn,bsm,nxh1,kxp1,kypp&
+     &,kstrt,nvp,ndim,kxyp,nxhd,kypd)
+         crc = cudaThreadSynchronize()
+         crc = cudaGetLastError()
+         if (crc /= 0) then
+            write (*,*) 'gpuppmtposesn error=',crc,':',                 &
+     &cudaGetErrorString(crc)
+            stop
+         endif
+! forward fourier transform
+      else if (isign > 0) then
+         ns = ndim*(mx+1)*mx*sizeof(c)
+! transpose data received
+         crc = cudaGetLastError()
+         call gpuppmtposern<<<dimGridty,dimBlockt,ns>>>(fn,bsm,nxh1,kxp1&
+     &,kypp,kstrt,nvp,ndim,kxyp,nxhd,kypd)
+!        crc = cudaThreadSynchronize()
+         crc = cudaGetLastError()
+         if (crc /= 0) then
+            write (*,*) 'gpuppmtposern error=',crc,':',                 &
+     &cudaGetErrorString(crc)
+            stop
+         endif
+! perform x fft
+         nsize = min(nxh,1024)
+         ns = nsize*sizeof(c)
+         if (kstrt <= ny) then
+            crc = cudaGetLastError()
+            call gpufft2rcxs<<<dimGridy,dimBlock,ns>>>(fn,isign,mixup,  &
+     &sct,indx,indy,kypi,nkypp,nxhd,nkypd,nxhyd,nxyhd,nsize)
+            crc = cudaThreadSynchronize()
+            crc = cudaGetLastError()
+            if (crc /= 0) then
+               write (*,*) 'gpufft2rcxs error=',crc,':',                &
+     &cudaGetErrorString(crc)
+               stop
+            endif
+         endif
+      endif
+      end subroutine
+!
+!-----------------------------------------------------------------------
+      subroutine fgpuwppfft2rcsyn(gn,brm,isign,mixup,sct,indx,indy,ndim,&
+     &kstrt,nvp,kxp1,kyp,nyd,nxhyd,nxyhd)
+! wrapper function for parallel real to complex ffts in y,
+! without packed data
+! ndim = vector dimension
+! nyd must be >= ny
+      implicit none
+      integer, intent(in) :: isign, indx, indy, ndim, kstrt, nvp, kxp1
+      integer, intent(in) :: kyp, nyd, nxhyd, nxyhd
+      complex, device, dimension(nyd,ndim,kxp1) :: gn
+      complex, device, dimension(kxp1*ndim*kyp,nvp-1) :: brm
+      integer, device, dimension(nxhyd) :: mixup
+      complex, device, dimension(nxyhd) :: sct
+! local data
+      integer :: nxh, nxh1, ny, kxpi, ks, kxpp, kxyp, mx, nkxp1, nkxpp
+      integer :: nsize, ns
+      type (dim3) :: dimBlock, dimBlockt, dimGridx, dimGrids, dimGridtx
+      complex :: c
+      data kxpi, mx /1,16/
+      dimBlock = dim3(nblock_size,1,1)
+      dimBlockt = dim3(mx,mx,1)
+! calculate range of indices
+      nxh = 2**(indx - 1)
+      nxh1 = nxh + 1
+      ny = 2**indy
+      ks = kstrt - 1
+      kxpp = min(kxp1,max(0,nxh1-kxp1*ks))
+      if (kxpp <= 0) return
+      kxyp = kxp1*kyp
+      nkxp1 = ndim*kxp1
+      nkxpp = ndim*kxpp
+      dimGridx = dim3(nkxpp,1,1)
+      dimGrids = dim3(kxp1,nvp,1)
+      dimGridtx = dim3((kxp1-1)/mx+1,(kyp-1)/mx+1,nvp)
+! inverse fourier transform
+      if (isign < 0) then
+         ns = ndim*(mx+1)*mx*sizeof(c)
+! transpose data received
+         crc = cudaGetLastError()
+         call gpuppmtposern<<<dimGridtx,dimBlockt,ns>>>(gn,brm,ny,kyp,  &
+     &kxpp,kstrt,nvp,ndim,kxyp,nyd,kxp1)
+!        crc = cudaThreadSynchronize()
+         crc = cudaGetLastError()
+         if (crc /= 0) then
+            write (*,*) 'gpuppmtposern error=',crc,':',                 &
+     &cudaGetErrorString(crc)
+            stop
+         endif
+! perform y fft
+         nsize = min(ny,1024)
+         ns = nsize*sizeof(c)
+         if (kstrt <= nxh1) then
+            crc = cudaGetLastError()
+            call gpufft2rcys<<<dimGridx,dimBlock,ns>>>(gn,isign,mixup,  &
+     &sct,indx,indy,kxpi,nkxpp,nkxp1,nyd,nxhyd,nxyhd,nsize)
+            crc = cudaThreadSynchronize()
+            crc = cudaGetLastError()
+            if (crc /= 0) then
+               write (*,*) 'gpufft2rcys error=',crc,':',                &
+     &cudaGetErrorString(crc)
+               stop
+            endif
+         endif
+! forward fourier transform
+      else if (isign > 0) then
+         nsize = min(ny,1024)
+         ns = nsize*sizeof(c)
+! perform y fft
+         if (kstrt <= nxh1) then
+            crc = cudaGetLastError()
+            call gpufft2rcys<<<dimGridx,dimBlock,ns>>>(gn,isign,mixup,  &
+     &sct,indx,indy,kxpi,nkxpp,nkxp1,nyd,nxhyd,nxyhd,nsize)
+!           crc = cudaThreadSynchronize()
+            crc = cudaGetLastError()
+            if (crc /= 0) then
+               write (*,*) 'gpufft2rcys error=',crc,':',                &
+     &cudaGetErrorString(crc)
+               stop
+            endif
+         endif
+! extract data to send
+         crc = cudaGetLastError()
+         call gpuppmtposesn<<<dimGrids,dimBlock>>>(gn,brm,ny,kyp,kxpp,  &
+     &kstrt,nvp,ndim,kxyp,nyd,kxp1)
+         crc = cudaThreadSynchronize()
+         crc = cudaGetLastError()
+         if (crc /= 0) then
+            write (*,*) 'gpuppmtposesn error=',crc,':',                 &
+     &cudaGetErrorString(crc)
+            stop
+         endif
+      endif
+      end subroutine
+!
+!-----------------------------------------------------------------------
+      subroutine fgpuppltpose(f,g,nx,ny,kxp,kyp,kstrt,nxv,nyv)
+! local complex transpose using blocking algorithm with gaps
+! input = f, output = g
+      implicit none
+      integer, intent(in) :: nx, ny, kxp, kyp, kstrt, nxv, nyv
+      complex, device, dimension(nxv,*) :: f
+      complex, device, dimension(nyv,*) :: g
+! local data
+      integer :: mx, ns
+      complex :: c
+      data mx /16/
+      type (dim3) :: dimBlockt, dimGridtx
+      dimBlockt = dim3(mx,mx,1)
+      dimGridtx = dim3((kxp-1)/mx+1,(kyp-1)/mx+1,1)
+      ns = (mx+1)*mx*sizeof(c)
+      crc = cudaGetLastError()
+      call gpuppltpose<<<dimGridtx,dimBlockt,ns>>>(f,g,nx,ny,kxp,kyp,   &
+     &kstrt,nxv,nyv)
+      crc = cudaThreadSynchronize()
+      crc = cudaGetLastError()
+      if (crc /= 0) then
+         write (*,*) 'gpuppltpose error=',crc,':',                      &
+     &cudaGetErrorString(crc)
+         stop
+      endif
+      end subroutine
+!
+!-----------------------------------------------------------------------
+      subroutine fgpuppltposen(fn,gn,nx,ny,kxp,kyp,kstrt,ndim,nxv,nyv)
+! local complex vector transpose
+! input = fn, output = gn
+      implicit none
+      integer, intent(in) :: nx, ny, kxp, kyp, kstrt, ndim, nxv, nyv
+      complex, device, dimension(nxv,ndim,*) :: fn
+      complex, device, dimension(nyv,ndim,*) :: gn
+! local data
+      integer :: mx, ns
+      complex :: c
+      data mx /16/
+      type (dim3) :: dimBlockt, dimGridtx
+      dimBlockt = dim3(mx,mx,1)
+      dimGridtx = dim3((kxp-1)/mx+1,(kyp-1)/mx+1,1)
+      ns = ndim*(mx+1)*mx*sizeof(c)
+      crc = cudaGetLastError()
+      call gpuppltposen<<<dimGridtx,dimBlockt,ns>>>(fn,gn,nx,ny,kxp,kyp,&
+     &kstrt,ndim,nxv,nyv)
+      crc = cudaThreadSynchronize()
+      crc = cudaGetLastError()
+      if (crc /= 0) then
+         write (*,*) 'gpuppltposen error=',crc,':',                     &
+     &cudaGetErrorString(crc)
+         stop
+      endif
+      end subroutine
+!
+!-----------------------------------------------------------------------
+      subroutine fgpusum2(a,sa,nx)
+! segmented 1d parallel sum reduction of input array a, of length nx
+! first reduce individual blocks in parallel, writing result to scr
+! then reduce scr serially, result is written to sa
+      implicit none
+      integer, intent(in) :: nx
+      real, device, dimension(*) :: a, sa
+! local data
+      integer :: nbx, nbs, ns
+      integer, save :: len = 0
+!     real, device, dimension(:), allocatable :: scr
+      real :: f
+      type (dim3) :: dimBlock, dimGrid, dimGrid1
+      nbx = (nx - 1)/nblock_size + 1
+      dimBlock = dim3(nblock_size,1,1)
+      dimGrid = dim3(nbx,1,1)
+      nbs = (nbx - 1)/nblock_size + 1
+      dimGrid1 = dim3(nbs,1,1)
+! create scratch array
+      if (len < nbx) then
+         if (len > 0) deallocate(scr)
+         allocate(scr(nbx))
+         len = nbx
+      endif
+! reduce individual blocks in parallel
+      ns = nblock_size*sizeof(f)
+      crc = cudaGetLastError()
+      call gpusum2<<<dimGrid,dimBlock,ns>>>(a,scr,nx)
+!     crc = cudaThreadSynchronize()
+      crc = cudaGetLastError()
+      if (crc /= 0) then
+         write (*,*) 'gpusum2 error=',crc,':',cudaGetErrorString(crc)
+         stop
+      endif
+! 1d serial reduction
+      crc = cudaGetLastError()
+      call gpusum1<<<dimGrid1,dimBlock,ns>>>(scr,sa,nbx)
+      crc = cudaThreadSynchronize()
+      crc = cudaGetLastError()
+      if (crc /= 0) then
+         write (*,*) 'gpusum1 error=',crc,':',cudaGetErrorString(crc)
+         stop
+      endif
+      end subroutine
+!
+      end module

@@ -1,0 +1,196 @@
+!-----------------------------------------------------------------------
+! CUDA Fortran utility Library interface to C
+! written by Viktor K. Decyk, UCLA
+      module fgpulib2_c
+      use cudafor
+      use iso_c_binding
+      use fgpulib2
+      implicit none
+      private
+!
+      contains
+!
+!-----------------------------------------------------------------------
+      subroutine cgpu_setgbsize(nblock) bind(C,name='fgpu_setgbsize')
+      implicit none
+      integer(c_int), value :: nblock
+      call fgpu_setgbsize(nblock)
+      end subroutine
+!
+!-----------------------------------------------------------------------
+      function cgetmmcc() bind(C,name='fgetmmcc')
+      implicit none
+      integer(c_int) :: cgetmmcc
+      cgetmmcc = fgetmmcc()
+      end function
+!
+!-----------------------------------------------------------------------
+      subroutine cgpu_initstream(nstream) bind(C,name='fgpu_initstream')
+      implicit none
+      integer(c_int), value :: nstream
+      call fgpu_initstream(nstream)
+      end subroutine
+!
+!-----------------------------------------------------------------------
+      subroutine cgpu_delstream(nstream) bind(C,name='fgpu_delstream')
+      implicit none
+      integer(c_int), value :: nstream
+      call fgpu_delstream(nstream)
+      end subroutine
+!
+!-----------------------------------------------------------------------
+      subroutine cgpu_waitstream(nstream) bind(C,name='fgpu_waitstream')
+      implicit none
+      integer(c_int), value :: nstream
+      call fgpu_waitstream(nstream)
+      end subroutine
+!
+!-----------------------------------------------------------------------
+      subroutine cgpu_cascopyin(f,g_f,noff,nsize,nstream)               &
+     &bind(C,name='fgpu_cascopyin')
+      implicit none
+      type (c_ptr), value :: f
+      type (c_devptr), value :: g_f
+      integer(c_int), value :: noff, nsize, nstream
+! local data
+      complex, dimension(:), pointer :: g
+      complex, device, dimension(:), allocatable :: g_g
+      call c_f_pointer(f,g,(/nsize/))
+      call c_f_pointer(g_f,g_g,(/nsize/))
+      call fgpu_cascopyin(g,g_g,noff,nsize,nstream)
+      end subroutine
+!
+!-----------------------------------------------------------------------
+      subroutine cgpu_cascopyout(f,g_f,noff,nsize,nstream)              &
+     &bind(C,name='fgpu_cascopyout')
+      implicit none
+      type (c_ptr), value :: f
+      type (c_devptr), value :: g_f
+      integer(c_int), value :: noff, nsize, nstream
+! local data
+      complex, dimension(:), pointer :: g
+      complex, device, dimension(:), allocatable :: g_g
+      call c_f_pointer(f,g,(/nsize/))
+      call c_f_pointer(g_f,g_g,(/nsize/))
+      call fgpu_cascopyout(g,g_g,noff,nsize,nstream)
+      end subroutine
+!
+!-----------------------------------------------------------------------
+      subroutine cgpu_zfmem(g_f,nsize) bind(C,name='fgpu_zfmem')
+      implicit none
+      type (c_devptr), value :: g_f
+      integer(c_int), value :: nsize
+! local data
+      real, device, dimension(:), allocatable :: g_g
+      call c_f_pointer(g_f,g_g,(/nsize/))
+      call fgpu_zfmem(g_g,nsize)
+      end subroutine
+!
+!-----------------------------------------------------------------------
+      subroutine cgpu_set_cache_size(nscache)                           &
+     &bind(C,name='fgpu_set_cache_size')
+      integer(c_int), value :: nscache
+      call fgpu_set_cache_size(nscache)
+      end subroutine
+!
+!-----------------------------------------------------------------------
+      subroutine cinit_cuf(dev,irc) bind(C,name='init_cuf')
+      implicit none
+      integer(c_int), value :: dev
+      integer(c_int) :: irc
+      call init_cuf(dev,irc)
+      end subroutine
+!
+!-----------------------------------------------------------------------
+      subroutine cend_cuf() bind(C,name='end_cuf')
+      implicit none
+      call end_cuf()
+      end subroutine
+!
+! The following procedures are mostly redundant in Cuda Fortran
+!
+!-----------------------------------------------------------------------
+      subroutine cgpu_fcopyin(f,g_f,nsize) bind(C,name='fgpu_fcopyin')
+      implicit none
+      type (c_ptr), value :: f
+      type (c_devptr), value :: g_f
+      integer(c_int), value :: nsize
+! local data
+      real, dimension(:), pointer :: g
+      real, device, dimension(:), allocatable :: g_g
+      call c_f_pointer(f,g,(/nsize/))
+      call c_f_pointer(g_f,g_g,(/nsize/))
+      call fgpu_fcopyin(g,g_g,nsize)
+      end subroutine
+!
+!-----------------------------------------------------------------------
+      subroutine cgpu_fcopyout(f,g_f,nsize) bind(C,name='fgpu_fcopyout')
+      implicit none
+      type (c_ptr), value :: f
+      type (c_devptr), value :: g_f
+      integer(c_int), value :: nsize
+! local data
+      real, dimension(:), pointer :: g
+      real, device, dimension(:), allocatable :: g_g
+      call c_f_pointer(f,g,(/nsize/))
+      call c_f_pointer(g_f,g_g,(/nsize/))
+      call fgpu_fcopyout(g,g_g,nsize)
+      end subroutine
+!
+!-----------------------------------------------------------------------
+      subroutine cgpu_icopyin(f,g_f,nsize) bind(C,name='fgpu_icopyin')
+      implicit none
+      type (c_ptr), value :: f
+      type (c_devptr), value :: g_f
+      integer(c_int), value :: nsize
+! local data
+      integer, dimension(:), pointer :: g
+      integer, device, dimension(:), allocatable :: g_g
+      call c_f_pointer(f,g,(/nsize/))
+      call c_f_pointer(g_f,g_g,(/nsize/))
+      call fgpu_icopyin(g,g_g,nsize)
+      end subroutine
+!
+!-----------------------------------------------------------------------
+      subroutine cgpu_icopyout(f,g_f,nsize) bind(C,name='fgpu_icopyout')
+      implicit none
+      type (c_ptr), value :: f
+      type (c_devptr), value :: g_f
+      integer(c_int), value :: nsize
+! local data
+      integer, dimension(:), pointer :: g
+      integer, device, dimension(:), allocatable :: g_g
+      call c_f_pointer(f,g,(/nsize/))
+      call c_f_pointer(g_f,g_g,(/nsize/))
+      call fgpu_icopyout(g,g_g,nsize)
+      end subroutine
+!
+!-----------------------------------------------------------------------
+      subroutine cgpu_ccopyin(f,g_f,nsize) bind(C,name='fgpu_ccopyin')
+      implicit none
+      type (c_ptr), value :: f
+      type (c_devptr), value :: g_f
+      integer(c_int), value :: nsize
+! local data
+      complex, dimension(:), pointer :: g
+      complex, device, dimension(:), allocatable :: g_g
+      call c_f_pointer(f,g,(/nsize/))
+      call c_f_pointer(g_f,g_g,(/nsize/))
+      call fgpu_ccopyin(g,g_g,nsize)
+      end subroutine
+!
+!-----------------------------------------------------------------------
+      subroutine cgpu_ccopyout(f,g_f,nsize) bind(C,name='fgpu_ccopyout')
+      implicit none
+      type (c_ptr), value :: f
+      type (c_devptr), value :: g_f
+      integer(c_int), value :: nsize
+! local data
+      complex, dimension(:), pointer :: g
+      complex, device, dimension(:), allocatable :: g_g
+      call c_f_pointer(f,g,(/nsize/))
+      call c_f_pointer(g_f,g_g,(/nsize/))
+      call fgpu_ccopyout(g,g_g,nsize)
+      end subroutine
+!
+      end module

@@ -1,0 +1,400 @@
+! CUDA Fortran utility Library
+! written by Viktor K. Decyk, UCLA
+      module fgpulib2
+      use cudafor
+      implicit none
+!
+      integer :: nblock_size = 64, ngrid_size = 1, maxgsx = 65535
+      integer :: mmcc = 0
+      integer :: devid, crc
+      integer, parameter :: MAXSTREAMS = 4
+      integer, dimension(MAXSTREAMS) :: streams = 0
+      save
+!
+      private
+      public :: nblock_size, maxgsx
+      public :: fgpu_setgbsize, fgetmmcc
+      public :: fgpu_initstream, fgpu_delstream, fgpu_waitstream
+      public :: fgpu_cascopyin, fgpu_cascopyout, fgpu_zfmem, fgpu_zcmem
+      public :: fgpu_set_cache_size, init_cuf, end_cuf
+!
+      public :: fgpu_fcopyin, fgpu_fcopyout, fgpu_icopyin, fgpu_icopyout
+      public :: fgpu_ccopyin, fgpu_ccopyout
+!
+      contains
+!
+      attributes(global) subroutine emptyKernel()
+      end subroutine
+!
+!-----------------------------------------------------------------------
+      subroutine fgpu_setgbsize(nblock)
+! set blocksize
+      integer, intent(in) :: nblock
+      nblock_size = nblock
+      end subroutine
+!
+!-----------------------------------------------------------------------
+      integer function fgetmmcc()
+! get major and minor computer capability
+      fgetmmcc = mmcc
+      end function
+!
+!-----------------------------------------------------------------------
+      subroutine fgpu_initstream(nstream)
+! Create Stream for requested identifier nstream 
+! nstream should be between 1 and MAXSTREAMS inclusive
+      implicit none
+      integer, intent(in) :: nstream
+      if ((nstream < 1) .or. (nstream > MAXSTREAMS)) then
+         write (*,*) 'fgpu_initstream: nstream out of bounds = ',nstream
+         stop
+      endif
+      if (streams(nstream) /= 0) then
+         write (*,*) 'fgpu_initstream: nstream already used = ', nstream
+         stop
+      endif
+      crc = cudaStreamCreate(streams(nstream))
+      if (crc /= 0) then
+         write (*,*) 'cudaStreamCreate Error=', crc, ':',               &
+     &cudaGetErrorString(crc)
+         stop
+      endif
+      end subroutine
+!
+!-----------------------------------------------------------------------
+      subroutine fgpu_delstream(nstream)
+! Destroy Stream for requested identifier nstream
+! nstream should be between 1 and MAXSTREAMS inclusive
+      implicit none
+      integer, intent(in) :: nstream
+      if ((nstream < 1) .or. (nstream > MAXSTREAMS)) then
+         write (*,*) 'fgpu_delstream: nstream out of bounds = ', nstream
+         stop
+      endif
+      if (streams(nstream)==0) then
+         write (*,*) 'fgpu_delstream: nstream not allocated = ', nstream
+         stop
+      endif
+      crc = cudaStreamDestroy(streams(nstream))
+      if (crc /= 0) then
+         write (*,*) 'cudaStreamDestroy Error=', crc, ':',              &
+     &cudaGetErrorString(crc)
+         stop
+      endif
+      end subroutine
+!
+!-----------------------------------------------------------------------
+      subroutine fgpu_waitstream(nstream)
+! Synchronize Stream for requested identifier nstream
+! nstream should be between 0 and MAXSTREAMS inclusive
+      implicit none
+      integer, intent(in) :: nstream
+! local data
+      integer :: stream = 0
+      if ((nstream >= 0) .or. (nstream <= MAXSTREAMS)) then
+         if (nstream > 0) stream = streams(nstream)
+      else
+         write (*,*) 'fgpu_waitstream: nstream undefined = ', nstream
+         stop
+      endif
+      crc = cudaStreamSynchronize(stream)
+      if (crc /= 0) then
+         write (*,*) 'cudaStreamSynchronize Error=', crc, ':',          &
+     &cudaGetErrorString(crc)
+         stop
+      endif
+      end subroutine
+!
+!-----------------------------------------------------------------------
+      subroutine fgpu_cascopyin(f,g_f,noff,nsize,nstream)
+! copy complex array segment from host memory to global GPU memory
+! asynchronous copy
+      implicit none
+      integer, intent(in) :: noff, nsize, nstream
+      complex, dimension(*) :: f
+      complex, device, dimension(*) :: g_f
+! local data
+      integer :: stream = 0
+      if ((nstream >= 0) .or. (nstream <= MAXSTREAMS)) then
+         if (nstream > 0) stream = streams(nstream)
+      else
+         write (*,*) 'fgpu_asccopyin: nstream undefined = ', nstream
+         stop
+      endif
+      crc = cudaMemcpyAsync(g_f(noff+1),f,nsize,cudaMemcpyHostToDevice, &
+     &stream)
+      if (crc /= 0) then
+         write (*,*) 'Async cudaMemcpyHostToDevice complex Error=', crc,&
+     &':', cudaGetErrorString(crc)
+         stop
+      endif
+      end subroutine
+!
+!-----------------------------------------------------------------------
+      subroutine fgpu_cascopyout(f,g_f,noff,nsize,nstream)
+! copy complex array segment from global GPU memory to host memory
+! asynchronous copy
+      implicit none
+      integer, intent(in) :: noff, nsize, nstream
+      complex, dimension(*) :: f
+      complex, device, dimension(*) :: g_f
+! local data
+      integer :: stream = 0
+      if ((nstream >= 0) .or. (nstream <= MAXSTREAMS)) then
+         if (nstream > 0) stream = streams(nstream)
+      else
+         write (*,*) 'fgpu_asccopyout: nstream undefined = ', nstream
+         stop
+      endif
+      crc = cudaMemcpyAsync(f,g_f(noff+1),nsize,cudaMemcpyDeviceToHost, &
+     &stream)
+      if (crc /= 0) then
+         write (*,*) 'Async cudaMemcpyDeviceToHost complex Error=', crc,&
+     &':', cudaGetErrorString(crc)
+         stop
+      endif
+      end subroutine
+!
+!-----------------------------------------------------------------------
+      subroutine fgpu_zfmem(g_f,nsize)
+! initialize float array in global GPU memory to zero 
+      implicit none
+      integer, intent(in) :: nsize
+      real, device, dimension(*) :: g_f
+      crc = cudaMemset(g_f,0.0,nsize)
+      if (crc /= 0) then
+         write (*,*) 'cudaMemset real Error=', crc, ':',                &
+     &cudaGetErrorString(crc)
+         stop
+      endif
+      end subroutine
+!
+!-----------------------------------------------------------------------
+      subroutine fgpu_zcmem(g_f,nsize)
+! initialize complex array in global GPU memory to zero 
+! This does not appear to work correctly
+      implicit none
+      integer, intent(in) :: nsize
+      complex, device, dimension(*) :: g_f
+      crc = cudaMemset(g_f,(0.0,0.0),nsize)
+      if (crc /= 0) then
+         write (*,*) 'cudaMemset complex Error=', crc, ':',             &
+     &cudaGetErrorString(crc)
+         stop
+      endif
+      end subroutine
+!
+!-----------------------------------------------------------------------
+      subroutine fgpu_set_cache_size(nscache)
+! request preferred cache size, requires CUDA 3.2 or higher
+! nscache = (0,1,2) = (no,small,big) cache size
+      integer, intent(in) :: nscache
+! local data
+      integer :: cpref
+      if ((nscache < 0) .or. (nscache > 2)) return
+      if (nscache==0) then
+         cpref = cudaFuncCachePreferNone
+      else if (nscache==1) then
+         cpref = cudaFuncCachePreferShared
+      else if (nscache==2) then
+         cpref = cudaFuncCachePreferL1
+      endif
+!     crc = cudaThreadSetCacheConfig(cpref)
+      crc = cudaDeviceSetCacheConfig(cpref)
+      if (crc /= 0) then
+         write (*,*) 'cudaThreadSetCacheConfig Error=', crc, ':',       &
+     &cudaGetErrorString(crc)
+      endif
+      end subroutine
+!
+!-----------------------------------------------------------------------
+      subroutine empty_kernel()
+      implicit none
+! local data
+      integer :: ngx, ngy
+      type (dim3) :: dimBlock, dimGrid
+      ngx = min(nblock_size,32768)
+      ngy = (ngrid_size - 1)/ngx + 1
+      dimBlock = dim3(nblock_size,1,1)
+      dimGrid = dim3(ngx,ngy,1)
+      crc = cudaGetLastError()
+      call emptyKernel<<<dimGrid,dimBlock>>>()
+      crc = cudaThreadSynchronize()
+      crc = cudaGetLastError()
+      if (crc /= 0) then
+         write (*,*) 'emptyKernel real Error=', crc, ':',               &
+     &cudaGetErrorString(crc)
+         stop
+      endif
+      end subroutine
+!
+!-----------------------------------------------------------------------
+      subroutine init_cuf(dev,irc)
+! initialize CUDA with device dev or selects best GPU available
+! searches throughs devices, selects the device with the most compute
+! units, and saves the device id devid
+! if dev is a valid device, it is used, otherwise the GPU with the
+! most multi-processors is selected 
+! error code is modified only if there is an error
+      implicit none
+      integer, intent(in) :: dev
+      integer :: irc
+! local data
+      integer :: maxcpus = 0, jm = -1
+      integer :: j, js, ndevs, maxunits
+      integer(kind=8) :: msize
+      double precision :: z
+      type (cudaDeviceProp) :: prop
+! returns number of device
+      crc = cudaGetDeviceCount(ndevs)
+      if (crc /= 0) then
+         write (*,*) 'cudaGetDeviceCount Error=', crc, ':',             &
+     &cudaGetErrorString(crc)
+         irc = 1
+      endif
+! get information about devices
+      do j = 1, ndevs
+      js = j - 1
+      crc = cudaGetDeviceProperties(prop,js)
+      if (crc /= 0) then
+         write (*,*) 'cudaGetDeviceProperties Error=', crc, ':',        &
+     &cudaGetErrorString(crc)
+         prop%name = ''
+      endif
+      maxunits = prop%multiProcessorCount
+      if (dev <= 0) then
+         write (*,*) 'j=', js, ':CUDA_DEVICE_NAME=', trim(prop%name)
+         write (*,*) '    CUDA_MULTIPROCESSOR_COUNT=', maxunits
+         msize = prop%totalGlobalMem
+         z = dble(msize)/1073741824.0d0
+         mmcc = 10*prop%major + prop%minor
+         write (*,*) '    CUDA_GLOBAL_MEM_SIZE=',msize,'(',real(z),'GB)'
+         write (*,*) '    Capability=', mmcc
+         if (maxunits > maxcpus) then
+            maxcpus = maxunits
+            jm = js
+         endif
+      endif
+      enddo
+      devid = jm
+      if (dev >= 0) devid = mod(dev,ndevs)
+      write (*,*) 'using device j=', devid
+! get properties for this device
+      crc = cudaGetDeviceProperties(prop,devid)
+      maxgsx = prop%maxGridSize(1)
+      mmcc = 10*prop%major + prop%minor
+! set device
+      crc = cudaSetDevice(devid)
+      if (crc /= 0) then
+         write (*,*) 'cudaSetDevice Error=', crc, ':',                  &
+     &cudaGetErrorString(crc)
+         irc = 1
+      endif
+! run empty kernel
+      call empty_kernel()
+      end subroutine
+!
+!-----------------------------------------------------------------------
+      subroutine end_cuf()
+! terminate CUDA
+      implicit none
+      crc = cudaThreadExit()
+      if (crc /= 0) then
+         write (*,*) 'cudaThreadExit Error=', crc, ':',                 &
+     &cudaGetErrorString(crc)
+      endif
+      end subroutine
+!
+! The following procedures are mostly redundant in Cuda Fortran
+!
+!-----------------------------------------------------------------------
+      subroutine fgpu_fcopyin(f,g_f,nsize)
+! copy real array from main memory to global GPU memory
+      implicit none
+      real, dimension(*) :: f
+      real, device, dimension(*) :: g_f
+      integer, intent(in) :: nsize
+      crc = cudaMemcpy(g_f,f,nsize,cudaMemcpyHostToDevice)
+      if (crc /= 0) then
+         write (*,*) 'cudaMemcpyHostToDevice real Error=', crc, ':',    &
+     &cudaGetErrorString(crc)
+         stop
+      endif
+      end subroutine
+!
+!-----------------------------------------------------------------------
+      subroutine fgpu_fcopyout(f,g_f,nsize)
+! copy real array from global GPU memory to main memory
+      implicit none
+      real, dimension(*) :: f
+      real, device, dimension(*) :: g_f
+      integer, intent(in) :: nsize
+      crc = cudaMemcpy(f,g_f,nsize,cudaMemcpyDeviceToHost)
+      if (crc /= 0) then
+         write (*,*) 'cudaMemcpyDeviceToHost real Error=', crc, ':',    &
+     &cudaGetErrorString(crc)
+         stop
+      endif
+      end subroutine
+!
+!-----------------------------------------------------------------------
+      subroutine fgpu_icopyin(f,g_f,nsize)
+! copy integer array from main memory to global GPU memory
+      implicit none
+      integer, dimension(*) :: f
+      integer, device, dimension(*) :: g_f
+      integer, intent(in) :: nsize
+      crc = cudaMemcpy(g_f,f,nsize,cudaMemcpyHostToDevice)
+      if (crc /= 0) then
+         write (*,*) 'cudaMemcpyHostToDevice integer Error=', crc, ':', &
+     &cudaGetErrorString(crc)
+         stop
+      endif
+      end subroutine
+!
+!-----------------------------------------------------------------------
+      subroutine fgpu_icopyout(f,g_f,nsize)
+! copy integer array from global GPU memory to main memory
+      implicit none
+      integer, dimension(*) :: f
+      integer, device, dimension(*) :: g_f
+      integer, intent(in) :: nsize
+      crc = cudaMemcpy(f,g_f,nsize,cudaMemcpyDeviceToHost)
+      if (crc /= 0) then
+         write (*,*) 'cudaMemcpyDeviceToHost integer Error=', crc, ':', &
+     &cudaGetErrorString(crc)
+         stop
+      endif
+      end subroutine
+!
+!-----------------------------------------------------------------------
+      subroutine fgpu_ccopyin(f,g_f,nsize)
+! copy complex array from main memory to global GPU memory
+      implicit none
+      complex, dimension(*) :: f
+      complex, device, dimension(*) :: g_f
+      integer, intent(in) :: nsize
+      crc = cudaMemcpy(g_f,f,nsize,cudaMemcpyHostToDevice)
+      if (crc /= 0) then
+         write (*,*) 'cudaMemcpyHostToDevice complex Error=', crc, ':', &
+     &cudaGetErrorString(crc)
+         stop
+      endif
+      end subroutine
+!
+!-----------------------------------------------------------------------
+      subroutine fgpu_ccopyout(f,g_f,nsize)
+! copy complex array from global GPU memory to main memory
+      implicit none
+      complex, dimension(*) :: f
+      complex, device, dimension(*) :: g_f
+      integer, intent(in) :: nsize
+      crc = cudaMemcpy(f,g_f,nsize,cudaMemcpyDeviceToHost)
+      if (crc /= 0) then
+         write (*,*) 'cudaMemcpyDeviceToHost complex Error=', crc, ':', &
+     &cudaGetErrorString(crc)
+         stop
+      endif
+      end subroutine
+!
+      end module

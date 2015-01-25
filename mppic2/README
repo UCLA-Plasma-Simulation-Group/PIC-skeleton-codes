@@ -1,0 +1,266 @@
+Skeleton 2D Electrostatic MPI/OpenMP Particle-in-Cell (PIC) codes
+by Viktor K. Decyk
+copyright 2000-2013, regents of the university of california
+
+This program contains sample codes for illustrating the basic structure
+of a 2D Electrostatic MPI/OpenMP Particle-in-Cell (PIC) code, in both
+Fortran and C.  The codes have no diagnosics except for initial and
+final energies.  Their primary purpose is to provide example codes for
+physical science students learning about MPI/OpenMP PIC codes.  They are
+also intended as benchmark reference codes to aid in developing new
+codes and in evaluating new computer architectures.  Parallel versions
+of this code with the same structure for MPI only (ppic2) and OpenMP
+only (mpic2) also exist, and can be compared to this code in order to
+understand the parallel algorithms.
+
+PIC codes are widely used in plasma physics.  They model plasmas as
+particles which interact self-consistently via the electromagnetic
+fields they themselves produce.  PIC codes generally have three
+important procedures in the main iteration loop.  The first is the
+deposit, where some particle quantity, such as a charge, is accumulated
+on a grid via interpolation to produce a source density.  The second
+important procedure is the field solver, which solves Maxwell’s equation
+or a subset to obtain the electric and/or magnetic fields from the
+source densities.  Finally, once the fields are obtained, the particle
+forces are found by interpolation from the grid, and the particle
+co-ordinates are updated, using Newton’s second law and the Lorentz
+force.  The particle processing parts dominate over the field solving
+parts in a typical PIC application. 
+
+More details about PIC codes can be found in the texts by C. K. Birdsall
+and A. B. Langdon, Plasma Physics via Computer Simulation, 1985,
+R. W. Hockney and J. W. Eastwood, Computer Simulation Using Particles,
+1981, and John M. Dawson, "Particle simulation of plasmas", Rev. Mod.
+Phys. 55, 403 (1983).  Details about the mathematical equations and
+units used in this code is given in the companion article,
+"Description of Electrostatic Spectral Code from the UPIC Framework" by
+Viktor K. Decyk, UCLA, in the file ESModels.pdf.
+
+Details abut MPI can be found in the book by William Gropp, Ewing Lusk,
+and Anthony Skjellum, Using MPI: Portable Parallel Programming with the
+Message-Passing Interface, The MIT Press, 1994.  Details abut OpenMP can
+be found in the book by Rohit Chandra, Leonardo Dagum, Dave Kohr, 
+Dror Maydan, Jeff McDonald, and Ramesh Menon, Parallel Programming in
+OpenMP, Morgan Kaufmann, 2001.
+
+No warranty for proper operation of this software is given or implied.
+Software or information may be copied, distributed, and used at own
+risk; it may not be distributed without this notice included verbatim
+with each file.  If use of these codes results in a publication, an
+acknowledgement is requested.
+
+The code here uses the simplest force, the electrostatic Coulomb
+interaction, obtained by solving a Poisson equation.  A spectral method
+using Fast Fourier Transforms (FFTs) is used to solve the Poisson
+equation.  A real to complex FFT is used, and the data in Fourier space
+is stored in a packed format, where the input and output sizes are the
+same.  The boundary conditions are periodic, only electron species are
+included, and linear interpolation is used.
+
+For parallelization, the code uses two levels of parallelism.  The
+outermost level uses a simple domain decomposition scheme, where the
+field quantities (electric field, charge density) are divided among the
+computational nodes.  The primary decomposition divides the y values
+evenly, that is, each MPI node has all the x values for some y.  The
+particles are distributed so that the y co-ordinates of the particles
+have a value within the domain.  This simple decomposition works if the
+particles are uniformly distributed in space.  Particles at the edge of
+the domain may need information from the next domain in order to
+interpolate the fields.  To avoid unnecessary communication, one extra
+guard cell in y is added at the end of each domain that replicates the
+first y value in the next domain.  After particles are updated, some
+particles may move to a neighboring domain.  A particle manager
+(PPPMOVE2) is responsible for moving such particles to the appropriate
+domain.  The FFT is performed in 3 steps.  In going from real space to
+Fourier space, the FFT is first performed in x for the y values in the
+primary domain.  The data is then transposed to a secondary domain
+decomposition, where each node has all the y values for some x.  The FFT
+is then performed in the y direction for the x values in the secondary
+domain.  Poisson's equation is solved using this secondary decomposition
+There are four main communication procedures which use MPI.  The first
+adds the guard cells for the charge density, the second copies the guard
+cells for the electric field.  The third is the particle manager, and
+the fourth transposes the data between primary and secondary
+decompositions using an all to all communication pattern.  Further
+information about the domain decomposition parallel algorithms used can
+be found in the companion presentation Dcomp.pdf and in the article:
+p. c. liewer and v. k. decyk, j. computational phys. 85, 302 (1989).
+
+On each MPI node, a second level of parallelism is used.  The innermost
+level uses a tiling (or blocking) technique. Space is divided into small
+2D tiles (with typically 16x16 grid points in a tile), and particles are
+organized so that their co-ordinates in x and y lie within the same tile
+and are stored together in memory.  Assigning different threads to
+different tiles avoids data collisions (where 2 threads try to write to
+the same memory location at the same time).  The size of the tiles
+should be smaller than the L1 cache and the number of tiles should be
+equal to or greater than the number of processing cores.  There are 3
+major procedures which make use of the tiled data structure, the charge
+deposit, the particle push, and the particle reordering.  In the deposit
+procedure, each thread first deposits to a small local density array the
+size of a tile plus guard cells.  After all the particles in a tile have
+been processed the small density array is added to the global charge
+density array.  The particle push is similar, where each thread first
+copies the global field array to a small local field array which is then
+used for field interpolation.  The particle reordering step is divided
+into two procedures.  The first procedure (PPORDERF2LA) moves particles
+which are leaving a tile into an ordered particle buffer.  In addition,
+those particles which are leaving the MPI node are copied to an MPI send
+buffer.  The MPI particle manager (PPPMOVE2) then sends and receives the
+particle buffer.  The second procedure (PPORDERF2LB) then copies the
+incoming particles, either from the ordered particle buffer or from the
+MPI receive buffer, and inserts the particles into the appropriate
+location in the particle array.  Further information about this tiling
+parallel algorithm used can be found in the article: V. K. Decyk and
+T. V. Singh, "Particle-in-Cell Algorithms for Emerging Computer
+Architectures," Computer Physics Communications, 185, 708, 2014,
+available at http://dx.doi.org/10.1016/j.cpc.2013.10.013.  Further
+information about the hybrid domain decomposition/tiling scheme can be
+found in the companion presentation MPI-OpenMP-PIC.pdf.
+
+The default particle push calculates the list of particles leaving the
+tiles.  This was done because the code was faster.  There is, however, a
+version of the push (PPGPPUSH2L) which does not calculate the list, and
+is easier to understand.  This version of the push requires a different
+reordering procedure (PPPORDER2LA) which calculates the list.
+
+Important differences between the push and deposit procedures (in
+mppush2.f and mppush2.c) and the OpenMP versions (in mpush2.f and
+mpush2.c in the mpic2 directory) are highlighted in the files
+dmppush2_f.pdf and dmppush2_c.pdf, respectively.
+
+Differences between the main codes (mppic2.f90 and mppic2.c) and the
+main codes in the MPI versions in the ppic2 directory (ppic2.f90 and
+ppic2.c) are highlighted in the files dmppic2_f90.pdf and dmppic2_c.pdf,
+respectively. 
+
+Particles are initialized with a uniform distribution in space and a 
+gaussian distribution in velocity space.  This describes a plasma in
+thermal equilibrium.  The inner loop contains a charge deposit, add
+guard cell procedures, a scalar FFT, a Poisson solver, a vector FFT,
+copy guard cell procedures, a particle push, a particle manager, and a
+particle sorting procedure.  The final energy and timings are printed.
+A sample output file for the default input parameters is included in the
+file output.
+
+In more detail, the inner loop of the code contains the following
+procedures in Fortran (C):
+
+Deposit section:
+   PPGPPOST2L (cppgppost2l): deposit charge density
+   PPAGUARD2XL (cppaguard2xl): add charge density guard cells in x on
+                               local processor
+   PPNAGUARD2L (cppnaguard2l): add charge density guard cells in y from
+                               remote processor 
+
+Field solve section:
+   WPPFFT2RM (cwppfft2rm): FFT charge density to fourier space
+   MPPPOIS22 (cmppois22): calculate smoothed longitudinal electric field
+                          in fourier space.
+   WPPFFT2RM2 (cwppfft2rm2): FFT smoothed electric field to real space
+
+Particle Push section:
+   PPNCGUARD2L (cppncguard2l): fill in guard cells for smoothed electric
+                               field in y from remote processor
+   PPCGUARD2XL (cppcguard2xl): fill in guard cells for smoothed electric
+                               field in x field on local processor
+   PPGPPUSHF2L (cppgpushf2l): update particle co-ordinates with smoothed
+                              electric field. also calculate locations
+                              of particles leaving processor for
+                              PPORDERF2LA.
+                              x(t)->x(t+dt); v(t-dt/2)->v(t+dt/2)
+   PPORDERF2LA (cpporderf2la): copies outgoing particles to buffers from
+                               list supplied by PPGPPUSHF2L.
+   PPPMOVE2 (cpppmove2): moves particles to appropriate MPI node from
+                         buffers supplied by PPORDERF2LA.
+   PPORDERF2LB (cpporderf2lb): moves particles to appropriate tile.
+
+The inputs to the code are the grid parameters indx, indy, the particle
+number parameters npx, npy, the time parameters tend, dt, and the
+velocity paramters vtx, vty, vx0, vy0.  In addition, a tile size mx, my,
+and overflow size xtras are defined.
+
+In more detail:
+indx = exponent which determines length in x direction, nx=2**indx.
+indy = exponent which determines length in y direction, ny=2**indy.
+   These ensure the system lengths are a power of 2.
+npx = number of electrons distributed in x direction.
+npy = number of electrons distributed in y direction.
+   The total number of particles in the simulation is npx*npy.
+tend = time at end of simulation, in units of plasma frequency.
+dt = time interval between successive calculations.
+   The number of time steps the code runs is given by tend/dt.
+   dt should be less than .2 for the electrostatic code.
+vtx/vty = thermal velocity of electrons in x/y direction
+   a typical value is 1.0.
+vx0/vy0 = drift velocity of electrons in x/y direction.
+mx/my = number of grids points in x and y in each tile
+   should be less than or equal to 32.
+
+The major program files contained here include:
+mppic2.f90    Fortran90 main program 
+mppic2.c      C main program
+pplib2.f      Fortran77 MPI communications library
+pplib2_h.f90  Fortran90 MPI communications interface (header) library
+pplib2.f90    Fortran90 MPI communications library
+pplib2.c      C MPI communications library
+pplib2.h      C MPI communications header library
+mppush2.f     Fortran77 procedure library
+mppush2_h.f90 Fortran90 procedure interface (header) library
+mppush2.c     C procedure library
+mppush2.h     C procedure header library
+dtimer.c      C timer function, used by both C and Fortran
+
+Files with the suffix .f90 adhere to the Fortran 90 standard, files with
+the suffix .f adhere to the Fortran77 standard, files with the suffix .c
+and .h adhere to the C99 standard.
+
+The makefile is setup to use gcc and gfortran with Linux.  A version for
+Mac OS X is also in the Makefile, but is commented out.  
+
+Two executables can be created, fmppic2 for Fortran, and cmppic2 for C.
+
+To compile program, execute:
+
+Make program_name
+
+where program_name is either: fmppic2 or cmppic2, or execute:
+
+make
+
+to create both programs.
+
+The command to execute a program with both MPI and OpenMP varies from
+one system to another.  One possible command is:
+
+mpiexec -np nproc -perhost n ./program_name
+
+where program_name is either fmppic2 or cmppic2, and
+where nproc is the number of processors to be used, and
+where n is the number of MPI nodes per host.
+
+There is one restriction on the number of processors which can be used:
+this simple skeleton code does not support the case where MPI nodes have
+zero grid points.  This special case can happen for certain combinations
+of the grid size in y (set by the parameter indy) and the number of
+processors chosen.  If this happens the code will exit with an error
+message.  This special case will never occur if the grid size in y is an
+exact multiple of the number of processors.
+
+By default, OpenMP will use the maximum number of processors it can find
+on the MPI node.  If the user wants to control the number of threads, a
+parameter nvpp can be set in the main program.  In addition, the
+environment variable OMP_NUM_THREADS may need to be set to the maximum
+number of threads per node expected.
+
+The file output contains the results produced for the default parameters.
+Typical timing results are shown in the file fmppic2_bench.pdf.
+
+The Fortran version can be compiled to run with double precision by
+changing the Makefile (typically by setting the compiler options flags
+-r8).
+
+The libraries pplib2.c, omplib.c, and mppush2.c contain wrapper
+functions to allow the C libraries to be called from Fortran.  The
+libraries pplib2_f.c, omplib_f.c, and mppush2_f.c contain wrapper
+functions to allow the Fortran libraries to be called from C.
