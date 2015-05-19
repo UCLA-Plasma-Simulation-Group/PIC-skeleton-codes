@@ -49,34 +49,51 @@ In the following discussion, timings refer to the 2.67 GHz Intel i7 CPUs (Dual I
 ##GPU-MPI Codes with three levels of parallelism
 &nbsp;&nbsp;&nbsp;These codes illustrate how to implement an optimal PIC algorithm on multiple GPUs.  It uses a hybrid tiling scheme with SIMD vectorization on each GPU, and domain decomposition connecting such GPUs implemented with MPI.  The algorithms used are described in Refs. [2-4].  Both CUDA C and CUDA Fortran interoperable versions are available, where a Fortran code can call the CUDA C libraries and a C code can call the CUDA Fortran libraries.  For the electrostatic code, a typical execution time for the particle part of this code on 108 M2090 GPUs is about 13 ps/particle/time-step.  For the electromagnetic code, a typical execution time for the particle part of this code is about 30 ps/particle/time-step.  To put this into perspective, on 96 GPUs, a 2-1/2d electromagnetic simulation with 10 billion particles and a 16384x16384 grid takes about 0.5 sec/time step, including the field solver.  The particle calculation is 3600 times faster than in the original serial code.
 ## What's What
-Here's a table showing which directories have which feature (ES means electrostatic, EM means electomagnetic)
+Here's a table showing which directories have which feature (ES means electrostatic, EM means electomagnetic, D means Darwin)
 
 | Category | directory name        | Field Type  | Language  | Parallelism |
 | -------- | --------------------- | ----------- | --------- | ----------- |
 |__Basic Serial__|
+||pic1|ES|C,Fortran| None-Serial|
 ||pic2|ES|C,Fortran| None-Serial|
-||bpic2|EM|C,Fortran| None-Serial|
+||pic3|ES|C,Fortran| None-Serial|
+||bpic1|ES|C,Fortran| None-Serial|
+||bpic2|ES|C,Fortran| None-Serial|
+||bpic3|EM|C,Fortran| None-Serial|
+||dpic1|D|C,Fortran| None-Serial|
+||dpic2|D|C,Fortran| None-Serial|
+||dpic3|D|C,Fortran| None-Serial|
 |__1 Level Parallel__|
+||mpic1|ES|C,Fortran|OpenMP|
 ||mpic2|ES|C,Fortran|OpenMP|
+||mpic3|ES|C,Fortran|OpenMP|
+||mbpic1|EM|C,Fortran|OpenMP|
 ||mbpic2|EM|C,Fortran|OpenMP|
+||mbpic3|EM|C,Fortran|OpenMP|
+||mdpic1|D|C,Fortran|OpenMP|
+||mdpic2|D|C,Fortran|OpenMP|
+||mdpic3|D|C,Fortran|OpenMP|
 ||ppic2|ES|C,Fortran|MPI|
 ||pbpic2|EM|C,Fortran|MPI|
+||pdpic2|D|C,Fortran|MPI|
 ||vpic2|ES|C,Fortran|SSE|
 ||vbpic2|EM|C,Fortran|SSE|
 |__2 Level Parallel__|
-||gpupic2|ES|C,Fortran|CUDA(C)|
-||gpubpic2|EM|C,Fortran|CUDA(C)|
-||gpufpic2|ES|C,Fortran|CUDA(Fortran)|
-||gpufbpic2|EM|C,Fortran|CUDA(Fortran)|
+||gpupic2|ES|C,Fortran|CUDA(C)+Vectorization|
+||gpubpic2|EM|C,Fortran|CUDA(C)+Vectorization|
+||gpufpic2|ES|C,Fortran|CUDA(Fortran)+Vectorization|
+||gpufbpic2|EM|C,Fortran|CUDA(Fortran)+Vectorization|
 ||mppic2|ES|C,Fortran|OpenMP+MPI|
 ||mpbpic2|EM|C,Fortran|OpenMP+MPI|
-||mppic2|ES|C,Fortran|OpenMP+SSE|
-||mpbpic2|EM|C,Fortran|OpenMP+SEE|
+||mpdpic2|D|C,Fortran|OpenMP+MPI|
+||vmpic2|ES|C,Fortran|OpenMP+SSE|
+||vmpic3|ES|C,Fortran|OpenMP+SSE|
+||vmbpic2|EM|C,Fortran|OpenMP+SEE|
 |__3 Level Parallel__|
-||gpuppic2|ES|C,Fortran|MPI+CUDA(C)|
-||gpupbpic2|EM|C,Fortran|MPI+CUDA(C)|
-||gpufppic2|ES|C,Fortran|MPI+CUDA(Fortran)|
-||gpufpbpic2|EM|C,Fortran|MPI+CUDA(Fortran)|
+||gpuppic2|ES|C,Fortran|MPI+CUDA(C)+Vectorization|
+||gpupbpic2|EM|C,Fortran|MPI+CUDA(C)+Vectorization|
+||gpufppic2|ES|C,Fortran|MPI+CUDA(Fortran)+Vectorization|
+||gpufpbpic2|EM|C,Fortran|MPI+CUDA(Fortran)+Vectorization|
 
 
 ##Future Work
