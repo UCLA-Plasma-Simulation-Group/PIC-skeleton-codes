@@ -1,0 +1,23 @@
+ number of cpus found =           12
+ maximum number of threads =           12
+ using           12  thread(s)
+ Initial Field, Kinetic and Total Energies:
+ 0.1199318E-07 0.9329118E+04 0.9329118E+04
+ ntime =          100
+ Final Field, Kinetic and Total Energies:
+ 0.5116883E+02 0.9277939E+04 0.9329108E+04
+
+ deposit time =   1.36999914E-03
+ guard time =   2.50000048E-05
+ solver time =   1.38999982E-04
+ fft time =   1.33100152E-03
+ push time =   3.31600150E-03
+ sort time =   8.45000381E-04
+ total solver time =   1.49500149E-03
+ total particle time =   5.53100090E-03
+ total time =   7.02600228E-03
+
+ Push Time (nsec) =    1.7990459    
+ Deposit Time (nsec) =   0.74327213    
+ Sort Time (nsec) =   0.45844206    
+ Total Particle Time (nsec) =    3.0007601   

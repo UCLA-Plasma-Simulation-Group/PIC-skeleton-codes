@@ -1,4 +1,4 @@
-#Makefile for 2D Electrostatic GPU Emulation OpenMP/AVX PIC codes
+#Makefile for 2D Electrostatic OpenMP PIC codes
 
 # Makefile gfortran compiler with MacOS X
 
@@ -14,7 +14,7 @@
 
 #OPTS90 = -O3
 #OPTS90 = -O3 -fdefault-real-8 -fdefault-double-8
-#OPTS90 = -O3 -fcheck=bounds -fdefault-real-8 -Wall -std=f95
+#OPTS90 = -O3 -fcheck=bounds -fdefault-real-8 -fdefault-double-8 -Wall -std=f95
 
 #CCOPTS = -O3 -Wall -std=c99
 
@@ -75,7 +75,7 @@ CC = gcc
 
 OPTS90 = -O3
 #OPTS90 = -O3 -fdefault-real-8 -fdefault-double-8
-#OPTS90 = -O3 -fbounds-check -fdefault-real-8 -Wall -std=f95
+#OPTS90 = -O3 -fbounds-check -fdefault-real-8 -fdefault-double-8 -Wall -std=f95
 
 CCOPTS = -O3 -Wall -std=c99
 #CCOPTS = -O3 -fno-tree-vectorize -Wall -std=c99

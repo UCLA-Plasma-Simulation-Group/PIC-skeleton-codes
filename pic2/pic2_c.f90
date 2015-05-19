@@ -42,7 +42,8 @@
       double precision :: dtime
 !
 ! initialize scalars for standard code
-      np = npx*npy; nx = 2**indx; ny = 2**indy; nxh = nx/2; nyh = ny/2
+      np = npx*npy; nx = 2**indx; ny = 2**indy
+      nxh = nx/2; nyh = max(1,ny/2)
       nxe = nx + 2; nye = ny + 1; nxeh = nxe/2
       nxyh = max(nx,ny)/2; nxhy = max(nxh,ny); ny1 = ny + 1
       nloop = tend/dt + .0001; ntime = 0
@@ -93,7 +94,7 @@
       tfft = tfft + time
 !
 ! calculate force/charge in fourier space with standard procedure:
-! updates fxye
+! updates fxye, we
       call dtimer(dtime,itime,-1)
       isign = -1
       call CPOIS22(qe,fxye,isign,ffc,ax,ay,affp,we,nx,ny,nxeh,nye,nxh,  &

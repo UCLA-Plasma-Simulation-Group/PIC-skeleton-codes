@@ -93,7 +93,8 @@ int main(int argc, char *argv[]) {
 /* initialize scalars for standard code */
 /* np = total number of particles in simulation */
 /* nx/ny = number of grid points in x/y direction */
-   np = npx*npy; nx = 1L<<indx; ny = 1L<<indy; nxh = nx/2; nyh = ny/2;
+   np = npx*npy; nx = 1L<<indx; ny = 1L<<indy;
+   nxh = nx/2; nyh = 1 > ny/2 ? 1 : ny/2;
    nxe = nx + 2; nye = ny + 1; nxeh = nxe/2;
    nxyh = (nx > ny ? nx : ny)/2; nxhy = nxh > ny ? nxh : ny;
 /* mx1/my1 = number of tiles in x/y direction */
@@ -265,7 +266,7 @@ L500: if (nloop <= ntime)
       tfield += time;
 
 /* calculate electromagnetic fields in fourier space with OpenMP: */
-/* updates exyz, bxyz */
+/* updates exyz, bxyz, wf, wm */
       dtimer(&dtime,&itime,-1);
       if (ntime==0) {
          cmibpois23((float complex *)cue,bxyz,ffc,ci,&wm,nx,ny,nxeh,nye,
@@ -281,7 +282,7 @@ L500: if (nloop <= ntime)
       time = (float) dtime;
       tfield += time;
 
-/* calculate force/charge in fourier space OpenMP: updates fxyze */
+/* calculate force/charge in fourier space OpenMP: updates fxyze, we */
       dtimer(&dtime,&itime,-1);
       isign = -1;
       cmpois23((float complex *)qe,(float complex *)fxyze,isign,ffc,ax,

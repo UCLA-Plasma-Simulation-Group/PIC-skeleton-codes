@@ -1,0 +1,41 @@
+CUDA test programs
+by Viktor K. Decyk, UCLA
+
+No warranty for proper operation of this software is given or implied.
+software or information may be copied, distributed, and used at own
+risk; it may not be distributed without this notice included verbatim
+with each file.
+
+This program contains sample codes for illustrating how to set up
+and run a simple parallel test code, using CUDA with both C and Fortran.
+The test case is simple vector add function. These codes can be used as
+templates for setting up more complex programs.
+
+For CUDA, two executables can be created:
+cgputest_cu, creates a C main program from a C library gpumain_cu.cu
+fgputest_cu, creates a Fortran main program from a C library gpumain_cu.cu
+The C library gpumain_cu.cu is compiled using the NVIDIA nvcc compiler.
+The main program cgputest_cu.c is compiled using gcc.
+The main program fgputest_cu.f90 is compiled using gfortran.
+
+To compile and link each individual program, execute:
+
+make program_name
+
+where program_name is either:
+fgputest_cu, cgputest_cu
+
+To compile only the 2 CUDA programs, execute:
+
+make cuda
+
+To compile all the programs, execute:
+
+make
+
+The makefile is setup to use gcc, gfortran.  A version for Mac OS X is
+also in the Makefile, but is commented out.
+
+To execute most programs, type the name of the executabe:
+
+./program_name

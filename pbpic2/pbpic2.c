@@ -58,7 +58,7 @@ int main(int argc, char *argv[]) {
 /* qe = electron charge density with guard cells */
    float *qe = NULL;
 /* cue = electron current density with guard cells */
-/* fxyze/g_bxyze = smoothed electric/magnetic field with guard cells */
+/* fxyze/bxyze = smoothed electric/magnetic field with guard cells */
    float *cue = NULL, *fxyze = NULL, *bxyze = NULL;
 /* exyz/bxyz = transverse electric/magnetic field in fourier space */
    float complex *exyz = NULL, *bxyz = NULL;
@@ -77,7 +77,7 @@ int main(int argc, char *argv[]) {
    int *ihole = NULL;
 /* npic = scratch array for reordering particles */
    int *npic = NULL;
-   float wtot[7], work[7];
+   double wtot[7], work[7];
    int info[7];
 
 /* declare arrays for MPI code: */
@@ -103,7 +103,8 @@ int main(int argc, char *argv[]) {
 /* np = total number of particles in simulation */
    np =  (double) npx*(double) npy;
 /* nx/ny = number of grid points in x/y direction */
-   nx = 1L<<indx; ny = 1L<<indy; nxh = nx/2; nyh = ny/2;
+   nx = 1L<<indx; ny = 1L<<indy;
+   nxh = nx/2; nyh = 1 > ny/2 ? 1 : ny/2;
    nxe = nx + 2; nye = ny + 2; nxeh = nxe/2; nnxe = ndim*nxe;
    nxyh = (nx > ny ? nx : ny)/2; nxhy = nxh > ny ? nxh : ny;
    ny1 = ny + 1;
@@ -155,7 +156,8 @@ int main(int argc, char *argv[]) {
 
 /* allocate data for standard code */
    part = (float *) malloc(idimp*npmax*sizeof(float));
-   part2 = (float *) malloc(idimp*npmax*sizeof(float));
+   if (sortime > 0)
+      part2 = (float *) malloc(idimp*npmax*sizeof(float));
    qe = (float *) malloc(nxe*nypmx*sizeof(float));
    fxyze = (float *) malloc(ndim*nxe*nypmx*sizeof(float));
    cue = (float *) malloc(ndim*nxe*nypmx*sizeof(float));
@@ -301,7 +303,7 @@ L500: if (nloop <= ntime)
       tfft[1] += ttp;
 
 /* take transverse part of current with standard procedure: updates cut */
-/* modifies cue */
+/* modifies cut */
       dtimer(&dtime,&itime,-1);
       cppcuperp2(cut,nx,ny,kstrt,nye,kxp);
       dtimer(&dtime,&itime,1);
@@ -443,7 +445,7 @@ L500: if (nloop <= ntime)
       wtot[4] = we;
       wtot[5] = wf;
       wtot[6] = wm;
-      cppsum(wtot,work,7);
+      cppdsum(wtot,work,7);
       wke = wtot[1];
       we = wtot[4];
       wf = wtot[5];
@@ -487,7 +489,8 @@ Field Energies:\n");
       printf("sort time = %f\n",tsort);
       tfield += tguard + tfft[0];
       printf("total solver time = %f\n",tfield);
-      time = tdpost + tpush + tmov + tsort;
+      tsort += tmov;
+      time = tdpost + tpush + tsort;
       printf("total particle time = %f\n",time);
       wt = time + tfield;
       printf("total time = %f\n",wt);

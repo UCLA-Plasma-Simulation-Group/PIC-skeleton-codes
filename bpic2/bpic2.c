@@ -10,30 +10,51 @@
 void dtimer(double *time, struct timeval *itime, int icntrl);
 
 int main(int argc, char *argv[]) {
+/* indx/indy = exponent which determines grid points in x/y direction: */
+/* nx = 2**indx, ny = 2**indy */
    int indx =   9, indy =   9;
+/* npx/npy = number of electrons distributed in x/y direction */
    int npx =  3072, npy =   3072;
+/* ndim = number of velocity coordinates = 3 */
    int ndim = 3;
+/* tend = time at end of simulation, in units of plasma frequency */
+/* dt = time interval between successive calculations */
+/* qme = charge on electron, in units of e */
    float tend = 10.0, dt = 0.04, qme = -1.0;
+/* vtx/vty = thermal velocity of electrons in x/y direction */
+/* vx0/vy0 = drift velocity of electrons in x/y direction */
    float vtx = 1.0, vty = 1.0, vx0 = 0.0, vy0 = 0.0;
+/* vtx/vz0 = thermal/drift velocity of electrons in z direction */
    float vtz = 1.0, vz0 = 0.0;
+/* ax/ay = smoothed particle size in x/y direction */
+/* ci = reciprocal of velocity of light */
    float ax = .912871, ay = .912871, ci = 0.1;
-/* idimp = dimension of phase space = 5 */
+/* idimp = number of particle coordinates = 5 */
+/* ipbc = particle boundary condition: 1 = periodic */
 /* sortime = number of time steps between standard electron sorting */
 /* relativity = (no,yes) = (0,1) = relativity is used */
    int idimp = 5, ipbc = 1, sortime = 50, relativity = 1;
    float wke = 0.0, we = 0.0, wf = 0.0, wm = 0.0, wt = 0.0;
-
 /* declare scalars for standard code */
    int j;
    int np, nx, ny, nxh, nyh, nxe, nye, nxeh, nxyh, nxhy;
    int ny1, ntime, nloop, isign;
    float qbme, affp, dth;
 
-/* declare arrays for standard code */
+/* declare arrays for standard code: */
+/* part, part2 = particle arrays */
    float *part = NULL, *part2 = NULL, *tpart = NULL;
+/* qe = electron charge density with guard cells */
+/* cue = electron current density with guard cells */
+/* fxyze/bxyze = smoothed electric/magnetic field with guard cells */
    float *qe = NULL, *cue = NULL, *fxyze = NULL, *bxyze = NULL;
+/* exyz/bxyz = transverse electric/magnetic field in fourier space */
    float complex *exyz = NULL, *bxyz = NULL;
+/* ffc = form factor array for poisson solver */
+/* sct = sine/cosine table for FFT */
    float complex *ffc = NULL, *sct = NULL;
+/* mixup = bit reverse table for FFT */
+/* npicy = scratch array for reordering particles */
    int *mixup = NULL, *npicy = NULL;
 
 /* declare and initialize timing data */
@@ -44,18 +65,24 @@ int main(int argc, char *argv[]) {
    double dtime;
 
 /* initialize scalars for standard code */
-   np = npx*npy; nx = 1L<<indx; ny = 1L<<indy; nxh = nx/2; nyh = ny/2;
+/* np = total number of particles in simulation */
+/* nx/ny = number of grid points in x/y direction */
+   np = npx*npy; nx = 1L<<indx; ny = 1L<<indy;
+   nxh = nx/2; nyh = 1 > ny/2 ? 1 : ny/2;
    nxe = nx + 2; nye = ny + 1; nxeh = nxe/2;
    nxyh = (nx > ny ? nx : ny)/2; nxhy = nxh > ny ? nxh : ny;
    ny1 = ny + 1;
+/* nloop = number of time steps in simulation */
+/* ntime = current time step */
    nloop = tend/dt + .0001; ntime = 0;
    qbme = qme;
    affp = (float) (nx*ny)/(float ) np;
    dth = 0.0;
 
-/* allocate and initialize data for standard code */
+/* allocate data for standard code */
    part = (float *) malloc(idimp*np*sizeof(float));
-   part2 = (float *) malloc(idimp*np*sizeof(float));
+   if (sortime > 0)
+      part2 = (float *) malloc(idimp*np*sizeof(float));
    qe = (float *) malloc(nxe*nye*sizeof(float));
    fxyze = (float *) malloc(ndim*nxe*nye*sizeof(float));
    cue = (float *) malloc(ndim*nxe*nye*sizeof(float));
@@ -149,7 +176,7 @@ L500: if (nloop <= ntime)
       tfield += time;
 
 /* calculate electromagnetic fields in fourier space with standard */
-/* procedure: updates exyz, bxyz                                   */
+/* procedure: updates exyz, bxyz, wf, wm                           */
       dtimer(&dtime,&itime,-1);
       if (ntime==0) {
          cibpois23((float complex *)cue,bxyz,ffc,ci,&wm,nx,ny,nxeh,nye,
@@ -166,7 +193,7 @@ L500: if (nloop <= ntime)
       tfield += time;
 
 /* calculate force/charge in fourier space with standard procedure: */
-/* updates fxyze                                                    */
+/* updates fxyze, we                                                */
       dtimer(&dtime,&itime,-1);
       isign = -1;
       cpois23((float complex *)qe,(float complex *)fxyze,isign,ffc,ax,ay,

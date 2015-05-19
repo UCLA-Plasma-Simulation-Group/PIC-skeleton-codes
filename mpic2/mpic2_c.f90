@@ -57,7 +57,8 @@
       call cinit_omp(nvp)
 !
 ! initialize scalars for standard code
-      np = npx*npy; nx = 2**indx; ny = 2**indy; nxh = nx/2; nyh = ny/2
+      np = npx*npy; nx = 2**indx; ny = 2**indy
+      nxh = nx/2; nyh = max(1,ny/2)
       nxe = nx + 2; nye = ny + 1; nxeh = nxe/2
       nxyh = max(nx,ny)/2; nxhy = max(nxh,ny)
       mx1 = (nx - 1)/mx + 1; my1 = (ny - 1)/my + 1; mxy1 = mx1*my1

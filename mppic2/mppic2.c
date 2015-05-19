@@ -6,22 +6,34 @@
 #include <complex.h>
 #include <sys/time.h>
 #include "mppush2.h"
-#include "pplib2.h"
+#include "mpplib2.h"
 #include "omplib.h"
 
 void dtimer(double *time, struct timeval *itime, int icntrl);
 
 int main(int argc, char *argv[]) {
+/* indx/indy = exponent which determines grid points in x/y direction: */
+/* nx = 2**indx, ny = 2**indy */
    int indx =   9, indy =   9;
+/* npx/npy = number of electrons distributed in x/y direction */
    int npx =  3072, npy =   3072;
+/* ndim = number of velocity coordinates = 2 */
    int ndim = 2;
+/* tend = time at end of simulation, in units of plasma frequency */
+/* dt = time interval between successive calculations */
+/* qme = charge on electron, in units of e */
    float tend = 10.0, dt = 0.1, qme = -1.0;
+/* vtx/vty = thermal velocity of electrons in x/y direction */
+/* vx0/vy0 = drift velocity of electrons in x/y direction */
    float vtx = 1.0, vty = 1.0, vx0 = 0.0, vy0 = 0.0;
+/* ax/ay = smoothed particle size in x/y direction */
    float ax = .912871, ay = .912871;
 /* idimp = dimension of phase space = 4 */
+/* ipbc = particle boundary condition: 1 = periodic */
    int idimp = 4, ipbc = 1;
 /* idps = number of partition boundaries */
    int idps = 2;
+/* wke/we/wt = particle kinetic/electric field/total energy */
    float wke = 0.0, we = 0.0, wt = 0.0;
 /* sorting tiles, should be less than or equal to 32 */
    int mx = 16, my = 16;
@@ -44,26 +56,45 @@ int main(int argc, char *argv[]) {
    int nvpp;
 
 /* declare arrays for standard code */
+/* part = particle array */
    float *part = NULL;
+/* qe = electron charge density with guard cells */
    float *qe = NULL;
+/* fxye = smoothed electric field with guard cells */
    float *fxye = NULL;
+/* qt = scalar charge density field array in fourier space */
    float complex *qt = NULL;
+/* fxyt = vector electric field array in fourier space */
    float complex *fxyt = NULL;
+/* ffc = form factor array for poisson solver */
    float complex *ffc = NULL;
+/* mixup = bit reverse table for FFT */
    int *mixup = NULL;
+/* sct = sine/cosine table for FFT */
    float complex *sct = NULL;
    float wtot[4], work[4];
 
 /* declare arrays for MPI code */
+/* bs/br = complex send/receive buffers for data transpose */
    float complex *bs = NULL, *br = NULL;
+/* sbufl/sbufr = particle buffers sent to nearby processors */
+/* rbufl/rbufr = particle buffers received from nearby processors */
    float *sbufl = NULL, *sbufr = NULL, *rbufl = NULL, *rbufr = NULL;
+/* edges[0:1] = lower:upper y boundaries of particle partition */
    float *edges = NULL;
+/* scs/scr = guard cell buffers received from nearby processors */
    float *scs = NULL, *scr = NULL;
 
 /* declare arrays for OpenMP code */
+/* ppart = tiled particle array */
+/* ppbuff = buffer array for reordering tiled particle array */
    float *ppart = NULL, *ppbuff = NULL;
+/* kpic = number of particles in each tile */
    int *kpic = NULL;
+/* ncl = number of particles departing tile in each direction */
+/* iholep = location/destination of each particle departing tile */
    int *ncl = NULL, *iholep = NULL;
+/* ncll/nclr/mcll/mclr = number offsets send/received from processors */
    int *ncll = NULL, *nclr = NULL, *mcll = NULL, *mclr = NULL;
 
 /* declare and initialize timing data */
@@ -83,11 +114,17 @@ int main(int argc, char *argv[]) {
    cinit_omp(nvpp);
 
 /* initialize scalars for standard code */
+/* np = total number of particles in simulation */
    np =  (double) npx*(double) npy;
-   nx = 1L<<indx; ny = 1L<<indy; nxh = nx/2; nyh = ny/2;
+/* nx/ny = number of grid points in x/y direction */
+   nx = 1L<<indx; ny = 1L<<indy;
+   nxh = nx/2; nyh = 1 > ny/2 ? 1 : ny/2;
    nxe = nx + 2; nye = ny + 2; nxeh = nxe/2; nnxe = ndim*nxe;
    nxyh = (nx > ny ? nx : ny)/2; nxhy = nxh > ny ? nxh : ny;
+/* mx1 = number of tiles in x direction */
    mx1 = (nx - 1)/mx + 1;
+/* nloop = number of time steps in simulation */
+/* ntime = current time step */
    nloop = tend/dt + .0001; ntime = 0;
    qbme = qme;
    affp = (double) nx*(double) ny/np;
@@ -144,8 +181,8 @@ int main(int argc, char *argv[]) {
 /* allocate and initialize data for MPI code */
    bs = (float complex *) malloc(ndim*kxp*kyp*sizeof(float complex));
    br = (float complex *) malloc(ndim*kxp*kyp*sizeof(float complex));
-   scs = (float *) malloc(nxe*2*sizeof(float));
-   scr = (float *) malloc(nxe*2*sizeof(float));
+   scs = (float *) malloc(nxe*ndim*sizeof(float));
+   scr = (float *) malloc(nxe*ndim*sizeof(float));
 
 /* prepare fft tables */
    cwpfft2rinit(mixup,sct,indx,indy,nxhy,nxyh);
@@ -244,7 +281,7 @@ L500: if (nloop <= ntime)
       tfft[0] += time;
       tfft[1] += ttp;
 
-/* calculate force/charge in fourier space with OpenMP: updates fxyt */
+/* calculate force/charge in fourier space with OpenMP: updates fxyt, we */
       dtimer(&dtime,&itime,-1);
       isign = -1;
       cmppois22(qt,fxyt,isign,ffc,ax,ay,affp,&we,nx,ny,kstrt,nye,kxp,
@@ -370,7 +407,8 @@ L2000:
       printf("sort time = %f\n",tsort);
       tfield += tguard + tfft[0];
       printf("total solver time = %f\n",tfield);
-      time = tdpost + tpush + tmov + tsort;
+      tsort += tmov;
+      time = tdpost + tpush + tsort;
       printf("total particle time = %f\n",time);
       wt = time + tfield;
       printf("total time = %f\n",wt);

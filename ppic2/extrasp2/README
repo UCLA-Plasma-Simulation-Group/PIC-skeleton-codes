@@ -1,0 +1,83 @@
+Skeleton 2D Electrostatic MPI Particle-in-Cell (PIC) codes field
+diagnostics
+by Viktor K. Decyk
+copyright 2007-2015, regents of the university of california
+
+This directory contains procedures that are useful for performing wave
+diagnostics, such as measuring the wavenumber and frequency of plasma
+waves, for the 2D Electrostatic MPI Particle-in-Cell (PIC) codes in the
+ppic2 directory.  The procedures, written in Fortran, are in the file
+pfield2.f.  The file pfield2_f.c contains wrapper functions to allow the
+Fortran procedures to be called from C.
+
+The electric and magnetic fields used to advance particles are smoothed
+by suppressing large wavenumbers in order to avoid numerical errors due
+to aliasing.  The field diagnostics, however, are normally unsmoothed.
+The main diagnostic is the electrostatic potential in fourier space.
+This is calculated by the procedure PPOTP2.  Other diagnostics, such as
+the unsmoothed longitudinal electric field can be calculated from the
+potentials with the procedure PPGRADF2.  The fourier modes are normally
+stored to disk for later post-processing, such as by performing a
+fourier transform in time to obtain the frequencies for different
+wavenumbers.  It is usually not necessary to store all the modes to
+disk, since the high wavenumber modes are usually unimportant.
+Furthermore, the fourier modes are stored in a packed format which is
+difficult to work with.  Thus the procedures PPRDMODES2 is also provided
+to extract a subset of the fourier modes for the potential, and copy
+them in an unpacked format for easier post-processing. (The procedure
+PPWRMODES2 is provided to repack the scalar fourier modes, if needed.)
+
+No warranty for proper operation of this software is given or implied.
+Software or information may be copied, distributed, and used at own
+risk; it may not be distributed without this notice included verbatim
+with each file.  If use of these codes results in a publication, an
+acknowledgement is requested.
+
+To use these procedures, one first needs to add some declarations in the
+main programs pbpic2.90 and pbpic2.c in the parent directory pbpic2,
+similar to the following.
+
+For Fortran:
+   integer :: modesx, modesy, modesxpd, modesyd
+   complex, dimension(:,:), pointer :: potc, pott
+
+For C:
+   int modesx, modesy, modesxpd, modesyd;
+   float complex *potc = NULL, *pott = NULL;
+   
+Then before the main iteration loop, one needs to allocate the arrays.
+
+For Fortran:
+   modesx = nx/4; modesy = ny/4
+   modesxpd = min(modesx,kxp); modesyd = min(2*modesy-1,ny)
+   if (modesx==(nx/2+1)) modesxpd = modesxpd + 1
+   allocate(potc(nye,kxp),pott(modesyd,modesxpd))
+
+For C:
+   modesx = nx/4; modesy = ny/4;
+   modesxd = modesx; modesyd = 2*modesy - 1;
+   modesyd = modesyd < ny ? modesyd : ny;
+   if (modesx==(nx/2+1))
+      modesxpd += 1;
+   potc = (float complex *) malloc(nye*kxp*sizeof(float complex));
+   pott = (float complex *) malloc(modesyd*modesxpd*sizeof(float complex));
+
+Finally, in the main iteration loops just before the push procedures,
+one can add some diagnostics, such as:
+
+For Fortran:
+! perform potential diagnostic and unpack into array pott
+! updates potc, pott, wt
+   call PPOTP2(qt,potc,ffc,wt,nx,ny,kstrt,nye,kxp,nyh)
+   call PPRDMODES2(potc,pott,nx,ny,modesx,modesy,kstrt,nye,kxp,modesxpd,
+                   modesyd)
+
+For C:
+/* perform potential diagnostic and unpack into array pott */
+/* updates potc, pott, wt                                  */
+   cppotp2(qt,potc,ffc,&wt,nx,ny,kstrt,nye,kxp,nyh);
+   cpprdmodes2(potc,pott,nx,ny,modesx,modesy,kstrt,nye,kxp,modesxpd,
+               modesyd);
+
+One would have to modify the Makefile as well to include the files
+pfield2.f and pfield2_f.c, as needed.

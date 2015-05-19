@@ -50,7 +50,7 @@
 ! qe = electron charge density with guard cells
       real, dimension(:,:), pointer :: qe
 ! cue = electron current density with guard cells
-! fxyze/g_bxyze = smoothed electric/magnetic field with guard cells
+! fxyze/bxyze = smoothed electric/magnetic field with guard cells
       real, dimension(:,:,:), pointer :: cue, fxyze, bxyze
 ! exyz/bxyz = transverse electric/magnetic field in fourier space
       complex, dimension(:,:,:), pointer :: exyz, bxyz
@@ -90,7 +90,8 @@
 ! initialize scalars for standard code
 ! np = total number of particles in simulation
 ! nx/ny = number of grid points in x/y direction
-      np = npx*npy; nx = 2**indx; ny = 2**indy; nxh = nx/2; nyh = ny/2
+      np = npx*npy; nx = 2**indx; ny = 2**indy
+      nxh = nx/2; nyh = max(1,ny/2)
       nxe = nx + 2; nye = ny + 1; nxeh = nxe/2
       nxyh = max(nx,ny)/2; nxhy = max(nxh,ny)
 ! mx1/my1 = number of tiles in x/y direction
@@ -247,7 +248,7 @@
       tfield = tfield + time
 !
 ! calculate electromagnetic fields in fourier space with OpenMP:
-! updates exyz, bxyz
+! updates exyz, bxyz, wf, wm
       call dtimer(dtime,itime,-1)
       if (ntime==0) then
          call MIBPOIS23(cue,bxyz,ffc,ci,wm,nx,ny,nxeh,nye,nxh,nyh)
@@ -261,7 +262,7 @@
       time = real(dtime)
       tfield = tfield + time
 !
-! calculate force/charge in fourier space OpenMP: updates fxyze
+! calculate force/charge in fourier space OpenMP: updates fxyze, we
       call dtimer(dtime,itime,-1)
       isign = -1
       call MPOIS23(qe,fxyze,isign,ffc,ax,ay,affp,we,nx,ny,nxeh,nye,nxh, &

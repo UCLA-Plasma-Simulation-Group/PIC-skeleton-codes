@@ -152,8 +152,8 @@ c      (vz(t-dt/2) + .5*(q/m)*fz(x(t),y(t))*dt)**2)
 c idimp = size of phase space = 5
 c nop = number of particles
 c nx/ny = system length in x/y direction
-c nxv = first dimension of field arrays, must be >= nx+1
-c nyv = second dimension of field arrays, must be >= ny+1
+c nxv = second dimension of field arrays, must be >= nx+1
+c nyv = third dimension of field arrays, must be >= ny+1
 c ipbc = particle boundary condition = (0,1,2,3) =
 c (none,2d periodic,2d reflecting,mixed reflecting/periodic)
       implicit none
@@ -352,8 +352,8 @@ c      (vz(t-dt/2) + .5*(q/m)*fz(x(t),y(t))*dt)**2)
 c idimp = size of phase space = 5
 c nop = number of particles
 c nx/ny = system length in x/y direction
-c nxv = first dimension of field arrays, must be >= nx+1
-c nyv = second dimension of field arrays, must be >= ny+1
+c nxv = second dimension of field arrays, must be >= nx+1
+c nyv = third dimension of field arrays, must be >= ny+1
 c ipbc = particle boundary condition = (0,1,2,3) =
 c (none,2d periodic,2d reflecting,mixed reflecting/periodic)
       implicit none
@@ -551,7 +551,7 @@ c that is, the convolution of magnetic field over particle shape
 c qbm = particle charge/mass ratio
 c dt = time interval between successive calculations
 c dtc = time interval between successive co-ordinate calculations
-c ci = reciprical of velocity of light
+c ci = reciprocal of velocity of light
 c kinetic energy/mass at time t is also calculated, using
 c ek = gami*sum((px(t-dt/2) + .5*(q/m)*fx(x(t),y(t))*dt)**2 +
 c      (py(t-dt/2) + .5*(q/m)*fy(x(t),y(t))*dt)**2 +
@@ -559,8 +559,8 @@ c      (pz(t-dt/2) + .5*(q/m)*fz(x(t),y(t))*dt)**2)/(1. + gami)
 c idimp = size of phase space = 5
 c nop = number of particles
 c nx/ny = system length in x/y direction
-c nxv = first dimension of field arrays, must be >= nx+1
-c nyv = second dimension of field arrays, must be >= ny+1
+c nxv = second dimension of field arrays, must be >= nx+1
+c nyv = third dimension of field arrays, must be >= ny+1
 c ipbc = particle boundary condition = (0,1,2,3) =
 c (none,2d periodic,2d reflecting,mixed reflecting/periodic)
       implicit none
@@ -766,7 +766,7 @@ c that is, the convolution of magnetic field over particle shape
 c qbm = particle charge/mass ratio
 c dt = time interval between successive calculations
 c dtc = time interval between successive co-ordinate calculations
-c ci = reciprical of velocity of light
+c ci = reciprocal of velocity of light
 c kinetic energy/mass at time t is also calculated, using
 c ek = gami*sum((px(t-dt/2) + .5*(q/m)*fx(x(t),y(t))*dt)**2 +
 c      (py(t-dt/2) + .5*(q/m)*fy(x(t),y(t))*dt)**2 +
@@ -774,8 +774,8 @@ c      (pz(t-dt/2) + .5*(q/m)*fz(x(t),y(t))*dt)**2)/(1. + gami)
 c idimp = size of phase space = 5
 c nop = number of particles
 c nx/ny = system length in x/y direction
-c nxv = first dimension of field arrays, must be >= nx+1
-c nyv = second dimension of field arrays, must be >= ny+1
+c nxv = second dimension of field arrays, must be >= nx+1
+c nyv = third dimension of field arrays, must be >= ny+1
 c ipbc = particle boundary condition = (0,1,2,3) =
 c (none,2d periodic,2d reflecting,mixed reflecting/periodic)
       implicit none
@@ -1110,7 +1110,7 @@ c part(5,n) = z momentum of particle n
 c cu(i,j,k) = ith component of current density at grid point j,k
 c qm = charge on particle, in units of e
 c dt = time interval between successive calculations
-c ci = reciprical of velocity of light
+c ci = reciprocal of velocity of light
 c nop = number of particles
 c idimp = size of phase space = 5
 c nx/ny = system length in x/y direction
@@ -1353,8 +1353,10 @@ c-----------------------------------------------------------------------
 c this subroutine solves 2-1/2d poisson's equation in fourier space for
 c force/charge (or convolution of electric field over particle shape)
 c with periodic boundary conditions.  Zeros out z component.
-c for isign = 0, input: isign,ax,ay,affp,nx,ny,nxvh,nyhd, output: ffc
-c for isign /= 0, input: q,ffc,isign,nx,ny,nxvh,nyhd, output: fxy,we
+c for isign = 0, input: isign,ax,ay,affp,nx,ny,nxvh,nxhd,nyhd,
+c output: ffc
+c for isign /= 0, input: q,ffc,isign,nx,ny,nxvh,nxhd,nyhd,
+c output: fxy,we
 c approximate flop count is: 26*nxc*nyc + 12*(nxc + nyc)
 c where nxc = nx/2 - 1, nyc = ny/2 - 1
 c equation used is:
@@ -1553,7 +1555,7 @@ c-----------------------------------------------------------------------
       subroutine IBPOIS23(cu,bxy,ffc,ci,wm,nx,ny,nxvh,nyv,nxhd,nyhd)
 c this subroutine solves 2-1/2d poisson's equation in fourier space for
 c magnetic field, with periodic boundary conditions.
-c input: cu,ffc,ci,nx,ny,nxv,nyhd, output: bxy,wm
+c input: cu,ffc,ci,nx,ny,nxvh,nxhd,nyhd, output: bxy,wm
 c approximate flop count is: 90*nxc*nyc + 40*(nxc + nyc)
 c where nxc = nx/2 - 1, nyc = ny/2 - 1
 c the magnetic field is calculated using the equations:
@@ -1572,7 +1574,7 @@ c aimag(ffc(j,k)) = finite-size particle shape factor s
 c for fourier mode (j-1,k-1)
 c real(ffc(j,k)) = potential green's function g
 c for fourier mode (j-1,k-1)
-c ci = reciprical of velocity of light
+c ci = reciprocal of velocity of light
 c magnetic field energy is also calculated, using
 c wm = nx*ny*sum((affp/(kx**2+ky**2))*ci*ci*
 c    |cu(kx,ky)*s(kx,ky)|**2), where
@@ -1599,7 +1601,7 @@ c local data
       ny2 = ny + 2
       dnx = 6.28318530717959/real(nx)
       dny = 6.28318530717959/real(ny)
-      zero = cmplx(0.,0.)
+      zero = cmplx(0.0,0.0)
       ci2 = ci*ci
 c calculate magnetic field and sum field energy
       wp = 0.0d0
@@ -1712,7 +1714,7 @@ c where np=number of particles
 c aimag(ffc(j,k)) = finite-size particle shape factor s,
 c s(kx,ky) = exp(-((kx*ax)**2+(ky*ay)**2)/2)
 c for fourier mode (j-1,k-1)
-c ci = reciprical of velocity of light
+c ci = reciprocal of velocity of light
 c dt = time interval between successive calculations
 c transverse electric field energy is also calculated, using
 c wf = nx*ny**sum((1/affp)*|exy(kx,ky)|**2)
@@ -2107,12 +2109,10 @@ c nyd = second dimension of f >= ny
 c nxhyd = maximum of (nx/2,ny)
 c nxyhd = maximum of (nx,ny)/2
 c fourier coefficients are stored as follows:
-c f(2*j-1,k),f(2*j,k) = real, imaginary part of mode j-1,k-1, where
-c 1 <= j <= nx/2 and 1 <= k <= ny, except for
-c f(1,k),f(2,k) = real, imaginary part of mode nx/2,k-1, where
-c ny/2+2 <= k <= ny, and
-c f(2,1) = real part of mode nx/2,0 and
-c f(2,ny/2+1) = real part of mode nx/2,ny/2
+c f(j,k) = mode j-1,k-1, where 1 <= j <= nx/2 and 1 <= k <= ny,
+c except for f(1,k) =  mode nx/2,k-1, where ny/2+2 <= k <= ny, and
+c aimag(f(1,1)) = real part of mode nx/2,0 and
+c aimag(f(1,ny/2+1)) = real part of mode nx/2,ny/2
 c written by viktor k. decyk, ucla
       implicit none
       integer isign, indx, indy, nyi, nyp, nxhd, nyd, nxhyd, nxyhd
@@ -2269,12 +2269,10 @@ c nyd = second dimension of f >= ny
 c nxhyd = maximum of (nx/2,ny)
 c nxyhd = maximum of (nx,ny)/2
 c fourier coefficients are stored as follows:
-c f(2*j-1,k),f(2*j,k) = real, imaginary part of mode j-1,k-1, where
-c 1 <= j <= nx/2 and 1 <= k <= ny, except for
-c f(1,k),f(2,k) = real, imaginary part of mode nx/2,k-1, where
-c ny/2+2 <= k <= ny, and
-c f(2,1) = real part of mode nx/2,0 and
-c f(2,ny/2+1) = real part of mode nx/2,ny/2
+c f(j,k) = mode j-1,k-1, where 1 <= j <= nx/2 and 1 <= k <= ny,
+c except for f(1,k) =  mode nx/2,k-1, where ny/2+2 <= k <= ny, and
+c aimag(f(1,1)) = real part of mode nx/2,0 and
+c aimag(f(1,ny/2+1)) = real part of mode nx/2,ny/2
 c written by viktor k. decyk, ucla
       implicit none
       integer isign, indx, indy, nxi, nxp, nxhd, nyd, nxhyd, nxyhd
@@ -2410,12 +2408,10 @@ c nyd = third dimension of f >= ny
 c nxhyd = maximum of (nx/2,ny)
 c nxyhd = maximum of (nx,ny)/2
 c fourier coefficients are stored as follows:
-c f(1:3,j,k) = real, imaginary part of mode j-1,k-1, where
-c 1 <= j <= nx/2 and 1 <= k <= ny, except for
-c f(1:3,1,k) = real, imaginary part of mode nx/2,k-1, where
-c ny/2+2 <= k <= ny, and
-c imag(f(1:3,1,1)) = real part of mode nx/2,0 and
-c imag(f(1:3,1,ny/2+1) ) = real part of mode nx/2,ny/2
+c f(1:3,j,k) = mode j-1,k-1, where 1 <= j <= nx/2 and 1 <= k <= ny,
+c except for f(1:3,1,k) =  mode nx/2,k-1, where ny/2+2 <= k <= ny, and
+c aimag(f(1:3,1,1)) = real part of mode nx/2,0 and
+c aimag(f(1:3,1,ny/2+1)) = real part of mode nx/2,ny/2
 c written by viktor k. decyk, ucla
       implicit none
       integer isign, indx, indy, nyi, nyp, nxhd, nyd, nxhyd, nxyhd
@@ -2625,12 +2621,10 @@ c nyd = third dimension of f >= ny
 c nxhyd = maximum of (nx/2,ny)
 c nxyhd = maximum of (nx,ny)/2
 c fourier coefficients are stored as follows:
-c f(1:3,j,k) = real, imaginary part of mode j-1,k-1, where
-c 1 <= j <= nx/2 and 1 <= k <= ny, except for
-c f(1:3,1,k) = real, imaginary part of mode nx/2,k-1, where
-c ny/2+2 <= k <= ny, and
-c imag(f(1:3,1,1)) = real part of mode nx/2,0 and
-c imag(f(1:3,1,ny/2+1) ) = real part of mode nx/2,ny/2
+c f(1:3,j,k) = mode j-1,k-1, where 1 <= j <= nx/2 and 1 <= k <= ny,
+c except for f(1:3,1,k) =  mode nx/2,k-1, where ny/2+2 <= k <= ny, and
+c aimag(f(1:3,1,1)) = real part of mode nx/2,0 and
+c aimag(f(1:3,1,ny/2+1)) = real part of mode nx/2,ny/2
 c written by viktor k. decyk, ucla
       implicit none
       integer isign, indx, indy, nxi, nxp, nxhd, nyd, nxhyd, nxyhd
@@ -2996,7 +2990,7 @@ c cu(i,n) = ith component of current density at grid point j,k
 c where n = j + nxv*(k-1)
 c qm = charge on particle, in units of e
 c dt = time interval between successive calculations
-c ci = reciprical of velocity of light
+c ci = reciprocal of velocity of light
 c nop = number of particles
 c idimp = size of phase space = 5
 c nx/ny = system length in x/y direction
@@ -3630,7 +3624,7 @@ c that is, the convolution of magnetic field over particle shape
 c qbm = particle charge/mass ratio
 c dt = time interval between successive calculations
 c dtc = time interval between successive co-ordinate calculations
-c ci = reciprical of velocity of light
+c ci = reciprocal of velocity of light
 c kinetic energy/mass at time t is also calculated, using
 c ek = gami*sum((px(t-dt/2) + .5*(q/m)*fx(x(t),y(t))*dt)**2 +
 c      (py(t-dt/2) + .5*(q/m)*fy(x(t),y(t))*dt)**2 +

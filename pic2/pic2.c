@@ -64,7 +64,8 @@ int main(int argc, char *argv[]) {
 /* initialize scalars for standard code */
 /* np = total number of particles in simulation */
 /* nx/ny = number of grid points in x/y direction */
-   np = npx*npy; nx = 1L<<indx; ny = 1L<<indy; nxh = nx/2; nyh = ny/2;
+   np = npx*npy; nx = 1L<<indx; ny = 1L<<indy;
+   nxh = nx/2; nyh = 1 > ny/2 ? 1 : ny/2;
    nxe = nx + 2; nye = ny + 1; nxeh = nxe/2;
    nxyh = (nx > ny ? nx : ny)/2; nxhy = nxh > ny ? nxh : ny;
    ny1 = ny + 1;
@@ -127,7 +128,7 @@ L500: if (nloop <= ntime)
       tfft += time;
 
 /* calculate force/charge in fourier space with standard procedure: */
-/* updates fxye                                                     */
+/* updates fxye, we                                                 */
       dtimer(&dtime,&itime,-1);
       isign = -1;
       cpois22((float complex *)qe,(float complex *)fxye,isign,ffc,ax,ay,

@@ -1,0 +1,43 @@
+Pthreads test programs
+by Viktor K. Decyk, UCLA
+
+No warranty for proper operation of this software is given or implied.
+software or information may be copied, distributed, and used at own
+risk; it may not be distributed without this notice included verbatim
+with each file.
+
+This program contains sample codes for illustrating how to set up
+and run a simple parallel test code, using Pthreads with both C and
+Fortran.  The test case is simple vector add function. These codes can
+be used as templates for setting up more complex programs.
+
+For Pthreads, two executables can be created:
+cpthtest, creates a C main program from a C library pthmain.c
+fpthtest, creates a Fortran main program from a Fortran library pthmain.f
+The C library pthmain.c is compiled using the gcc compiler.
+The Fortran library pthmain.f is compiled using the gfortran compiler.
+All of these libraries rely on a library called LnxMP.c, which provides
+a simplified interface for the Posix pthreads library.  A description of
+the library LnxMP.c is in the document LnxMP.txt.
+
+To compile and link each individual program, execute:
+
+make program_name
+
+where program_name is either:
+cpthtest or fpthtest
+
+To compile both programs, execute:
+
+make
+
+or 
+
+make pthreads
+
+The makefile is setup to use gcc and gfortran with Linux.  A version for
+Mac OS X is also in the Makefile, but is commented out.
+
+To execute most programs, type the name of the executable:
+
+./program_name

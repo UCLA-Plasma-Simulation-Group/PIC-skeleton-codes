@@ -218,7 +218,7 @@ To execute, type the name of the executable:
 
 mpirun -np nproc ./program_name
 
-where program_name is either fbppic2 or cpbpic2, and
+where program_name is either fpbpic2 or cpbpic2, and
 where nproc is the number of processors to be used.
 
 There is one restriction on the number of processors which can be used:

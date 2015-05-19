@@ -9,12 +9,16 @@ c PWTIMERA performs parallel local wall clock timing.
 c PPSUM performs parallel sum of a real vector.
 c PPDSUM performs parallel sum of a double precision vector.
 c PPIMAX performs parallel maximum of an integer vector.
+c PPDMAX performs parallel maximum of a double precision vector.
 c PPNCGUARD2L copies data to guard cells in y for scalar data, linear
 c             interpolation, and distributed data with non-uniform
 c             partition.
 c PPNAGUARD2L adds guard cells in y for scalar array, linear
 c             interpolation, and distributed data with non-uniform
 c             partition.
+c PPNACGUARD2L adds guard cells in y for vector array, linear
+c              interpolation, and distributed data with non-uniform
+c              partition.
 c PPTPOSE performs a transpose of a complex scalar array, distributed
 c         in y, to a complex scalar array, distributed in x.
 c PPNTPOSE performs a transpose of an n component complex vector array,
@@ -24,7 +28,7 @@ c PPMOVE2 moves particles into appropriate spatial regions with periodic
 c         boundary conditions.  Assumes ihole list has been found.
 c written by viktor k. decyk, ucla
 c copyright 1995, regents of the university of california
-c update: march 10, 2014
+c update: april 19, 2015
 c-----------------------------------------------------------------------
       function vresult(prec)
       implicit none
@@ -295,6 +299,37 @@ c copy output from scratch array
       return
       end
 c-----------------------------------------------------------------------
+      subroutine PPDMAX(f,g,nxp)
+c this subroutine finds parallel maximum for each element of a vector
+c that is, f(j,k) = maximum as a function of k of f(j,k)
+c at the end, all processors contain the same maximum.
+c f = input and output double precision data
+c g = scratch double precision array
+c nxp = number of data values in vector
+      implicit none
+      double precision f, g
+      integer nxp
+      dimension f(nxp), g(nxp)
+c common blocks for parallel processing
+      integer nproc, lgrp, lstat, mreal, mint, mcplx, mdouble, lworld
+      integer msum, mmax
+      parameter(lstat=10)
+c lgrp = current communicator
+c mdouble = default double precision type
+      common /PPARMS/ nproc, lgrp, mreal, mint, mcplx, mdouble, lworld
+c mmax = MPI_MAX
+      common /PPARMSX/ msum, mmax
+c local data
+      integer j, ierr
+c find maximum
+      call MPI_ALLREDUCE(f,g,nxp,mdouble,mmax,lgrp,ierr)
+c copy output from scratch array
+      do 10 j = 1, nxp
+      f(j) = g(j)
+   10 continue
+      return
+      end
+c-----------------------------------------------------------------------
       subroutine PPNCGUARD2L(f,nyp,kstrt,nvp,nxv,nypmx)
 c this subroutine copies data to guard cells in non-uniform partitions
 c f(j,k) = real data for grid j,k in particle partition.
@@ -399,6 +434,71 @@ c add up the guard cells
       f(j,1) = f(j,1) + scr(j)
       f(j,nyp+1) = 0.0
    20 continue
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine PPNACGUARD2L(f,scr,nyp,nx,ndim,kstrt,nvp,nxv,nypmx)
+c this subroutine adds data from guard cells in non-uniform partitions
+c f(ndim,j,k) = real data for grid j,k in particle partition.
+c the grid is non-uniform and includes one extra guard cell.
+c output: f, scr
+c scr(ndim,j) = scratch array for particle partition
+c nyp = number of primary gridpoints in particle partition
+c it is assumed the nyp > 0.
+c kstrt = starting data block number
+c nvp = number of real or virtual processors
+c nx = system length in x direction
+c ndim = leading dimension of array f
+c nxv = first dimension of f, must be >= nx
+c nypmx = maximum size of field partition, including guard cells.
+c linear interpolation, for distributed data
+      implicit none
+      integer nyp, kstrt, nvp, nx, ndim, nxv, nypmx
+      real f, scr
+      dimension f(ndim,nxv,nypmx), scr(ndim,nxv)
+c common block for parallel processing
+      integer nproc, lgrp, lstat, mreal, mint, mcplx, mdouble, lworld
+c lstat = length of status array
+      parameter(lstat=10)
+c lgrp = current communicator
+c mreal = default datatype for reals
+      common /PPARMS/ nproc, lgrp, mreal, mint, mcplx, mdouble, lworld
+c local data
+      integer j, n, nx1, ks, moff, kl, kr
+      integer nnxv
+      integer istatus, msid, ierr
+      dimension istatus(lstat)
+      nx1 = nx + 1
+c special case for one processor
+      if (nvp.eq.1) then
+         do 20 j = 1, nx1
+         do 10 n = 1, ndim
+         f(n,j,1) = f(n,j,1) + f(n,j,nyp+1)
+         f(n,j,nyp+1) = 0.0
+   10    continue
+   20    continue
+         return
+      endif
+      ks = kstrt - 1
+      moff = nypmx*nvp + 1
+      nnxv = ndim*nxv
+c add guard cells
+      kr = ks + 1
+      if (kr.ge.nvp) kr = kr - nvp
+      kl = ks - 1
+      if (kl.lt.0) kl = kl + nvp
+      ks = nyp + 1
+c this segment is used for mpi computers
+      call MPI_IRECV(scr,nnxv,mreal,kl,moff,lgrp,msid,ierr)
+      call MPI_SEND(f(1,1,ks),nnxv,mreal,kr,moff,lgrp,ierr)
+      call MPI_WAIT(msid,istatus,ierr)
+c add up the guard cells
+      do 40 j = 1, nx1
+      do 30 n = 1, ndim
+      f(n,j,1) = f(n,j,1) + scr(n,j)
+      f(n,j,nyp+1) = 0.0
+   30 continue
+   40 continue
       return
       end
 c-----------------------------------------------------------------------

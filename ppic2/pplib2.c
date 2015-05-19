@@ -9,12 +9,16 @@
    cppsum performs parallel sum of a real vector.
    cppdsum performs parallel sum of a double precision vector.
    cppimax performs parallel maximum of an integer vector.
+   cppdmax performs parallel maximum of a double precision vector.
    cppncguard2l copies data to guard cells in y for scalar data, linear
                 interpolation, and distributed data with non-uniform
                 partition.
    cppnaguard2l adds guard cells in y for scalar array, linear
                 interpolation, and distributed data with non-uniform
                 partition.
+   cppnacguard2lL adds guard cells in y for vector array, linear
+                  interpolation, and distributed data with non-uniform
+                  partition.
    cpptpose performs a transpose of a complex scalar array, distributed
             in y, to a complex scalar array, distributed in x.
    cppntpose performs a transpose of an n component complex vector array,
@@ -24,7 +28,7 @@
             boundary conditions.  Assumes ihole list has been found.
    written by viktor k. decyk, ucla
    copyright 1995, regents of the university of california
-   update: may 16, 2011                                         */
+   update: april 21, 2013                                         */
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -243,6 +247,25 @@ local data */
 }
 
 /*--------------------------------------------------------------------*/
+void cppdmax(double f[], double g[], int nxp) {
+/* this subroutine finds parallel maximum for each element of a vector
+   that is, f[k][j] = maximum as a function of k of f[k][j]
+   at the end, all processors contain the same maximum.
+   f = input and output double precision data
+   g = scratch double precision array
+   nxp = number of data values in vector
+local data */
+   int j, ierr;
+/* find maximum */
+   ierr = MPI_Allreduce(f,g,nxp,mdouble,mmax,lgrp);
+/* copy output from scratch array */
+   for (j = 0; j < nxp; j++) {
+      f[j] = g[j];
+   }
+   return;
+}
+
+/*--------------------------------------------------------------------*/
 void cppncguard2l(float f[], int nyp, int kstrt, int nvp, int nxv,
                   int nypmx) {
 /* this subroutine copies data to guard cells in non-uniform partitions
@@ -329,6 +352,63 @@ local data */
    for (j = 0; j < nx1; j++) {
       f[j] += scr[j];
       f[j+nxv*nyp] = 0.0;
+   }
+   return;
+}
+
+/*--------------------------------------------------------------------*/
+void cppnacguard2l(float f[], float scr[], int nyp, int nx, int ndim,
+                   int kstrt, int nvp, int nxv, int nypmx) {
+/* this subroutine adds data from guard cells in non-uniform partitions
+   f[k][j][ndim] = real data for grid j,k in particle partition.
+   the grid is non-uniform and includes one extra guard cell.
+   output: f, scr
+   scr[j][ndim] = scratch array for particle partition
+   nyp = number of primary gridpoints in particle partition
+   it is assumed the nyp > 0.
+   kstrt = starting data block number
+   nvp = number of real or virtual processors
+   nx = system length in x direction
+   ndim = leading dimension of array f
+   nxv = first dimension of f, must be >= nx
+   nypmx = maximum size of field partition, including guard cells.
+   linear interpolation, for distributed data
+local data */
+   int j, n, nx1, ks, moff, kl, kr, ierr;
+   int nnxv;
+   MPI_Request msid;
+   MPI_Status istatus;
+   nx1 = nx + 1;
+/* special case for one processor */
+   if (nvp==1) {
+      for (j = 0; j < nx1; j++) {
+         for (n = 0; n < ndim; n++) {
+            f[n+ndim*j] += f[n+ndim*(j+nxv*nyp)];
+            f[n+ndim*(j+nxv*nyp)] = 0.0;
+         }
+      }
+      return;
+   }
+   ks = kstrt - 1;
+   moff = nypmx*nvp + 1;
+   nnxv = ndim*nxv;
+/* add guard cells */
+   kr = ks + 1;
+   if (kr >= nvp)
+      kr = kr - nvp;
+   kl = ks - 1;
+   if (kl < 0)
+      kl = kl + nvp;
+/* this segment is used for mpi computers */
+   ierr = MPI_Irecv(scr,nnxv,mreal,kl,moff,lgrp,&msid);
+   ierr = MPI_Send(&f[nnxv*nyp],nnxv,mreal,kr,moff,lgrp);
+   ierr = MPI_Wait(&msid,&istatus);
+/* add up the guard cells */
+   for (j = 0; j < nx1; j++) {
+      for (n = 0; n < ndim; n++) {
+         f[n+ndim*j] += scr[n+ndim*j];
+         f[n+ndim*(j+nxv*nyp)] = 0.0;
+      }
    }
    return;
 }
@@ -943,6 +1023,12 @@ void cppimax_(int *f, int *g, int *nxp) {
 }
 
 /*--------------------------------------------------------------------*/
+void cppdmax_(double *f, double *g, int *nxp) {
+   cppdmax(f,g,*nxp);
+   return;
+}
+
+/*--------------------------------------------------------------------*/
 void cppncguard2l_(float *f, int *nyp, int *kstrt, int *nvp, int *nxv,
                    int *nypmx) {
    cppncguard2l(f,*nyp,*kstrt,*nvp,*nxv,*nypmx);
@@ -953,6 +1039,13 @@ void cppncguard2l_(float *f, int *nyp, int *kstrt, int *nvp, int *nxv,
 void cppnaguard2l_(float *f, float *scr, int *nyp, int *nx, int *kstrt,
                    int *nvp, int *nxv, int *nypmx) {
    cppnaguard2l(f,scr,*nyp,*nx,*kstrt,*nvp,*nxv,*nypmx);
+   return;
+}
+
+/*--------------------------------------------------------------------*/
+void cppnacguard2l_(float *f, float *scr, int *nyp, int *nx, int *ndim,
+                    int *kstrt, int *nvp, int *nxv, int *nypmx) {
+   cppnacguard2l(f,scr,*nyp,*nx,*ndim,*kstrt,*nvp,*nxv,*nypmx);
    return;
 }
 

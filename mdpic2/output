@@ -1,0 +1,31 @@
+ number of cpus found =           12
+ maximum number of threads =           12
+ using           12  thread(s)
+ wpm=  0.75000381    
+ Initial Total Field, Kinetic and Total Energies:
+ 0.1789092E+04 0.1415633E+08 0.1415812E+08
+ Initial Electrostatic, Transverse Electric and Magnetic Field Energies:
+ 0.1850935E-03 0.2841489E+02 0.1789092E+04
+ ntime, ndc =          100           1
+ Final Total Field, Kinetic and Total Energies:
+ 0.9536416E+04 0.1414867E+08 0.1415821E+08
+ Final Electrostatic, Transverse Electric and Magnetic Field Energies:
+ 0.7842633E+04 0.2399607E+02 0.1693784E+04
+
+ deposit time =    1.3175207    
+ current deposit time =    2.2442961    
+ current derivative deposit time =    13.452311    
+ total deposit time =    17.014128    
+ guard time =   1.52669800E-02
+ solver time =   0.35762304    
+ fft time =    2.3295410    
+ push time =    3.9038477    
+ sort time =   0.19665305    
+ total solver time =    2.7024310    
+ total particle time =    21.114630    
+ total time =    23.817060    
+
+ Push Time (nsec) =    4.1366658    
+ Deposit Time (nsec) =    18.028818    
+ Sort Time (nsec) =   0.20838107    
+ Total Particle Time (nsec) =    22.373867

@@ -1,0 +1,35 @@
+SSE test programs
+by Viktor K. Decyk, UCLA
+
+No warranty for proper operation of this software is given or implied.
+software or information may be copied, distributed, and used at own
+risk; it may not be distributed without this notice included verbatim
+with each file.
+
+This program contains sample codes for illustrating how to set up
+and run a simple parallel test code, using Intel's SSE with both C and
+Fortran.  The test case is a simple vector add function. These codes can
+be used as templates for setting up more complex programs.
+
+For SSE, two executables can be created:
+cssetest, creates a C main program from a C library sselib.c
+fssetest, creates a Fortran main program from a C library sselib.c
+The C library sselib.c is compiled using the gcc compiler.
+
+To compile and link each individual program, execute:
+
+make program_name
+
+where program_name is either:
+cssetest or fssetest
+
+To compile both programs, execute:
+
+make
+
+The makefile is setup to use gcc, gfortran with Linux.  A version for
+Mac OS X is also in the Makefile, but is commented out.
+
+To execute either program, type the name of the executable:
+
+./program_name

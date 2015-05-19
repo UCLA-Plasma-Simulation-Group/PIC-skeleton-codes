@@ -89,7 +89,8 @@ int main(int argc, char *argv[]) {
 /* initialize scalars for standard code */
 /* np = total number of particles in simulation */
 /* nx/ny = number of grid points in x/y direction */
-   np = npx*npy; nx = 1L<<indx; ny = 1L<<indy; nxh = nx/2; nyh = ny/2;
+   np = npx*npy; nx = 1L<<indx; ny = 1L<<indy;
+   nxh = nx/2; nyh = 1 > ny/2 ? 1 : ny/2;
    nxe = nx + 2; nye = ny + 1; nxeh = nxe/2;
    nxyh = (nx > ny ? nx : ny)/2; nxhy = nxh > ny ? nxh : ny;
 /* mx1/my1 = number of tiles in x/y direction */

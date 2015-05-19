@@ -1,0 +1,42 @@
+MPI test programs
+by Viktor K. Decyk, UCLA
+
+No warranty for proper operation of this software is given or implied.
+software or information may be copied, distributed, and used at own
+risk; it may not be distributed without this notice included verbatim
+with each file.
+
+This program contains sample codes for illustrating how to set up and
+and run a simple parallel test code, using MPI with both C and Fortran.
+The test case is simple vector add function. These codes can be used as 
+templates for setting up more complex programs.
+
+For MPI, two executables can be created:
+cmpitest, creates a C main program from a C library mpimain.c
+fmpitest, creates a Fortran main program from a Fortran library mpimain.f
+The C library mpimain.c is compiled using the mpicc compiler.
+The Fortran library mpimain.f is compiled using the mpif90 compiler.
+
+To compile and link each individual program, execute:
+
+make program_name
+
+where program_name is either:
+fmpitest or cmpitest
+
+To compile both programs, execute:
+
+make
+
+or
+
+make mpi
+
+The makefile is setup to use mpicc and mpif90 with Linux.  A version for
+Mac OS X is also in the Makefile, but is commented out.
+
+To execute an MPI program, type:
+
+mpirun -np NUMPROCS ./program_name
+
+where NUMPROCS is the desired number of nodes to use.

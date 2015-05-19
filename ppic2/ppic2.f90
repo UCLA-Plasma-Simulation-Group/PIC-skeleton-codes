@@ -62,7 +62,7 @@
       integer, dimension(:), pointer :: ihole
 ! npic = scratch array for reordering particles
       integer, dimension(:), pointer :: npic
-      real, dimension(4) :: wtot, work
+      double precision, dimension(4) :: wtot, work
       integer, dimension(7) :: info
 !
 ! declare arrays for MPI code:
@@ -88,7 +88,7 @@
 ! np = total number of particles in simulation
       np =  dble(npx)*dble(npy)
 ! nx/ny = number of grid points in x/y direction
-      nx = 2**indx; ny = 2**indy; nxh = nx/2; nyh = ny/2
+      nx = 2**indx; ny = 2**indy; nxh = nx/2; nyh = max(1,ny/2)
       nxe = nx + 2; nye = ny + 2; nxeh = nxe/2; nnxe = ndim*nxe
       nxyh = max(nx,ny)/2; nxhy = max(nxh,ny); ny1 = ny + 1
 ! nloop = number of time steps in simulation
@@ -285,7 +285,7 @@
       wtot(2) = wke
       wtot(3) = 0.0
       wtot(4) = we + wke
-      call PPSUM(wtot,work,4)
+      call PPDSUM(wtot,work,4)
       we = wtot(1)
       wke = wtot(2)
       if (ntime==0) then
@@ -316,7 +316,8 @@
          write (*,*) 'sort time = ', tsort
          tfield = tfield + tguard + tfft(1)
          write (*,*) 'total solver time = ', tfield
-         time = tdpost + tpush + tmov + tsort
+         tsort = tsort + tmov
+         time = tdpost + tpush + tsort
          write (*,*) 'total particle time = ', time
          wt = time + tfield
          write (*,*) 'total time = ', wt

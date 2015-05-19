@@ -68,7 +68,7 @@ int main(int argc, char *argv[]) {
    int *ihole = NULL;
 /* npic = scratch array for reordering particles */
    int *npic = NULL;
-   float wtot[4], work[4];
+   double wtot[4], work[4];
    int info[7];
 
 /* declare arrays for MPI code: */
@@ -94,7 +94,8 @@ int main(int argc, char *argv[]) {
 /* np = total number of particles in simulation */
    np =  (double) npx*(double) npy;
 /* nx/ny = number of grid points in x/y direction */
-   nx = 1L<<indx; ny = 1L<<indy; nxh = nx/2; nyh = ny/2;
+   nx = 1L<<indx; ny = 1L<<indy;
+   nxh = nx/2; nyh = 1 > ny/2 ? 1 : ny/2;
    nxe = nx + 2; nye = ny + 2; nxeh = nxe/2; nnxe = ndim*nxe;
    nxyh = (nx > ny ? nx : ny)/2; nxhy = nxh > ny ? nxh : ny;
    ny1 = ny + 1;
@@ -298,7 +299,7 @@ L500: if (nloop <= ntime)
       wtot[1] = wke;
       wtot[2] = 0.0;
       wtot[3] = we + wke;
-      cppsum(wtot,work,4);
+      cppdsum(wtot,work,4);
       we = wtot[0];
       wke = wtot[1];
       if (ntime==0) {

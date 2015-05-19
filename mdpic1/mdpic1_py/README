@@ -1,0 +1,57 @@
+Skeleton 1-2/2D Darwin Python OpenMP Particle-in-Cell (PIC) code
+by Viktor K. Decyk, Adam Tableman, and Qiyang Hu
+copyright 2015, regents of the university of california
+
+This file contains a 1-2/2D Darwin Python OpenMP PIC code.  It is based
+on the 1-2/2D Darwin OpenMP PIC code contained in the directory mdpic1.
+The primary purpose is to illustrate how to replace a Fortran main code
+with a Python script, in order allow the program to be run
+interactively.
+
+Python version 2.7 is recommended, and is available from the web site:
+www.python.org.  Numpy (http://www.numpy.org) and SciPy
+(http://www.scipy.org) also need to be installed.
+
+The file fdmpic1.py is a line by line translation of mdpic1.f90 in the
+directory mdpic1.  The procedure library mdpush1.f is identical to that
+in mdpic1.  Interface function mdpush1_hpy.f90 is provided to allow the
+f2py program to automatically wrap the procedures to make them
+accessible to Python.  The file mdpush1_hpy.f90 has been modified from
+mdpush1_h.f90 in mdpic1 in two ways.  The first modification was the
+removal of the module/end module statements, which fp2y cannot currently
+handle properly.  The second was the replacement of explicit-shape array
+declarations with assumed-size array declarations so that f2py would not
+remove the arguments in the array declarations from the argument list.
+
+No warranty for proper operation of this software is given or implied.
+Software or information may be copied, distributed, and used at own
+risk; it may not be distributed without this notice included verbatim
+with each file.  If use of these codes results in a publication, an
+acknowledgement is requested.
+
+The major program files contained here include:
+fmdpic1.py      Python main script for Fortran procedure library
+mdpush1.f       Fortran77 procedure library
+mdpush1_hpy.f90 Fortran procedure interface (header) library
+dtimer.c        C timer function, used by both C and Fortran
+dtimer_hpy.f90  C timer interface (header) library
+omplib.f        Fortran77 OpenMP utility library
+omplib_hpy.f90  Fortran90 OpenMP utility interface (header) library
+
+Files with the suffix .f90 adhere to the Fortran 90 standard, files with
+the suffix .f adhere to the Fortran77 standard, files with the suffix .c
+and .h adhere to the C99 standard.
+
+The makefile is setup to use gcc and gfortran with Linux.  Versions for
+other compitlers are also in the Makefile but are commented out.
+
+One dynamic library can be created, fmdpush1.so for Fortran.  To create
+it, execute:
+
+make
+
+To execute, type the name of the executable:
+
+python fmdpic1.py
+
+The file output contains the results produced for the default parameters.

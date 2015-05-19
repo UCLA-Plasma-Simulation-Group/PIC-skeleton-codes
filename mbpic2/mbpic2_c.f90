@@ -103,7 +103,7 @@
       allocate(ppbuff(idimp,npbmx,mxy1))
       allocate(ncl(8,mxy1))
       allocate(ihole(2,ntmax+1,mxy1))
-! copy ordered particle data for OpenMP: updates ppart and kpic
+! copy ordered particle data for OpenMP
       call cppmovin2l(part,ppart,kpic,nppmx0,idimp,np,mx,my,mx1,mxy1,irc&
      &)
       if (irc /= 0) then
@@ -202,7 +202,7 @@
       tfield = tfield + time
 !
 ! calculate electromagnetic fields in fourier space with OpenMP:
-! updates exyz, bxyz
+! updates exyz, bxyz, wf, wm
       call dtimer(dtime,itime,-1)
       if (ntime==0) then
          call cmibpois23(cue,bxyz,ffc,ci,wm,nx,ny,nxeh,nye,nxh,nyh)
@@ -216,7 +216,7 @@
       time = real(dtime)
       tfield = tfield + time
 !
-! calculate force/charge in fourier space OpenMP: updates fxyze
+! calculate force/charge in fourier space OpenMP: updates fxyze, we
       call dtimer(dtime,itime,-1)
       isign = -1
       call cmpois23(qe,fxyze,isign,ffc,ax,ay,affp,we,nx,ny,nxeh,nye,nxh,&

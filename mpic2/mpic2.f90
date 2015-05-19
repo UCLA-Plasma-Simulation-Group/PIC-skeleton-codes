@@ -82,7 +82,8 @@
 ! initialize scalars for standard code
 ! np = total number of particles in simulation
 ! nx/ny = number of grid points in x/y direction
-      np = npx*npy; nx = 2**indx; ny = 2**indy; nxh = nx/2; nyh = ny/2
+      np = npx*npy; nx = 2**indx; ny = 2**indy
+      nxh = nx/2; nyh = max(1,ny/2)
       nxe = nx + 2; nye = ny + 1; nxeh = nxe/2
       nxyh = max(nx,ny)/2; nxhy = max(nxh,ny)
 ! mx1/my1 = number of tiles in x/y direction

@@ -52,7 +52,7 @@
 ! qe = electron charge density with guard cells
       real, dimension(:,:), pointer :: qe
 ! cue = electron current density with guard cells
-! fxyze/g_bxyze = smoothed electric/magnetic field with guard cells
+! fxyze/bxyze = smoothed electric/magnetic field with guard cells
       real, dimension(:,:,:), pointer :: cue, fxyze, bxyze
 ! exyz/bxyz = transverse electric/magnetic field in fourier space
       complex, dimension(:,:,:), pointer :: exyz, bxyz
@@ -71,7 +71,7 @@
       integer, dimension(:), pointer :: ihole
 ! npic = scratch array for reordering particles
       integer, dimension(:), pointer :: npic
-      real, dimension(7) :: wtot, work
+      double precision, dimension(7) :: wtot, work
       integer, dimension(7) :: info
 !
 ! declare arrays for MPI code:
@@ -90,14 +90,14 @@
       integer, dimension(4) :: itime
       real :: tdpost = 0.0, tguard = 0.0, ttp = 0.0, tfield = 0.0
       real :: tdjpost = 0.0, tpush = 0.0, tsort = 0.0, tmov = 0.0
-      real, dimension(2) :: tfft
+      real, dimension(2) :: tfft = 0.0
       double precision :: dtime
 !
 ! initialize scalars for standard code
 ! np = total number of particles in simulation
       np =  dble(npx)*dble(npy)
 ! nx/ny = number of grid points in x/y direction
-      nx = 2**indx; ny = 2**indy; nxh = nx/2; nyh = ny/2
+      nx = 2**indx; ny = 2**indy; nxh = nx/2; nyh = max(1,ny/2)
       nxe = nx + 2; nye = ny + 2; nxeh = nxe/2; nnxe = ndim*nxe
       nxyh = max(nx,ny)/2; nxhy = max(nxh,ny); ny1 = ny + 1
 ! nloop = number of time steps in simulation
@@ -147,7 +147,8 @@
       ntmax = 2*nbmax
 !
 ! allocate data for standard code
-      allocate(part(idimp,npmax),part2(idimp,npmax))
+      allocate(part(idimp,npmax))
+      if (sortime > 0) allocate(part2(idimp,npmax))
       allocate(qe(nxe,nypmx),fxyze(ndim,nxe,nypmx))
       allocate(cue(ndim,nxe,nypmx),bxyze(ndim,nxe,nypmx))
       allocate(exyz(ndim,nye,kxp),bxyz(ndim,nye,kxp))
@@ -420,7 +421,7 @@
       wtot(5) = we
       wtot(6) = wf
       wtot(7) = wm
-      call PPSUM(wtot,work,7)
+      call PPDSUM(wtot,work,7)
       wke = wtot(2)
       we = wtot(5)
       wf = wtot(6)
@@ -465,7 +466,8 @@
          write (*,*) 'sort time = ', tsort
          tfield = tfield + tguard + tfft(1)
          write (*,*) 'total solver time = ', tfield
-         time = tdpost + tpush + tmov + tsort
+         tsort = tsort + tmov
+         time = tdpost + tpush + tsort
          write (*,*) 'total particle time = ', time
          wt = time + tfield
          write (*,*) 'total time = ', wt

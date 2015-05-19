@@ -9,12 +9,16 @@
 ! PPSUM performs parallel sum of a real vector.
 ! PPDSUM performs parallel sum of a double precision vector.
 ! PPIMAX performs parallel maximum of an integer vector.
+! PPDMAX performs parallel maximum of a double precision vector.
 ! PPNCGUARD2L copies data to guard cells in y for scalar data, linear
 !             interpolation, and distributed data with non-uniform
 !             partition.
 ! PPNAGUARD2L adds guard cells in y for scalar array, linear
 !             interpolation, and distributed data with non-uniform
 !             partition.
+! PPNACGUARD2L adds guard cells in y for vector array, linear
+!              interpolation, and distributed data with non-uniform
+!              partition.
 ! PPTPOSE performs a transpose of a complex scalar array, distributed
 !         in y, to a complex scalar array, distributed in x.
 ! PPNTPOSE performs a transpose of an n component complex vector array,
@@ -24,7 +28,7 @@
 !         boundary conditions.  Assumes ihole list has been found.
 ! written by viktor k. decyk, ucla
 ! copyright 1995, regents of the university of california
-! update: march 19, 2014
+! update: april 23, 2015
       module pplib2
       use mpi
       implicit none
@@ -47,8 +51,8 @@
 !
       private
       public :: PPINIT2, PPEXIT, PPABORT, PWTIMERA
-      public :: PPSUM, PPDSUM, PPIMAX
-      public :: PPNCGUARD2L, PPNAGUARD2L
+      public :: PPSUM, PPDSUM, PPIMAX, PPDMAX
+      public :: PPNCGUARD2L, PPNAGUARD2L, PPNACGUARD2L
       public :: PPTPOSE, PPNTPOSE, PPMOVE2
 !
       contains
@@ -61,7 +65,7 @@
 ! idproc = processor id in lgrp communicator
 ! nvp = number of real or virtual processors obtained
       implicit none
-      integer :: idproc, nvp
+      integer, intent(inout) :: idproc, nvp
 ! nproc = number of real or virtual processors obtained
 ! lgrp = current communicator
 ! mreal = default datatype for reals
@@ -173,8 +177,8 @@
 ! written for mpi
       implicit none
       integer, intent(in) :: icntrl
-      real :: time
-      double precision :: dtime
+      real, intent(inout) :: time
+      double precision, intent(inout) :: dtime
 ! local data
       double precision :: jclock
 ! initialize clock
@@ -198,7 +202,7 @@
 ! nxp = number of data values in vector
       implicit none
       integer, intent(in) :: nxp
-      real, dimension(nxp) :: f, g
+      real, dimension(nxp), intent(inout) :: f, g
 ! lgrp = current communicator
 ! mreal = default datatype for reals
 ! msum = MPI_SUM
@@ -222,7 +226,7 @@
 ! nxp = number of data values in vector
       implicit none
       integer, intent(in) :: nxp
-      double precision, dimension(nxp) :: f, g
+      double precision, dimension(nxp), intent(inout) :: f, g
 ! lgrp = current communicator
 ! mdouble = default double precision type
 ! msum = MPI_SUM
@@ -246,7 +250,7 @@
 ! nxp = number of data values in vector
       implicit none
       integer, intent(in) :: nxp
-      integer, dimension(nxp) :: if, ig
+      integer, dimension(nxp), intent(inout) :: if, ig
 ! lgrp = current communicator
 ! mint = default datatype for integers
 ! mmax = MPI_MAX
@@ -257,6 +261,30 @@
 ! copy output from scratch array
       do j = 1, nxp
          if(j) = ig(j)
+      enddo
+      end subroutine
+!
+!-----------------------------------------------------------------------
+      subroutine PPDMAX(f,g,nxp)
+! this subroutine finds parallel maximum for each element of a vector
+! that is, f(j,k) = maximum as a function of k of f(j,k)
+! at the end, all processors contain the same maximum.
+! f = input and output double precision data
+! g = scratch double precision array
+! nxp = number of data values in vector
+      implicit none
+      integer, intent(in) :: nxp
+      double precision, dimension(nxp), intent(inout) :: f, g
+! lgrp = current communicator
+! mdouble = default double precision type
+! mmax = MPI_MAX
+! local data
+      integer j, ierr
+! find maximum
+      call MPI_ALLREDUCE(f,g,nxp,mdouble,mmax,lgrp,ierr)
+! copy output from scratch array
+      do j = 1, nxp
+         f(j) = g(j)
       enddo
       end subroutine
 !
@@ -275,7 +303,7 @@
 ! linear interpolation, for distributed data
       implicit none
       integer, intent(in) :: nyp, kstrt, nvp, nxv, nypmx
-      real, dimension(nxv,nypmx) :: f
+      real, dimension(nxv,nypmx), intent(inout) :: f
 ! lgrp = current communicator
 ! mreal = default datatype for reals
 ! local data
@@ -320,8 +348,8 @@
 ! linear interpolation, for distributed data
       implicit none
       integer, intent(in) :: nyp, kstrt, nvp, nx, nxv, nypmx
-      real, dimension(nxv,nypmx) :: f
-      real, dimension(nxv) :: scr
+      real, dimension(nxv,nypmx), intent(inout) :: f
+      real, dimension(nxv), intent(inout) :: scr
 ! lgrp = current communicator
 ! mreal = default datatype for reals
 ! local data
@@ -357,6 +385,66 @@
       end subroutine
 !
 !-----------------------------------------------------------------------
+      subroutine PPNACGUARD2L(f,scr,nyp,nx,ndim,kstrt,nvp,nxv,nypmx)
+! this subroutine adds data from guard cells in non-uniform partitions
+! f(ndim,j,k) = real data for grid j,k in particle partition.
+! the grid is non-uniform and includes one extra guard cell.
+! output: f, scr
+! scr(ndim,j) = scratch array for particle partition
+! nyp = number of primary gridpoints in particle partition
+! it is assumed the nyp > 0.
+! kstrt = starting data block number
+! nvp = number of real or virtual processors
+! nx = system length in x direction
+! ndim = leading dimension of array f
+! nxv = first dimension of f, must be >= nx
+! nypmx = maximum size of field partition, including guard cells.
+! linear interpolation, for distributed data
+      implicit none
+      integer, intent(in) :: nyp, kstrt, nvp, nx, ndim, nxv, nypmx
+      real, dimension(ndim,nxv,nypmx), intent(inout) :: f
+      real, dimension(ndim,nxv), intent(inout) :: scr
+! lgrp = current communicator
+! mreal = default datatype for reals
+! local data
+      integer :: j, n, nx1, ks, moff, kl, kr
+      integer :: nnxv
+      integer :: msid, ierr
+      integer, dimension(lstat) :: istatus
+      nx1 = nx + 1
+! special case for one processor
+      if (nvp==1) then
+         do j = 1, nx1
+            do n = 1, ndim
+               f(n,j,1) = f(n,j,1) + f(n,j,nyp+1)
+               f(n,j,nyp+1) = 0.0
+            enddo
+         enddo
+         return
+      endif
+      ks = kstrt - 1
+      moff = nypmx*nvp + 1
+      nnxv = ndim*nxv
+! add guard cells
+      kr = ks + 1
+      if (kr >= nvp) kr = kr - nvp
+      kl = ks - 1
+      if (kl < 0) kl = kl + nvp
+      ks = nyp + 1
+! this segment is used for mpi computers
+      call MPI_IRECV(scr,nnxv,mreal,kl,moff,lgrp,msid,ierr)
+      call MPI_SEND(f(1,1,ks),nnxv,mreal,kr,moff,lgrp,ierr)
+      call MPI_WAIT(msid,istatus,ierr)
+! add up the guard cells
+      do j = 1, nx1
+         do n = 1, ndim
+            f(n,j,1) = f(n,j,1) + scr(n,j)
+            f(n,j,nyp+1) = 0.0
+         enddo
+      enddo
+      end subroutine
+!
+!-----------------------------------------------------------------------
       subroutine PPTPOSE(f,g,s,t,nx,ny,kxp,kyp,kstrt,nvp,nxv,nyv,kxpd,  &
      &kypd)
 ! this subroutine performs a transpose of a matrix f, distributed in y,
@@ -378,9 +466,9 @@
       implicit none
       integer, intent(in) :: nx, ny, kxp, kyp, kstrt, nvp, nxv, nyv
       integer, intent(in) :: kxpd, kypd
-      complex, dimension(nxv,kypd) :: f
-      complex, dimension(nyv,kxpd) :: g
-      complex, dimension(kxp*kyp) :: s, t
+      complex, dimension(nxv,kypd), intent(in) :: f
+      complex, dimension(nyv,kxpd), intent(inout) :: g
+      complex, dimension(kxp*kyp), intent(inout) :: s, t
 ! lgrp = current communicator
 ! mcplx = default datatype for complex
 ! local data
@@ -465,9 +553,9 @@
       implicit none
       integer, intent(in) :: nx, ny, kxp, kyp, kstrt, nvp, ndim
       integer, intent(in) :: nxv, nyv, kxpd, kypd
-      complex, dimension(ndim,nxv,kypd) :: f
-      complex, dimension(ndim,nyv,kxpd) :: g
-      complex, dimension(ndim,kxp*kyp) :: s, t
+      complex, dimension(ndim,nxv,kypd), intent(in) :: f
+      complex, dimension(ndim,nyv,kxpd), intent(inout) :: g
+      complex, dimension(ndim,kxp*kyp), intent(inout) :: s, t
 ! lgrp = current communicator
 ! mcplx = default datatype for complex
 ! local data
@@ -571,12 +659,12 @@
       implicit none
       integer, intent(in) :: ny, kstrt, nvp, idimp, npmax, idps
       integer, intent(in) :: nbmax, ntmax
-      integer :: npp
-      real, dimension(idimp,npmax) :: part
-      real, dimension(idps) :: edges
-      real, dimension(idimp,nbmax) :: sbufl, sbufr, rbufl, rbufr
-      integer, dimension(ntmax+1) :: ihole
-      integer, dimension(5) :: info
+      integer, intent(inout) :: npp
+      real, dimension(idimp,npmax), intent(inout) :: part
+      real, dimension(idps), intent(in) :: edges
+      real, dimension(idimp,nbmax), intent(inout) :: sbufl, sbufr, rbufl, rbufr
+      integer, dimension(ntmax+1), intent(inout) :: ihole
+      integer, dimension(5), intent(inout) :: info
 ! lgrp = current communicator
 ! mint = default datatype for integers
 ! mreal = default datatype for reals
@@ -892,7 +980,7 @@
       subroutine PPINIT2(idproc,nvp)
       use pplib2, only: SUB => PPINIT2
       implicit none
-      integer :: idproc, nvp
+      integer, intent(inout) :: idproc, nvp
       call SUB(idproc,nvp)
       end subroutine
 !
@@ -914,9 +1002,9 @@
       subroutine PWTIMERA(icntrl,time,dtime)
       use pplib2, only: SUB => PWTIMERA
       implicit none
-      integer :: icntrl
-      real :: time
-      double precision :: dtime
+      integer, intent(in) :: icntrl
+      real, intent(inout) :: time
+      double precision, intent(inout) :: dtime
       call SUB(icntrl,time,dtime)
       end subroutine
 !
@@ -924,8 +1012,8 @@
       subroutine PPSUM(f,g,nxp)
       use pplib2, only: SUB => PPSUM
       implicit none
-      integer :: nxp
-      real, dimension(nxp) :: f, g
+      integer, intent(in) :: nxp
+      real, dimension(nxp), intent(inout) :: f, g
       call SUB(f,g,nxp)
       end subroutine
 !
@@ -933,8 +1021,8 @@
       subroutine PPDSUM(f,g,nxp)
       use pplib2, only: SUB => PPDSUM
       implicit none
-      integer :: nxp
-      double precision, dimension(nxp) :: f, g
+      integer, intent(in) :: nxp
+      double precision, dimension(nxp), intent(inout) :: f, g
       call SUB(f,g,nxp)
       end subroutine
 !
@@ -942,17 +1030,26 @@
       subroutine PPIMAX(if,ig,nxp)
       use pplib2, only: SUB => PPIMAX
       implicit none
-      integer :: nxp
-      integer, dimension(nxp) :: if, ig
+      integer, intent(in) :: nxp
+      integer, dimension(nxp), intent(inout) :: if, ig
       call SUB(if,ig,nxp)
+      end subroutine
+!
+!-----------------------------------------------------------------------
+      subroutine PPDMAX(f,g,nxp)
+      use pplib2, only: SUB => PPDMAX
+      implicit none
+      integer, intent(in) :: nxp
+      double precision, dimension(nxp), intent(inout) :: f, g
+      call SUB(f,g,nxp)
       end subroutine
 !
 !-----------------------------------------------------------------------
       subroutine PPNCGUARD2L(f,nyp,kstrt,nvp,nxv,nypmx)
       use pplib2, only: SUB => PPNCGUARD2L
       implicit none
-      integer :: nyp, kstrt, nvp, nxv, nypmx
-      real, dimension(nxv,nypmx) :: f
+      integer, intent(in) :: nyp, kstrt, nvp, nxv, nypmx
+      real, dimension(nxv,nypmx), intent(inout) :: f
       call SUB(f,nyp,kstrt,nvp,nxv,nypmx)
       end subroutine
 !
@@ -960,10 +1057,20 @@
       subroutine PPNAGUARD2L(f,scr,nyp,nx,kstrt,nvp,nxv,nypmx)
       use pplib2, only: SUB => PPNAGUARD2L
       implicit none
-      integer :: nyp, kstrt, nvp, nx, nxv, nypmx
-      real, dimension(nxv,nypmx) :: f
-      real, dimension(nxv) :: scr
+      integer, intent(in) :: nyp, kstrt, nvp, nx, nxv, nypmx
+      real, dimension(nxv,nypmx), intent(inout) :: f
+      real, dimension(nxv), intent(inout) :: scr
       call SUB(f,scr,nyp,nx,kstrt,nvp,nxv,nypmx)
+      end subroutine
+!
+!-----------------------------------------------------------------------
+      subroutine PPNACGUARD2L(f,scr,nyp,nx,ndim,kstrt,nvp,nxv,nypmx)
+      use pplib2, only: SUB => PPNACGUARD2L
+      implicit none
+      integer, intent(in) :: nyp, kstrt, nvp, nx, ndim, nxv, nypmx
+      real, dimension(ndim,nxv,nypmx), intent(inout) :: f
+      real, dimension(ndim,nxv), intent(inout) :: scr
+      call SUB(f,scr,nyp,nx,ndim,kstrt,nvp,nxv,nypmx)
       end subroutine
 !
 !-----------------------------------------------------------------------
@@ -971,10 +1078,11 @@
      &kypd)
       use pplib2, only: SUB => PPTPOSE
       implicit none
-      integer :: nx, ny, kxp, kyp, kstrt, nvp, nxv, nyv, kxpd, kypd
-      complex, dimension(nxv,kypd) :: f
-      complex, dimension(nyv,kxpd) :: g
-      complex, dimension(kxp*kyp) :: s, t
+      integer, intent(in) :: nx, ny, kxp, kyp, kstrt, nvp, nxv, nyv
+      integer, intent(in) :: kxpd, kypd
+      complex, dimension(nxv,kypd), intent(in) :: f
+      complex, dimension(nyv,kxpd), intent(inout) :: g
+      complex, dimension(kxp*kyp), intent(inout) :: s, t
       call SUB(f,g,s,t,nx,ny,kxp,kyp,kstrt,nvp,nxv,nyv,kxpd,kypd)
       end subroutine
 !
@@ -983,11 +1091,11 @@
      &kxpd,kypd)
       use pplib2, only: SUB => PPNTPOSE
       implicit none
-      integer :: nx, ny, kxp, kyp, kstrt, nvp, ndim, nxv, nyv
-      integer :: kxpd, kypd
-      complex, dimension(ndim,nxv,kypd) :: f
-      complex, dimension(ndim,nyv,kxpd) :: g
-      complex, dimension(ndim,kxp*kyp) :: s, t
+      integer, intent(in) :: nx, ny, kxp, kyp, kstrt, nvp, ndim
+      integer, intent(in) :: nxv, nyv, kxpd, kypd
+      complex, dimension(ndim,nxv,kypd), intent(in) :: f
+      complex, dimension(ndim,nyv,kxpd), intent(inout) :: g
+      complex, dimension(ndim,kxp*kyp), intent(inout) :: s, t
       call SUB(f,g,s,t,nx,ny,kxp,kyp,kstrt,nvp,ndim,nxv,nyv,kxpd,kypd)
       end subroutine
 !
@@ -996,17 +1104,16 @@
      &,kstrt,nvp,idimp,npmax,idps,nbmax,ntmax,info)
       use pplib2, only: SUB => PPMOVE2
       implicit none
-      integer :: ny, kstrt, nvp, idimp, npmax, idps, nbmax, ntmax
-      integer :: npp
-      real, dimension(idimp,npmax) :: part
-      real, dimension(idps) :: edges
-      real, dimension(idimp,nbmax) :: sbufl, sbufr, rbufl, rbufr
-      integer, dimension(ntmax+1) :: ihole
-      integer, dimension(5) :: info
+      integer, intent(in) :: ny, kstrt, nvp, idimp, npmax, idps
+      integer, intent(in) :: nbmax, ntmax
+      integer, intent(inout) :: npp
+      real, dimension(idimp,npmax), intent(inout) :: part
+      real, dimension(idps), intent(in) :: edges
+      real, dimension(idimp,nbmax), intent(inout) :: sbufl, sbufr
+      real, dimension(idimp,nbmax), intent(inout) :: rbufl, rbufr
+      integer, dimension(ntmax+1), intent(inout) :: ihole
+      integer, dimension(5), intent(inout) :: info
       call SUB(part,edges,npp,sbufr,sbufl,rbufr,rbufl,ihole,ny,kstrt,nvp&
      &,idimp,npmax,idps,nbmax,ntmax,info)
       end subroutine
-
-
-
 

@@ -1,0 +1,22 @@
+Initial Field, Kinetic and Total Energies:
+ 2.1033348e-04  9.4391480e+06  9.4391480e+06
+ntime =  100
+MPI nodes nvp =  3
+Final Field, Kinetic and Total Energies:
+ 7.7582275e+03  9.4314280e+06  9.4391860e+06
+
+deposit time =  2.300964
+guard time =  0.03922
+solver time =  0.029754
+fft and transpose time =  0.538698 0.114185
+push time =  7.024995
+particle move time =  0.092698
+sort time =  0.081405
+total solver time =  0.607672136806
+total particle time =  9.500062
+total time =  10.1077341368
+
+Push Time (nsec) =  7.44395256042
+Deposit Time (nsec) =  2.43818918864
+Sort Time (nsec) =  0.184486177233
+Total Particle Time (nsec) =  10.0666279263

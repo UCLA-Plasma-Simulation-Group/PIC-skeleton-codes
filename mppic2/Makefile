@@ -128,31 +128,31 @@ all : fmppic2 cmppic2
 
 special: fmppic2_c cmppic2_f
 
-# Version using Fortran77 pplib2.f
-#fmppic2 : fmppic2.o fmppush2.o fpplib2.o fomplib.o dtimer.o
+# Version using Fortran77 mpplib2.f
+#fmppic2 : fmppic2.o fmppush2.o fmpplib2.o fomplib.o dtimer.o
 #	$(MPIFC) $(OPTS90) $(LOPTS) -o fmppic2 \
-#   fmppic2.o fmppush2.o fpplib2.o fomplib.o mppush2_h.o pplib2_h.o \
+#   fmppic2.o fmppush2.o fmpplib2.o fomplib.o mppush2_h.o mpplib2_h.o \
 #   omplib_h.o dtimer.o
 
-# Version using Fortran90 pplib2.f90
-fmppic2 : fmppic2.o fmppush2.o fpplib2.o fomplib.o dtimer.o
+# Version using Fortran90 mpplib2.f90
+fmppic2 : fmppic2.o fmppush2.o fmpplib2.o fomplib.o dtimer.o
 	$(MPIFC) $(OPTS90) $(LOPTS) -o fmppic2 \
-    fmppic2.o fmppush2.o f90pplib2.o fomplib.o mppush2_h.o omplib_h.o \
+    fmppic2.o fmppush2.o f90mpplib2.o fomplib.o mppush2_h.o omplib_h.o \
     dtimer.o
 
-cmppic2 : cmppic2.o cmppush2.o cpplib2.o complib.o dtimer.o
+cmppic2 : cmppic2.o cmppush2.o cmpplib2.o complib.o dtimer.o
 	$(MPICC) $(CCOPTS) $(LOPTS) -o cmppic2 \
-    cmppic2.o cmppush2.o cpplib2.o complib.o dtimer.o
+    cmppic2.o cmppush2.o cmpplib2.o complib.o dtimer.o
 
-fmppic2_c : fmppic2_c.o cmppush2.o cpplib2.o complib.o dtimer.o
+fmppic2_c : fmppic2_c.o cmppush2.o cmpplib2.o complib.o dtimer.o
 	$(MPIFC) $(OPTS90) $(LOPTS) -o fmppic2_c \
-    fmppic2_c.o cmppush2.o cpplib2.o complib.o dtimer.o
+    fmppic2_c.o cmppush2.o cmpplib2.o complib.o dtimer.o
 
-cmppic2_f : cmppic2.o cmppush2_f.o cpplib2_f.o complib_f.o fmppush2.o \
-            fpplib2.o fomplib.o dtimer.o
+cmppic2_f : cmppic2.o cmppush2_f.o cmpplib2_f.o complib_f.o fmppush2.o \
+            fmpplib2.o fomplib.o dtimer.o
 	$(MPIFC) $(OPTS90) $(LOPTS) $(LEGACY) -o cmppic2_f \
-    cmppic2.o cmppush2_f.o cpplib2_f.o complib_f.o fmppush2.o \
-    fpplib2.o fomplib.o dtimer.o
+    cmppic2.o cmppush2_f.o cmpplib2_f.o complib_f.o fmppush2.o \
+    fmpplib2.o fomplib.o dtimer.o
 
 # Compilation rules
 
@@ -172,20 +172,20 @@ complib.o : omplib.c
 complib_f.o : omplib_f.c
 	$(MPICC) $(CCOPTS) -o complib_f.o -c omplib_f.c
 
-fpplib2.o : pplib2.f
-	$(MPIFC) $(OPTS77) -o fpplib2.o -c pplib2.f
+fmpplib2.o : mpplib2.f
+	$(MPIFC) $(OPTS77) -o fmpplib2.o -c mpplib2.f
 
-pplib2_h.o : pplib2_h.f90
-	$(MPIFC) $(OPTS90) -o pplib2_h.o -c pplib2_h.f90
+mpplib2_h.o : mpplib2_h.f90
+	$(MPIFC) $(OPTS90) -o mpplib2_h.o -c mpplib2_h.f90
 
-f90pplib2.o : pplib2.f90
-	$(MPIFC) $(OPTS90) -o f90pplib2.o -c pplib2.f90
+f90mpplib2.o : mpplib2.f90
+	$(MPIFC) $(OPTS90) -o f90mpplib2.o -c mpplib2.f90
 
-cpplib2.o : pplib2.c
-	$(MPICC) $(CCOPTS) -o cpplib2.o -c pplib2.c
+cmpplib2.o : mpplib2.c
+	$(MPICC) $(CCOPTS) -o cmpplib2.o -c mpplib2.c
 
-cpplib2_f.o : pplib2_f.c
-	$(MPICC) $(CCOPTS) -o cpplib2_f.o -c pplib2_f.c
+cmpplib2_f.o : mpplib2_f.c
+	$(MPICC) $(CCOPTS) -o cmpplib2_f.o -c mpplib2_f.c
 
 fmppush2.o : mppush2.f
 	$(MPIFC) $(OPTS90) -o fmppush2.o -c mppush2.f
@@ -196,12 +196,12 @@ mppush2_h.o : mppush2_h.f90
 cmppush2.o : mppush2.c
 	$(MPICC) $(CCOPTS) -o cmppush2.o -c mppush2.c
 
-# Version using Fortran77 pplib2.f
-#fmppic2.o : mppic2.f90 mppush2_h.o pplib2_h.o omplib_h.o
+# Version using Fortran77 mpplib2.f
+#fmppic2.o : mppic2.f90 mppush2_h.o mpplib2_h.o omplib_h.o
 #	$(MPIFC) $(OPTS90) -o fmppic2.o -c mppic2.f90
 
-# Version using Fortran90 pplib2.f90
-fmppic2.o : mppic2.f90 f90pplib2.o mppush2_h.o omplib_h.o
+# Version using Fortran90 mpplib2.f90
+fmppic2.o : mppic2.f90 f90mpplib2.o mppush2_h.o omplib_h.o
 	$(MPIFC) $(OPTS90) -o fmppic2.o -c mppic2.f90
 
 cmppush2_f.o : mppush2_f.c

@@ -17,11 +17,16 @@ void ppdsum_(double *f, double *g, int *nxp);
 
 void ppimax_(int *f, int *g, int *nxp);
 
+void ppdmax_(double *f, double *g, int *nxp);
+
 void ppncguard2l_(float *f, int *nyp, int *kstrt, int *nvp, int *nxv,
                   int *nypmx);
 
 void ppnaguard2l_(float *f, float *scr, int *nyp, int *nx, int *kstrt,
                   int *nvp, int *nxv, int *nypmx);
+
+void ppnacguard2l_(float *f, float *scr, int *nyp, int *nx, int *ndim,
+                   int *kstrt, int *nvp, int *nxv, int *nypmx);
 
 void pptpose_(float complex *f, float complex *g, float complex *s,
               float complex *t, int *nx, int *ny, int *kxp, int *kyp,
@@ -81,6 +86,12 @@ void cppimax(int f[], int g[], int nxp) {
 }
 
 /*--------------------------------------------------------------------*/
+void cppdmax(double f[], double g[], int nxp) {
+   ppdmax_(f,g,&nxp);
+   return;
+}
+
+/*--------------------------------------------------------------------*/
 void cppncguard2l(float f[], int nyp, int kstrt, int nvp, int nxv,
                   int nypmx) {
    ppncguard2l_(f,&nyp,&kstrt,&nvp,&nxv,&nypmx);
@@ -91,6 +102,14 @@ void cppncguard2l(float f[], int nyp, int kstrt, int nvp, int nxv,
 void cppnaguard2l(float f[], float scr[], int nyp, int nx, int kstrt,
                   int nvp, int nxv, int nypmx) {
    ppnaguard2l_(f,scr,&nyp,&nx,&kstrt,&nvp,&nxv,&nypmx);
+   return;
+}
+
+/*--------------------------------------------------------------------*/
+void cppnacguard2l(float f[], float scr[], int nyp, int nx, int ndim,
+                   int kstrt, int nvp, int nxv, int nypmx) {
+   ppnacguard2l_(f,scr,&nyp,&nx,&ndim,&kstrt,&nvp,&nxv,&nypmx);
+                   
    return;
 }
 
