@@ -3,11 +3,13 @@
 These codes illustrate how to use hybrid shared memory/vectorization algorithm, with a tiled scheme on each shared memory multi-core node implemented wit OpenMP and vectorization implemented with both SSE vector intrinsics and compiler vectorization. The tiling scheme is described in detail in Ref.[4]. The Intel SSE2 vector intrinsics are a low level data parallel language closely related to the native assembly instructions. The compiler vectorization uses compiler directives and often requires reorganization of the data structures and loops.
 
 For the 2D electrostatic with 12 processing cores:
+
 no-vec = 2.7 nsec/particle/timestep
 compiler vec = 2.0 nsec/particle/timestep
 SSE2 = 1.6 nsec/particle/timestep
 
 For the 2-1/2D electromagnetic with 12 processing cores:
+
 no-vec = 9.2 nsec/particle/timestep
 compiler vec = 6.1 nsec/particle/timestep
 SSE2 = 4.2 nsec/particle/timestep
