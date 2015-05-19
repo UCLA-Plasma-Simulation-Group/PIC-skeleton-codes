@@ -31,7 +31,7 @@ These codes illustrate how to implement an optimal PIC algorithm on multiple GPU
 
 
 The __first family__ uses CUDA C on the NVIDIA GPU, with a tiling technique for each thread block, SIMD vectorization within a block, and domain decomposition with MPI between GPUs.
-test
+
 1. 2D Parallel Electrostatic Spectral code:  gpuppic2
 2. 2-1/2D Parallel Electromagnetic Spectral code:  gpupbpic2
 
