@@ -86,8 +86,8 @@ Here's a table showing the names of the codes and their parallelism (ES means el
 ||pic1|ES|C,Fortran| None-Serial|
 ||pic2|ES|C,Fortran| None-Serial|
 ||pic3|ES|C,Fortran| None-Serial|
-||bpic1|ES|C,Fortran| None-Serial|
-||bpic2|ES|C,Fortran| None-Serial|
+||bpic1|EM|C,Fortran| None-Serial|
+||bpic2|EM|C,Fortran| None-Serial|
 ||bpic3|EM|C,Fortran| None-Serial|
 ||dpic1|D|C,Fortran| None-Serial|
 ||dpic2|D|C,Fortran| None-Serial|
