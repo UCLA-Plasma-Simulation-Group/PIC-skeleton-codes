@@ -2,7 +2,7 @@
 
 ##GPU Tutorial
 
-Tutorial for Computing on GPUs: gpututorial
+Tutorial for Computing on GPUs: GPUTutorial
 
 
 
