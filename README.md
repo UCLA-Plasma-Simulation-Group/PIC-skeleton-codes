@@ -78,7 +78,7 @@ These codes illustrate how to implement an optimal PIC algorithm on a single GPU
 
 ## What's What
 
-Here's a table showing which directories have which feature (ES means electrostatic, EM means electomagnetic, D means Darwin)
+Here's a table showing the names of the codes and their parallelism (ES means electrostatic, EM means electomagnetic, D means Darwin)
 
 | Category | directory name        | Field Type  | Language  | Parallelism |
 | -------- | --------------------- | ----------- | --------- | ----------- |
