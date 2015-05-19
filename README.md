@@ -9,11 +9,15 @@ If you're viewing this and don't have explicit permission from the UCLA Plasma P
 
 Welcome! There is a large collection of PIC codes here with a range of complexity. They are all designed to be easy to read, understand, and adapt. 
 
-1. Each directory is a complete, standalone PIC implemenation.
+1. The main directories are organized by the method of parallel programming technique.
 
-2. *Where to Start*? The directory `pic2` is the basic, classic serial Particle-In-Cell code. For those new to PIC it is the perfect place to start.. no bells or whistles.. just a simple way to see how PIC codes work. For people already experienced with PIC, `pic2` can be used in benchmarking or as unit-testing scaffolding. See the [Basic Serial Code](#basic-serial-codes) section below for details. To see what else is availiable, check out the [Overview of Codes Included](#overview-of-codes-included) section.
+2. Each sub-directory contains a complete, standalone PIC implementation.
 
-3. These codes have no external dependecies - You should be able to set basic coniguration and then `make`.. For full instructions see the readme files in each directory.
+3. *Where to Start*? The directory `serial` contains the basic, classic, serial Particle-In-Cell codes. For those new to PIC it is the perfect place to start... no bells or whistles... just a simple way to see how PIC codes work. For people already experienced with PIC, `serial` provides electrostatic, electromagnetic, and Darwin codes in 1D, 2D, and 3D that can be used in benchmarking or as unit-testing scaffolding. 
+
+4. To see range of available codes, check out the [Directory Overviews](#overview-of-codes-directories) and [Code Table](#whats-what) sections.
+
+3. These codes have no external dependecies - You should be able to set the basic configuration and then `make`. For full instructions, see the readme files in each sub-directory.
 
 ## Introduction
 
