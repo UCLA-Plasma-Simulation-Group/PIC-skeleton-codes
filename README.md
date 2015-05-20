@@ -15,7 +15,7 @@ Welcome! There is a large collection of PIC codes here with a range of complexit
 
 3. *Where to Start*? The directory `serial` contains the basic, classic, serial Particle-In-Cell codes. For those new to PIC it is the perfect place to start... no bells or whistles... just a simple way to see how PIC codes work. For people already experienced with PIC, `serial` provides electrostatic, electromagnetic, and Darwin codes in 1D, 2D, and 3D that can be used in benchmarking or as unit-testing scaffolding. 
 
-4. To see range of available codes, check out the [Directory Overviews](#overview-of-codes-directories) and [Code Table](#whats-what) sections.
+4. To see the range of available codes, check out the [Directory Overviews](#overview-of-codes-directories) and [Code Table](#whats-what) sections.
 
 3. These codes have no external dependecies - You should be able to set the basic configuration and then `make`. For full instructions, see the readme files in each sub-directory.
 
@@ -35,7 +35,7 @@ There are examples for 1, 2, and 3 dimensional codes.  For simplicity, all code
 
 ## Software Design
 
-Most of the 2D codes are written in two languages, Fortran and C. The 1- and 3D codes do not have C procedure libraries, but they do have C main programs that can call the Fortran procedure libraries.  Additionally, some of the codes can be run interactively with an included Python script. Language interoperability is also maintained, so that Fortran codes can call C libraries and vice-versa. Fortran2003 has built-in support for interoperability with C. C procedures can be called by simply writing a file containing interface statements (similar to a header file in C). To allow C to call Fortran procedures, a simple wrapper library must be built in Fortran to allow interoperability with Fortran arrays (which is functionally similar to array objects in C++). Interoperability is important for a number of reasons. The first is to give Fortran access to features available only in C, for example, to permit a Fortran program to call a CUDA C procedure on a GPU. The second is to allow a C program access to procedures already available in Fortran. Our goal is to support multi-lingual codes, where researchers write in whatever language they are fluent in, and the pieces can be integrated seamlessly.   Because the features of Fortran2003 are not yet well known in the scientific community, an older style of interoperability is currently provided in most cases.   The details of this approach are discussed in Ref. [1].   Most of the libraries in the skeleton codes have interface functions to make them interoperable.
+Most of the 2D codes are written in two languages, Fortran and C. The 1- and 3D codes do not have C procedure libraries, but they do have C main programs that can call the Fortran procedure libraries.  Additionally, some of the codes can be run interactively with an included Python script. Language interoperability is also maintained, so that Fortran codes can call C libraries and vice-versa. Fortran2003 has built-in support for interoperability with C. C procedures can be called by simply writing a file containing interface statements (similar to a header file in C). To allow C to call Fortran procedures, a simple wrapper library must be built in Fortran to allow interoperability with Fortran arrays (which is functionally similar to array objects in C++). Interoperability is important for a number of reasons. The first is to give Fortran access to features available only in C, for example, to permit a Fortran program to call a CUDA C procedure on a GPU. The second is to allow a C program access to procedures already available in Fortran. Our goal is to support multi-lingual codes, where researchers write in whatever language they are fluent in, and the pieces can be integrated seamlessly.   Because the features of Fortran2003 are not yet well known in the scientific community, an older style of interoperability is currently provided in most cases.   The details of this approach are discussed in Ref. [[1](#ref1)].   Most of the libraries in the skeleton codes have interface functions to make them interoperable.
 
 The computationally intensive procedures in Fortran are written in a Fortran77 style subset of Fortran90. This is primarily because programs written in such a style tend to execute faster. But an additional reason is that Fortran has a large legacy of codes written in this style and it is useful that students be aware of such codes. All libraries written in such a style have a corresponding interface library to enable type checking when used with Fortran90. The C codes adhere to the C99 standard, primarily to make use of float complex types.
 
@@ -43,8 +43,8 @@ Most of the codes maintain a simple two level hierarchy, with a main code and an
 
 A flat data structure is used, using only basic integer and floating point types, without the use of derived types or structs. This is primarily to expose as much as possible without hiding features in a multi-layered hierarchy. We believe this makes it easier to understand the changes made when increasing the levels of parallelism. But another reason is that the PIC community has not yet agreed on standard objects and it would be more difficult to reuse software from the skeleton codes if the types or structs we chose conflicted.
 
-
-## Overview of Code Directories<a name="overview-of-codes-directories"/>
+<a name="overview-of-codes-directories"/>
+## Overview of Code Directories
 
 ### QuickStart
 
@@ -56,7 +56,7 @@ The basic serial codes do not make use of any parallelism, and are the base code
 
 ### OpenMP
 
-These codes illustrate how to use shared memory parallelism with OpenMP.  The algorithm used here is the same as that used on the GPU: it divides particles into small 2d tiles and reorders them every time step to avoid data collisions when performing the deposit.  Each tile is controlled by a single thread.  The algorithm is described in detail in Ref. [4].
+These codes illustrate how to use shared memory parallelism with OpenMP.  The algorithm used here is the same as that used on the GPU: it divides particles into small 2d tiles and reorders them every time step to avoid data collisions when performing the deposit.  Each tile is controlled by a single thread.  The algorithm is described in detail in Ref. [[4](#ref4)].
 
 ### Vectorization 
 
@@ -64,22 +64,22 @@ These codes illustrate how to use vectorization with the Intel Processors. Two a
 
 ### MPI 
 
-These codes illustrate how to use domain decomposition with message-passing (MPI).  This is the dominant programming paradigm for PIC codes today.  These codes use only a simple 1d domain decomposition.  The algorithm is described in detail in Refs. [2-3].  
+These codes illustrate how to use domain decomposition with message-passing (MPI).  This is the dominant programming paradigm for PIC codes today.  These codes use only a simple 1d domain decomposition.  The algorithm is described in detail in Refs. [[2-3](#ref2)].  
 
 
 ### OpenMP/MPI
 
-These codes illustrate how to use a hybrid shared/distributed memory algorithm, with a tiled scheme on each shared memory multi-core node implemented with OpenMP, and domain decomposition connecting such nodes implemented with MPI.  The algorithms are described in detail in Refs. [2-4].
+These codes illustrate how to use a hybrid shared/distributed memory algorithm, with a tiled scheme on each shared memory multi-core node implemented with OpenMP, and domain decomposition connecting such nodes implemented with MPI.  The algorithms are described in detail in Refs. [[2-4](#ref2)].
 
 ### OpenMP/Vectorization 
 
-These codes illustrate how to use hybrid shared memory/vectorization algorithm, with a tiled scheme on each shared memory multi-core node implemented wit OpenMP and vectorization implemented with both SSE vector intrinsics and compiler vectorization. The tiling scheme is described in detail in Ref.[4]. 
+These codes illustrate how to use hybrid shared memory/vectorization algorithm, with a tiled scheme on each shared memory multi-core node implemented wit OpenMP and vectorization implemented with both SSE vector intrinsics and compiler vectorization. The tiling scheme is described in detail in Ref.[[4](#ref4)]. 
 
 ### GPU Codes
 
-These codes illustrate how to implement an optimal PIC algorithm on a single GPU as well as on multiple GPUs.  Both CUDA C and CUDA Fortran interoperable versions are available, where a Fortran code can call the CUDA C libraries and a C code can call the CUDA Fortran libraries.  For two-level-parallelism, the codes use a hybrid tiling scheme with SIMD vectorization, both written with NVIDIA’s CUDA programming environment.  The tiling algorithm used within a thread block on the GPU is the same as that used with OpenMP [4].  Unlike the OpenMP implementation, however, each tile is controlled by a block of threads rather than a single thread, which requires a vectorized or data parallel implementation.  For three-level-parallelism, the codes use a hybrid tiling scheme with SIMD vectorization on each GPU, and domain decomposition connecting such GPUs implemented with MPI.  The algorithms used are described in Refs. [2-4].
+These codes illustrate how to implement an optimal PIC algorithm on a single GPU as well as on multiple GPUs.  Both CUDA C and CUDA Fortran interoperable versions are available, where a Fortran code can call the CUDA C libraries and a C code can call the CUDA Fortran libraries.  For two-level-parallelism, the codes use a hybrid tiling scheme with SIMD vectorization, both written with NVIDIA’s CUDA programming environment.  The tiling algorithm used within a thread block on the GPU is the same as that used with OpenMP [[4](#ref4)].  Unlike the OpenMP implementation, however, each tile is controlled by a block of threads rather than a single thread, which requires a vectorized or data parallel implementation.  For three-level-parallelism, the codes use a hybrid tiling scheme with SIMD vectorization on each GPU, and domain decomposition connecting such GPUs implemented with MPI.  The algorithms used are described in Refs. [[2-4](#ref2)].
 
-
+<a name="whats-what"/>
 ## What's What
 
 Here's a table showing the names of the codes and their parallelism (ES means electrostatic, EM means electomagnetic, D means Darwin)
@@ -142,10 +142,14 @@ This work is supported in part by the National Science Foundation, Department of
 
 ##References
 
+<a name="ref1"/>
 [1] Viktor K. Decyk, "A Method for Passing Data Between C and Opaque Fortran90 Pointers," ACM Fortran Forum, vol. 27, no. 2, p. 2 (2008). [doi link](http://dx.doi.org/10.1145/1408643.1408644)
 
+<a name="ref2"/>
 [2] P. C. Liewer and V. K. Decyk, “A General Concurrent Algorithm for Plasma Particle-in-Cell Codes,” J. Computational Phys. 85, 302 (1989). [doi link](http://dx.doi.org/10.1016/0021-9991(89)90153-8)
 
+<a name="ref3"/>
 [3] V. K. Decyk, "Skeleton PIC Codes for Parallel Computers," Computer Physics Communications, 87, 87 (1995). [doi link](http://dx.doi.org/10.1016/0010-4655(94)00169-3)
 
+<a name="ref4"/>
 [4] Viktor K. Decyk and Tajendra V. Singh, “Particle-in-Cell algorithms for emerging computer architectures,” Computer Physics Communications 185, 708 (2014). [doi link (free access)](http://dx.doi.org/10.1016/j.cpc.2013.10.013)
