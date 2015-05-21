@@ -1,0 +1,88 @@
+GPU Tuturial
+by Viktor K. Decyk, UCLA
+
+No warranty for proper operation of this software is given or implied.
+software or information may be copied, distributed, and used at own
+risk; it may not be distributed without this notice included verbatim
+with each file.
+
+This file contains three extended example codes for illustrating how to
+program the NVIDIA GPU using Cuda, with both C and Fortran90 main
+programs.  There is a simple serial version as well as a parallel Cuda
+version for each example.  All the Cuda C examples, as well as some
+utility functions, are in the file gpulib2.cu (with header gpulib2.h).
+This file also contains interfaces to Fortran77.  Interfaces to these
+functions for Fortran90 are in the file gpulib2_h.f90 (which creates the
+module gpulib2).  There is also a Unix timer function in the file
+dtimer.c, which contains a Fortran77 interface.
+
+For example one, the files copy.f90 and copy.c (with header copy.h)
+contain the serial vector copy examples in Fortran90 and C,
+respectively.  The files fcexample1.f and example1.c contain the
+corresponding main programs.  For example two, the files transpose.f90
+and transpose.c (with header transpose.h) contain the serial transpose
+examples in Fortran90 and C, respectively.  The files fcexample2.f and
+example2.c contain the corresponding main programs.  For example
+three, the files redux.f90 and redux.c (with header redux.h) contain the
+serial sum reduction examples in Fortran90 and C, respectively.  The
+files fcexample3.f and example3.c contain the corresponding main
+programs.
+
+In addition to the Cuda examples, we also have Cuda Fortran examples.
+PGI Cuda Fortran is a commercial product of the Portland Group.  All the
+Cuda Fortran examples, as well as some utility functions, are in the
+file gpuflib2.cuf (which creates the module gpuflib2).  The Cuda Fortran
+main programs for the three examples are in the files example1.f90,
+example2.f90, and example3.f90.
+
+To compile the Cuda C programs, including the Fortran main programs
+which interface to cuda C, execute the command:
+
+make
+
+This command creates the following executables: cexample1, fcexample1,
+cexample2, fcexample2, cexample3, and fcexample3.  For these examples,
+the Makefile is set up to use the gcc and gfortran compilers, as well as
+the Cuda compiler nvcc.  The nvcc compiler compiles for GPUs with
+compute capability 2.0.  However, only one kernel, gsum1, actually
+requires this capability.  If this kernel and references to it are
+removed, then the remaining examples can be compiled for compute
+capability 1.1 by setting the flag as follows:
+NVOPTS = -O3 -arch sm_11
+The compile just the Cuda C examples, execute the command:
+
+make cuda
+
+The compile just the Fortran examples which use Cuda C, execute:
+
+make fccuda
+
+The Makefile is currently set up for Linux.  A version for Mac OS X is
+also in the Makefile, but is commented out.
+
+To compile the PGI Cuda Fortran programs, execute the command:
+
+make cudaf
+
+This command creates the following executables: fexample1, fexample2,
+and fexample3.  For these examples, the Makefile is set up to use the
+gcc and pgf90 compilers. The PGI compiler compiles for GPUs with compute
+capability 2.0.  However, only one kernel, gsum1, actually requires this
+capability.  If this kernel and references to it are removed, then the
+remaining examples can be compiled for compute capability 1.1 by setting
+the flag as follows:
+FNVOPTS = -O3 -ta=nvidia:cc11
+To compile both Cuda C and PGI Cuda Fortran examples, it is recommended
+that one execute the command
+
+make clean
+
+between compiling each set of examples, which removes the modules, but
+not the main programs.
+
+To execute the programs, type the name of the executable:
+
+./program_name
+
+where program_name is one of: cexample1, fcexample1, fexample1,
+cexample2, fcexample2, fexample2, cexample3, fcexample3 or fexample3.

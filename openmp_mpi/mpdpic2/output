@@ -1,0 +1,40 @@
+ number of cpus found =            4
+ maximum number of threads =            4
+ using            4  thread(s)
+ number of cpus found =            4
+ maximum number of threads =            4
+ using            4  thread(s)
+ number of cpus found =            4
+ maximum number of threads =            4
+ using            4  thread(s)
+ wpm=  0.7500038    
+ Initial Total Field, Kinetic and Total Energies:
+ 0.1789092E+04 0.1415633E+08 0.1415812E+08
+ Initial Electrostatic, Transverse Electric and Magnetic Field Energies:
+ 0.1848493E-03 0.2841489E+02 0.1789092E+04
+ ntime, ndc =          100           1
+ MPI nodes nvp =            3
+ Final Total Field, Kinetic and Total Energies:
+ 0.9536418E+04 0.1414867E+08 0.1415821E+08
+ Final Electrostatic, Transverse Electric and Magnetic Field Energies:
+ 0.7842633E+04 0.2399629E+02 0.1693784E+04
+ 
+ deposit time =   0.6667401    
+ current deposit time =    1.433492    
+ current derivative deposit time =    12.33508    
+ total deposit time =    14.43531    
+ guard time =   0.5843254    
+ solver time =   0.2233050    
+ fft and transpose time =    2.293699       1.019557    
+ push time =    3.363504    
+ particle move time =   0.1096270    
+ sort time =   7.0387997E-02
+ total solver time =    3.101329    
+ total particle time =    17.97883    
+ total time =    21.08016    
+ 
+ Push Time (nsec) =    3.564098    
+ Deposit Time (nsec) =    15.29620    
+ Sort Time (nsec) =   0.1907507    
+ Total Particle Time (nsec) =    19.05105
+ 

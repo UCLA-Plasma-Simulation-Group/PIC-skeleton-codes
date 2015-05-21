@@ -1,0 +1,92 @@
+#Makefile for 1-2/2D Darwin Python OpenMP PIC code
+
+# Makefile gfortran compiler with MacOS X
+
+#PFC = --fcompiler=gnu95 -lgomp
+
+#OPTS90 = -O3 -fopenmp
+#OPTS90 = -O3 -fopenmp -fdefault-real-8 -fdefault-double-8
+#OPTS90 = -O3 -fopenmp -fcheck=bounds -fdefault-real-8 -Wall -std=f95
+
+#CCOPTS = -O3 -fopenmp
+#CCOPTS = -O3 -fopenmp -Wall
+
+# Makefile Intel compiler with Mac OS X
+
+#PFC = --fcompiler=intel
+
+#OPTS90 = -O3 -openmp
+#OPTS90 = -O3 -openmp -r8
+#OPTS90 = -O3 -openmp -CB -r8 -warn all -std90
+
+#CCOPTS = -O3 -fopenmp
+#CCOPTS = -O3 -fopenmp -Wall
+
+# Makefile Intel compiler with Linux
+
+#PFC = --fcompiler=intel
+
+#OPTS90 = -O3 -openmp
+#OPTS90 = -O3 -openmp -r8
+#OPTS90 = -O3 -openmp -CB -r8 -warn all -std90
+
+#CCOPTS = -O3 -openmp
+#CCOPTS = -O3 -openmp -Wall
+
+# Makefile gfortran compiler with Linux
+
+PFC = --fcompiler=gnu95 -lgomp
+
+OPTS90 = -O3 -fopenmp
+#OPTS90 = -O3 -fopenmp -fdefault-real-8 -fdefault-double-8
+#OPTS90 = -O3 -fopenmp -fbounds-check -fdefault-real-8 -Wall -std=f95
+
+CCOPTS = -O3 -fopenmp
+#CCOPTS = -O3 -fopenmp -Wall
+
+# Makefile PGI compiler with Linux
+
+#PFC = --fcompiler=pg
+
+#OPTS90 = -O3
+#OPTS90 = -O3 -r8
+#OPTS90 = -O3 -Mbounds -r8 -Mstandard
+
+#CCOPTS = -O3 -fopenmp
+#CCOPTS = -O3 -fopenmp -Wall
+
+#
+
+# Linkage rules
+
+all : fmdpic1.py
+
+fmdpic1.py : fmdpush1.so dtimer.so fomplib.so
+
+# Compilation rules
+
+dtimer.so : dtimer_h.pyf dtimer.c
+	f2py --opt="$(CCOPTS)"  -m dtimer -c dtimer_h.pyf dtimer.c
+
+dtimer_h.pyf : dtimer_hpy.f90
+	f2py --overwrite-signature  -m dtimer -h dtimer_h.pyf dtimer_hpy.f90
+
+fomplib.so : omplib_h.pyf omplib.f
+	f2py --opt="$(OPTS90)"  -m fomplib -c omplib_h.pyf omplib.f
+
+omplib_h.pyf : omplib_hpy.f90
+	f2py --overwrite-signature  -m fomplib -h omplib_h.pyf omplib_hpy.f90
+
+#fprecision.so : fprecision.f90
+#	f2py --opt="$(OPTS90)" -m fprecision -c fprecision.f90
+
+fmdpush1.so : mdpush1_h.pyf mdpush1.f
+	f2py $(PFC) --opt="$(OPTS90)" -m fmdpush1 -c mdpush1_h.pyf mdpush1.f
+
+mdpush1_h.pyf : mdpush1_hpy.f90
+	f2py --overwrite-signature  -m fmdpush1 -h mdpush1_h.pyf mdpush1_hpy.f90
+
+clean :
+	rm -f *.so *.pyf
+
+

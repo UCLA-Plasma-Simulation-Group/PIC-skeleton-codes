@@ -1,0 +1,232 @@
+!-----------------------------------------------------------------------
+! Interface file for mpush3.f
+      module mpush3_h
+      implicit none
+!
+      interface
+         subroutine DISTR3(part,vtx,vty,vtz,vdx,vdy,vdz,npx,npy,npz,    &
+     &idimp,nop,nx,ny,nz,ipbc)
+         implicit none
+         integer :: npx, npy, npz, idimp, nop, nx, ny, nz, ipbc
+         real :: vtx, vty, vtz, vdx, vdy, vdz
+         real, dimension(idimp,nop) :: part
+         end subroutine
+      end interface
+!
+      interface
+         subroutine DBLKP3L(part,kpic,nppmx,idimp,nop,mx,my,mz,mx1,my1, &
+     &mxyz1,irc)
+         implicit none
+         integer :: nppmx, idimp, nop, mx, my, mz, mx1, my1, mxyz1, irc
+         real, dimension(idimp,nop) :: part
+         integer, dimension(mxyz1) :: kpic
+         end subroutine
+      end interface
+!
+      interface
+         subroutine PPMOVIN3L(part,ppart,kpic,nppmx,idimp,nop,mx,my,mz, &
+     &mx1,my1,mxyz1,irc)
+         implicit none
+         integer :: nppmx, idimp, nop, mx, my, mz, mx1, my1, mxyz1, irc
+         real, dimension(idimp,nop) :: part
+         real, dimension(idimp,nppmx,mxyz1) :: ppart
+         integer, dimension(mxyz1) :: kpic
+         end subroutine
+      end interface
+!
+      interface
+         subroutine PPCHECK3L(ppart,kpic,idimp,nppmx,nx,ny,nz,mx,my,mz, &
+     &mx1,my1,mz1,irc)
+         implicit none
+         integer :: idimp, nppmx, nx, ny, nz, mx, my, mz, mx1, my1, mz1
+         integer :: irc
+         real, dimension(idimp,nppmx,mx1*my1*mz1) :: ppart
+         integer, dimension(mx1*my1*mz1) :: kpic
+         end subroutine
+      end interface
+!
+      interface
+         subroutine GPPUSH3L(ppart,fxyz,kpic,qbm,dt,ek,idimp,nppmx,nx,ny&
+     &,nz,mx,my,mz,nxv,nyv,nzv,mx1,my1,mxyz1,ipbc)
+         implicit none
+         integer :: idimp, nppmx, nx, ny, nz, mx, my, mz, nxv, nyv, nzv
+         integer :: mx1, my1, mxyz1, ipbc
+         real :: qbm, dt, ek
+         real, dimension(idimp,nppmx,mxyz1) :: ppart
+         real, dimension(3,nxv,nyv,nzv) :: fxyz
+         integer, dimension(mxyz1) :: kpic
+         end subroutine
+      end interface
+!
+      interface
+         subroutine GPPUSHF3L(ppart,fxyz,kpic,ncl,ihole,qbm,dt,ek,idimp,&
+     &nppmx,nx,ny,nz,mx,my,mz,nxv,nyv,nzv,mx1,my1,mxyz1,ntmax,irc)
+         implicit none
+         integer :: idimp, nppmx, nx, ny, nz, mx, my, mz, nxv, nyv, nzv
+         integer :: mx1, my1, mxyz1, ntmax, irc
+         real :: qbm, dt, ek
+         real, dimension(idimp,nppmx,mxyz1) :: ppart
+         real, dimension(3,nxv,nyv,nzv) :: fxyz
+         integer, dimension(mxyz1) :: kpic
+         integer, dimension(26,mxyz1) :: ncl
+         integer, dimension(2,ntmax+1,mxyz1) :: ihole
+         end subroutine
+      end interface
+!
+      interface
+         subroutine GPPOST3L(ppart,q,kpic,qm,nppmx,idimp,mx,my,mz,nxv,  &
+     &nyv,nzv,mx1,my1,mxyz1)
+         implicit none
+         integer :: nppmx, idimp, mx, my, mz, nxv, nyv, nzv, mx1, my1
+         integer :: mxyz1
+         real :: qm
+         real, dimension(idimp,nppmx,mxyz1) :: ppart
+         real, dimension(nxv,nyv,nzv) :: q
+         integer, dimension(mxyz1) :: kpic
+         end subroutine
+      end interface
+!
+      interface
+         subroutine PPORDER3L(ppart,ppbuff,kpic,ncl,ihole,idimp,nppmx,nx&
+     &,ny,nz,mx,my,mz,mx1,my1,mz1,npbmx,ntmax,irc)
+         implicit none
+         integer :: idimp, nppmx, nx, ny, nz, mx, my, mz, mx1, my1, mz1
+         integer :: npbmx, ntmax, irc
+         real, dimension(idimp,nppmx,mx1*my1*mz1) :: ppart
+         real, dimension(idimp,npbmx,mx1*my1*mz1) :: ppbuff
+         integer, dimension(mx1*my1*mz1) :: kpic
+         integer, dimension(26,mx1*my1*mz1) :: ncl
+         integer, dimension(2,ntmax+1,mx1*my1*mz1) :: ihole
+         end subroutine
+      end interface
+!
+      interface
+         subroutine PPORDERF3L(ppart,ppbuff,kpic,ncl,ihole,idimp,nppmx, &
+     &mx1,my1,mz1,npbmx,ntmax,irc)
+         implicit none
+         integer :: idimp, nppmx, mx1, my1, mz1, npbmx, ntmax, irc
+         real, dimension(idimp,nppmx,mx1*my1*mz1) :: ppart
+         real, dimension(idimp,npbmx,mx1*my1*mz1) :: ppbuff
+         integer, dimension(mx1*my1*mz1) :: kpic
+         integer, dimension(26,mx1*my1*mz1) :: ncl
+         integer, dimension(2,ntmax+1,mx1*my1*mz1) :: ihole
+         end subroutine
+      end interface
+!
+      interface
+         subroutine CGUARD3L(fxyz,nx,ny,nz,nxe,nye,nze)
+         implicit none
+         integer :: nx, ny, nz, nxe, nye, nze
+         real, dimension(3,nxe,nye,nze) :: fxyz
+         end subroutine
+      end interface
+!
+      interface
+         subroutine AGUARD3L(q,nx,ny,nz,nxe,nye,nze)
+         implicit none
+         integer :: nx, ny, nz, nxe, nye, nze
+         real, dimension(nxe,nye,nze) :: q
+         end subroutine
+      end interface
+!
+      interface
+         subroutine MPOIS33(q,fxyz,isign,ffc,ax,ay,az,affp,we,nx,ny,nz, &
+     &nxvh,nyv,nzv,nxhd,nyhd,nzhd)
+         implicit none
+         integer :: isign, nx, ny, nz, nxvh, nyv, nzv, nxhd, nyhd, nzhd
+         real :: ax, ay, az, affp, we
+         real, dimension(2*nxvh,nyv,nzv) :: q
+         real, dimension(3,2*nxvh,nyv,nzv) :: fxyz
+         complex, dimension(nxhd,nyhd,nzhd) :: ffc
+         end subroutine
+      end interface
+!
+      interface
+         subroutine WFFT3RINIT(mixup,sct,indx,indy,indz,nxhyzd,nxyzhd)
+         implicit none
+         integer :: indx, indy, indz, nxhyzd, nxyzhd
+         integer, dimension(nxhyzd) :: mixup
+         complex, dimension(nxyzhd) :: sct
+         end subroutine
+      end interface
+!
+      interface
+         subroutine WFFT3RMX(f,isign,mixup,sct,indx,indy,indz,nxhd,nyd, &
+     &nzd,nxhyzd,nxyzhd)
+         implicit none
+         integer :: isign, indx, indy, indz, nxhd, nyd, nzd
+         integer :: nxhyzd, nxyzhd
+         real, dimension(2*nxhd,nyd,nzd) :: f
+         integer, dimension(nxhyzd) :: mixup
+         complex, dimension(nxyzhd) :: sct
+         end subroutine
+      end interface
+!
+      interface
+         subroutine WFFT3RM3(f,isign,mixup,sct,indx,indy,indz,nxhd,nyd, &
+     &nzd,nxhyzd,nxyzhd)
+         implicit none
+         integer :: isign, indx, indy, indz, nxhd, nyd, nzd
+         integer :: nxhyzd, nxyzhd
+         real, dimension(3,2*nxhd,nyd,nzd) :: f
+         integer, dimension(nxhyzd) :: mixup
+         complex, dimension(nxyzhd) :: sct
+         end subroutine
+      end interface
+!
+      interface
+          subroutine FFT3RMXY(f,isign,mixup,sct,indx,indy,indz,nzi,nzp, &
+     &nxhd,nyd,nzd,nxhyzd,nxyzhd)
+         implicit none
+         integer :: isign, indx, indy, indz, nzi, nzp, nxhd, nyd, nzd
+         integer :: nxhyzd, nxyzhd
+         real, dimension(2*nxhd,nyd,nzd) :: f
+         integer, dimension(nxhyzd) :: mixup
+         complex, dimension(nxyzhd) :: sct
+         end subroutine
+      end interface
+!
+      interface
+         subroutine FFT3RMXZ(f,isign,mixup,sct,indx,indy,indz,nyi,nyp,  &
+     &nxhd,nyd,nzd,nxhyzd,nxyzhd)
+         implicit none
+         integer :: isign, indx, indy, indz, nyi, nyp, nxhd, nyd, nzd
+         integer :: nxhyzd, nxyzhd
+         real, dimension(2*nxhd,nyd,nzd) :: f
+         integer, dimension(nxhyzd) :: mixup
+         complex, dimension(nxyzhd) :: sct
+         end subroutine
+      end interface
+!
+      interface
+         subroutine FFT3RM3XY(f,isign,mixup,sct,indx,indy,indz,nzi,nzp, &
+     &nxhd,nyd,nzd,nxhyzd,nxyzhd)
+         implicit none
+         integer :: isign, indx, indy, indz, nzi, nzp, nxhd, nyd, nzd
+         integer :: nxhyzd, nxyzhd
+         real, dimension(3,2*nxhd,nyd,nzd) :: f
+         integer, dimension(nxhyzd) :: mixup
+         complex, dimension(nxyzhd) :: sct
+         end subroutine
+      end interface
+!
+      interface
+         subroutine FFT3RM3Z(f,isign,mixup,sct,indx,indy,indz,nyi,nyp,  &
+     &nxhd,nyd,nzd,nxhyzd,nxyzhd)
+         implicit none
+         integer :: isign, indx, indy, indz, nyi, nyp, nxhd, nyd, nzd
+         integer :: nxhyzd, nxyzhd
+         real, dimension(3,2*nxhd,nyd,nzd) :: f
+         integer, dimension(nxhyzd) :: mixup
+         complex, dimension(nxyzhd) :: sct
+         end subroutine
+      end interface
+!
+      interface
+         function ranorm()
+         implicit none
+         double precision :: ranorm
+         end function
+      end interface
+!
+      end module

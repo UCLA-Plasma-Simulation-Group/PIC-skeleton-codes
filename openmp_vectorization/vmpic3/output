@@ -1,0 +1,123 @@
+ number of cpus found =           12
+ maximum number of threads =           12
+ using            1  thread(s)
+ Initial Field, Kinetic and Total Energies:
+ 0.1696524E-03 0.8494452E+08 0.8494452E+08
+ ntime =          100
+ Final Field, Kinetic and Total Energies:
+ 0.1527382E+05 0.8492938E+08 0.8494465E+08
+ 
+ deposit time =    50.54283    
+ guard time =   6.7723013E-02
+ solver time =   0.8077689    
+ fft time =    10.01152    
+ push time =    169.9050    
+ sort time =    19.24288    
+ total solver time =    10.88701    
+ total particle time =    239.6907    
+ total time =    250.5777    
+ 
+ Push Time (nsec) =    30.00630    
+ Deposit Time (nsec) =    8.926186    
+ Sort Time (nsec) =    3.398414    
+ Total Particle Time (nsec) =    42.33090   
+
+
+ number of cpus found =           12
+ maximum number of threads =           12
+ using            2  thread(s)
+ Initial Field, Kinetic and Total Energies:
+ 0.1697079E-03 0.8494452E+08 0.8494452E+08
+ ntime =          100
+ Final Field, Kinetic and Total Energies:
+ 0.1527382E+05 0.8492938E+08 0.8494465E+08
+ 
+ deposit time =    25.48681    
+ guard time =   3.6213994E-02
+ solver time =   0.4293961    
+ fft time =    5.173857    
+ push time =    85.50082    
+ sort time =    9.775835    
+ total solver time =    5.639467    
+ total particle time =    120.7635    
+ total time =    126.4029    
+ 
+ Push Time (nsec) =    15.09999    
+ Deposit Time (nsec) =    4.501133    
+ Sort Time (nsec) =    1.726475    
+ Total Particle Time (nsec) =    21.32760
+
+
+ number of cpus found =           12
+ maximum number of threads =           12
+ using            4  thread(s)
+ Initial Field, Kinetic and Total Energies:
+ 0.1697312E-03 0.8494452E+08 0.8494452E+08
+ ntime =          100
+ Final Field, Kinetic and Total Energies:
+ 0.1527382E+05 0.8492938E+08 0.8494465E+08
+ 
+ deposit time =    12.82425    
+ guard time =   2.5839008E-02
+ solver time =   0.2753651    
+ fft time =    2.732371    
+ push time =    42.77775    
+ sort time =    5.952187    
+ total solver time =    3.033575    
+ total particle time =    61.55418    
+ total time =    64.58776    
+ 
+ Push Time (nsec) =    7.554823    
+ Deposit Time (nsec) =    2.264843    
+ Sort Time (nsec) =    1.051194    
+ Total Particle Time (nsec) =    10.87086
+
+
+ number of cpus found =           12
+ maximum number of threads =           12
+ using            8  thread(s)
+ Initial Field, Kinetic and Total Energies:
+ 0.1696967E-03 0.8494452E+08 0.8494452E+08
+ ntime =          100
+ Final Field, Kinetic and Total Energies:
+ 0.1527381E+05 0.8492938E+08 0.8494465E+08
+ 
+ deposit time =    6.797388    
+ guard time =   2.4247011E-02
+ solver time =   0.2192979    
+ fft time =    1.690991    
+ push time =    22.40185    
+ sort time =    5.050187    
+ total solver time =    1.934536    
+ total particle time =    34.24942    
+ total time =    36.18396    
+ 
+ Push Time (nsec) =    3.956309    
+ Deposit Time (nsec) =    1.200462    
+ Sort Time (nsec) =   0.8918951    
+ Total Particle Time (nsec) =    6.048666
+
+
+ number of cpus found =           12
+ maximum number of threads =           12
+ using           12  thread(s)
+ Initial Field, Kinetic and Total Energies:
+ 0.1697832E-03 0.8494452E+08 0.8494452E+08
+ ntime =          100
+ Final Field, Kinetic and Total Energies:
+ 0.1527382E+05 0.8492938E+08 0.8494465E+08
+ 
+ deposit time =    4.839753    
+ guard time =   2.4235003E-02
+ solver time =   0.2223490    
+ fft time =    1.405555    
+ push time =    15.75518    
+ sort time =    4.883621    
+ total solver time =    1.652139    
+ total particle time =    25.47855    
+ total time =    27.13069    
+ 
+ Push Time (nsec) =    2.782464    
+ Deposit Time (nsec) =   0.8547312    
+ Sort Time (nsec) =   0.8624786    
+ Total Particle Time (nsec) =    4.499674 

@@ -1,0 +1,26 @@
+ Initial Total Field, Kinetic and Total Energies:
+ 0.1226305E+03 0.2756842E+05 0.2769105E+05
+ Initial Electrostatic, Transverse Electric and Magnetic Field Energies:
+ 0.1199318E-07 0.0000000E+00 0.1226305E+03
+ ntime, relativity =          200           1
+ Final Total Field, Kinetic and Total Energies:
+ 0.1571901E+03 0.2753323E+05 0.2769042E+05
+ Final Electrostatic, Transverse Electric and Magnetic Field Energies:
+ 0.4267767E+02 0.1801152E+00 0.1143323E+03
+
+ deposit time =   1.95079744E-02
+ current deposit time =   5.81159592E-02
+ total deposit time =   7.76239336E-02
+ guard time =   3.50000082E-05
+ solver time =   2.75900657E-03
+ fft time =   8.68498813E-03
+ push time =   0.17391585    
+ sort time =   1.29300007E-03
+ total solver time =   1.14789950E-02
+ total particle time =   0.25283277    
+ total time =   0.26431176    
+
+ Push Time (nsec) =    47.177692    
+ Deposit Time (nsec) =    21.056839    
+ Sort Time (nsec) =   0.35074872    
+ Total Particle Time (nsec) =    68.585281

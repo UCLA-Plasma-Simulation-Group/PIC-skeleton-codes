@@ -1,0 +1,227 @@
+Skeleton 1-2/2D Electromagnetic OpenMP Particle-in-Cell (PIC) codes
+by Viktor K. Decyk
+copyright 2015, regents of the university of california
+
+This program contains sample codes for illustrating the basic structure
+of a 1-2/2D Electromagnetic OpenMP Particle-in-Cell (PIC) code, in both
+Fortran and C. The codes have no diagnosics except for initial and final
+energies.  Their primary purpose is to provide example codes for
+physical science students learning about OpenMP PIC codes.  They are
+also intended as benchmark reference codes to aid in developing new
+codes and in evaluating new computer architectures.  A serial version of
+this code with the same structure (bpic1) also exists, and can be
+compared to this code in order to understand the parallel algorithms.
+
+PIC codes are widely used in plasma physics.  They model plasmas as
+particles which interact self-consistently via the electromagnetic
+fields they themselves produce.  PIC codes generally have three
+important procedures in the main iteration loop.  The first is the
+deposit, where some particle quantity, such as a charge, is accumulated
+on a grid via interpolation to produce a source density.  The second
+important procedure is the field solver, which solves Maxwell’s equation
+or a subset to obtain the electric and/or magnetic fields from the
+source densities.  Finally, once the fields are obtained, the particle
+forces are found by interpolation from the grid, and the particle
+co-ordinates are updated, using Newton’s second law and the Lorentz
+force.  The particle processing parts dominate over the field solving
+parts in a typical PIC application.
+
+More details about PIC codes can be found in the texts by C. K. Birdsall
+and A. B. Langdon, Plasma Physics via Computer Simulation, 1985,
+R. W. Hockney and J. W. Eastwood, Computer Simulation Using Particles,
+1981, and John M. Dawson, "Particle simulation of plasmas", Rev. Mod.
+Phys. 55, 403 (1983).  Details about the mathematical equations and
+units used in this code is given in the companion article,
+"Description of Electromagnetic Spectral Code from the UPIC Framework"
+by Viktor K. Decyk, UCLA, in the file EMModels.pdf.
+
+Details abut OpenMP can be found in the book by Rohit Chandra, Leonardo
+Dagum, Dave Kohr, Dror Maydan, Jeff McDonald, and Ramesh Menon, Parallel
+Programming in OpenMP, Morgan Kaufmann, 2001.
+
+No warranty for proper operation of this software is given or implied.
+Software or information may be copied, distributed, and used at own
+risk; it may not be distributed without this notice included verbatim
+with each file.  If use of these codes results in a publication, an
+acknowledgement is requested.
+
+The code here uses the complete electromagnetic interaction, obtained by
+solving Maxwell's equation.  A spectral method using Fast Fourier
+Transforms (FFTs) is used to solve the Maxwell and Poisson equations.  A
+real to complex FFT is used, and the data in Fourier space is stored in
+a packed format, where the input and output sizes are the same.  The
+boundary conditions are periodic, only electron species are included,
+and linear interpolation is used.
+
+For parallelization, the code uses a tiling (or blocking) technique.
+Space is divided into small 1D tiles (with typically 32 grid points in a
+tile), and particles are organized so that their co-ordinates in x lie
+within the same tile and are stored together in memory.  Assigning
+different threads to different tiles avoids data collisions (where 2
+threads try to write to the same memory location at the same time).  The
+size of the tiles should be smaller than the L1 cache and the number of
+tiles should be equal to or greater than the number of processing cores.
+There are 4 major procedures which make use of the tiled data structure,
+the charge and current deposits, the particle push, and the particle
+reordering.  In the deposit procedures, each thread first deposits to a
+small local density array the size of a tile plus guard cells.  After
+all the particles in a tile have been processed the small density array
+is added to the global density arrays.  The particle push is similar,
+where each thread first copies the global field arrays to small local
+field arrays which are then used for field interpolation.  The particle
+reordering procedure (PPORDERF1L) moves particles which are leaving one
+tile into the appropriate location in another tile.  This is done by
+first copying outgoing particles into an ordered particle buffer.  Then
+particles are copied from the buffer into the new locations in the
+particle array.  Performing this in two steps allows one to avoid data
+collisions when running in parallel.  Further information about this
+tiling parallel algorithm used can be found in the companion
+presentation OpenMP-PIC.pdf and in the article:
+V. K. Decyk and T. V. Singh, "Particle-in-Cell Algorithms for Emerging
+Computer Architectures," Computer Physics Communications, 185, 708,
+2014, available at http://dx.doi.org/10.1016/j.cpc.2013.10.013.
+
+The default particle push and current deposit procedures calculate the
+list of particles leaving the tiles.  This was done because the code was
+faster.  There are, however, versions of the push
+(GBPPUSH1L,GRBPPUSH1L) and current deposit (GJPPOST1L,GRJPPOST1L)
+procedures which do not calculate the list, and are easier to
+understand.  These versions of the push and deposit require a different
+reordering procedure (PPORDER1L) which calculates the list.
+
+Particles are initialized with a uniform distribution in space and a
+gaussian distribution in velocity space.  This describes a plasma in
+thermal equilibrium.  The inner loop contains a current and charge
+deposit, add guard cell procedures, a vector and scalar FFT, a
+transverse current procedure, Maxwell and Poisson solvers, vector FFTs,
+copy guard cell procedures, a particle push, and a particle reordering
+procedure.  The final energy and timings are printed.  A sample output
+file for the default input parameters is included in the file output.
+
+In more detail, the inner loop of the code contains the following
+procedures in Fortran (C):
+
+Deposit section:
+   GRJPPOSTF1L (cgrjppostf1l): relativistic current deposit, and update
+                               position. also calculate locations of
+                               particles leaving tile for PPORDERF1L.
+                               x(t+dt/2)->x(t+dt)
+   GJPPOSTF1L (cgjppostf1l): deposit current density, and update
+                             position. also calculate locations of
+                             particles leaving tile for PPORDERF1L.
+                             x(t+dt/2)->x(t+dt)
+   PPORDERF1L (cpporderf1l) : move particles to appropriate tile from
+                              list supplied by GRJPPOSTF1L or GJPPOSTF1L
+   GPPOST1L (cgppost1l): deposit charge density
+   ACGUARD1L (cacguard1l): add current density guard cells
+   AGUARD1L (caguard1l): add charge density guard cells
+
+Field solve section:
+   FFT1RXX (cfft1rxx): FFT charge density to fourier space
+   FFT1R2X (cfft1r2x): FFT current density to fourier space
+   IBPOIS13 (cibpois13): calculate initial magnetic field in fourier
+                         space
+   MAXWEL1 (cmaxwel1): update transverse electromagnetic fields in
+                       fourier space
+   POIS1 (cpois1): calculate smoothed longitudinal electric field in
+                       fourier space.
+   EMFIELD1 (cemfield1): add smoothed longitudinal and transverse
+                         electric fields
+   BMFIELD1 (cbmfield1): copy smoothed magnetic field
+   FFT1R3X (cfft1r3x): FFT smoothed electric field to real space
+   FFT1R2X (cfft1r2x)): FFT smoothed magnetic field to real space
+
+Particle Push section:
+   BGUARD1L (cbguard1l): fill in guard cells for smoothed electric field
+   CGUARD2L (ccguard1l): fill in guard cells for smoothed magnetic field
+   GRBPPUSHF1L (cgrbppushf1l): update relativistic particle
+                               co-ordinates with smoothed electric and
+                               magnetic fields. also calculates
+                               locations of particles leaving tile for
+                               PPORDERF1L.
+                               x(t)->x(t+dt/2); v(t-dt/2)->v(t+dt/2)
+   GBPPUSHF1L (cgbppushf1l): update particle co-ordinates with
+                             smoothed electric and magnetic fields.
+                             also calculates locations of particles
+                             leaving tile for PPORDERF1L.
+                             x(t)->x(t+dt/2); v(t-dt/2)->v(t+dt/2)
+   PPORDERF1L (cpporderf1l) : move particles to appropriate tile from
+                              list supplied by GRBPPUSHF1L or
+                              GBPPUSHF1L
+
+The inputs to the code are the grid parameter indx, the particle number
+parameter npx, the time parameters tend, dt, the velocity paramters vtx,
+vty, vtz, vx0, vy0, vz0, the inverse speed of light ci, the flag
+relativity.  In addition, a tile size mx and overflow size xtras are
+defined.
+
+In more detail:
+indx = exponent which determines length in x direction, nx=2**indx.
+   These ensure the system lengths are a power of 2.
+npx = number of electrons distributed in x direction.
+   The total number of particles in the simulation is npx
+tend = time at end of simulation, in units of plasma frequency.
+dt = time interval between successive calculations.
+   The number of time steps the code runs is given by tend/dt.
+   dt should be less than .64*ci for the electromagnetic code.
+vtx/vty/vtz = thermal velocity of electrons in x/y/z direction.
+   a typical value is 1.0.
+vx0/vy0/vz0 = drift velocity of electrons in x/y/z direction.
+ci = reciprocal of velocity of light
+relativity = (no,yes) = (0,1) = relativity is used
+mx = number of grids points in x in each tile
+   should be less than or equal to 128.
+xtras = fraction of extra particles needed for particle management
+
+The major program files contained here include:
+mbpic1.f90    Fortran90 main program 
+mbpic1.c      C main program
+omplib.f      Fortran77 OpenMP utility library
+omplib_h.f90  Fortran90 OpenMP utility interface (header) library
+omplib.c      C OpenMP utility library
+omplib.h      C OpenMP utility header library
+mbpush1.f     Fortran77 procedure library
+mbpush1_h.f90 Fortran90 procedure interface (header) library
+mbpush1.c     C procedure library [Not yet implemented]
+mbpush1.h     C procedure header library
+dtimer.c      C timer function, used by both C and Fortran
+
+Files with the suffix .f90 adhere to the Fortran 90 standard, files with
+the suffix .f adhere to the Fortran77 standard, files with the suffix .c
+and .h adhere to the C99 standard.
+
+The makefile is setup to use gcc and gfortran with Linux.  A version for
+Mac OS X is also in the Makefile, but is commented out.  
+
+Two executables can be created, fmbpic1 for Fortran, and cmbpic1_f for C
+
+To compile program, execute:
+
+Make program_name
+
+where program_name is either: fmbpic1 or cmbpic1_f, or execute:
+
+make
+
+to create both programs.
+
+To execute, type the name of the executable:
+
+./program_name
+
+where program_name is either fmbpic1 or cmbpic1_f.  By default, OpenMP
+will use the maximum number of processors it can find.  If the user
+wants to control the number of threads, you can set a parameter nvp in
+the main program. In addition, the environment variable OMP_NUM_THREADS
+may need to be set to the maximum number of threads expected.
+
+The file output contains the results produced for the default parameters.
+
+The Fortran version can be compiled to run with double precision by
+changing the Makefile (typically by setting the compiler options flags
+-r8).
+
+The libraries omplib.c and mbpush1.c contain wrapper functions to allow
+the C libraries to be called from Fortran.  The libraries omplib_f.c and
+mbpush1_f.c contain wrapper functions to allow the Fortran libraries to
+be called from C.

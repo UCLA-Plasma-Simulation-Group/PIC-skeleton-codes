@@ -1,0 +1,87 @@
+Skeleton 2D Electrostatic Python MPI Particle-in-Cell (PIC) code
+by Viktor K. Decyk, Adam Tableman, and Qiyang Hu
+copyright 2015, regents of the university of california
+
+This file contains 2D Electrostatic Python MPI PIC codes.  They are
+based on the 2D Electrostatic MPI PIC codes contained in the directory
+ppic2.  The primary purpose is to illustrate how to replace a Fortran or
+C main code with a Python script, in order allow the program to be run
+interactively.
+
+Python version 2.7 is recommended, and is available from the web site:
+www.python.org.  Numpy (http://www.numpy.org) and SciPy
+(http://www.scipy.org) also need to be installed.
+
+The file fppic2.py is a line by line translation of ppic2.f90 in the
+directory ppic2, and cpic2.py is a translation of ppic2.c.  The
+procedure libraries ppush2.f, ppush2.c, pplib2.f90, and pplib2.c are
+identical to those in ppic2.  Interface function ppush2pp_hpy.f90 is
+provided to allow the f2py program to automatically wrap the procedures
+to make them accessible to Python.  The interface file ppush2pp_hpy.f90
+is a merger of the files ppush2_h.f90 and pplib2_h.f90.  It was
+necessary to merge these two files because the procedures in pplib2.f
+are used both by the Python script as well as internally in ppush2.f.
+These files are further modified in in two ways.  The first modification
+was the removal of the module/end module statements, which fp2y cannot
+currently handle properly.  The second was the replacement of 
+explicit-shape array declarations with assumed-size array declarations
+so that f2py would not remove the arguments in the array declarations
+from the argument list.  The file cppush2pp_hpy.f90 is the same as
+ppush2pp_hpy.f90, except that the function names have been changed to
+the C versions.  This works because the files ppush2.c and pplib2.c
+already contain wrappers for Fortran.
+
+No warranty for proper operation of this software is given or implied.
+Software or information may be copied, distributed, and used at own
+risk; it may not be distributed without this notice included verbatim
+with each file.  If use of these codes results in a publication, an
+acknowledgement is requested.
+
+The major program files contained here include:
+fppic2.py          Python main script for Fortran procedure library
+cppic2.py          Python main script for C procedure library
+ppush2.f           Fortran77 procedure library
+ppush2pp_hpy.f90   Fortran procedure and MPI interface (header) library
+ppush2.c           C procedure library
+ppush2.h           C procedure header library
+cppush2pp_hpy.f90  C procedure and MPI interface (header) library
+dtimer.c           C timer function, used by both C and Fortran
+dtimer_hpy.f90     C timer interface (header) library
+pplib2.f90         Fortran90 MPI communications library
+pplib2.c           C MPI communications library
+pplib2.h           C MPI communications header library
+
+Files with the suffix .f90 adhere to the Fortran 90 standard, files with
+the suffix .f adhere to the Fortran77 standard, files with the suffix .c
+and .h adhere to the C99 standard.
+
+The makefile is setup to use gcc and gfortran with Linux.  Versions for
+other compitlers are also in the Makefile but are commented out.
+
+Two dynamic libraries can be created, fppush2.so for Fortran and
+cppush2.so for C.  To create them, execute:
+
+Make program_name
+
+where program_name is either: fppic2.py or cppic2.py, or execute:
+
+make
+
+to create both libraries.
+
+To execute, type the name of the executable:
+
+mpirun -np nproc python program_name
+
+where program_name is either fppic2.py or cppic2.py, and
+where nproc is the number of processors to be used.
+
+There is one restriction on the number of processors which can be used:
+this simple skeleton code does not support the case where MPI nodes have
+zero grid points.  This special case can happen for certain combinations
+of the grid size in y (set by the parameter indy) and the number of
+processors chosen.  If this happens the code will exit with an error
+message.  This special case will never occur if the grid size in y is an
+exact multiple of the number of processors.
+
+The file output contains the results produced for the default parameters.
