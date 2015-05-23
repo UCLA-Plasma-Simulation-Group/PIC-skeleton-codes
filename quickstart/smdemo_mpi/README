@@ -12,10 +12,10 @@ The test case is simple vector add function. These codes can be used as
 templates for setting up more complex programs.
 
 For MPI, two executables can be created:
-cmpitest, creates a C main program from a C library mpimain.c
-fmpitest, creates a Fortran main program from a Fortran library mpimain.f
-The C library mpimain.c is compiled using the mpicc compiler.
-The Fortran library mpimain.f is compiled using the mpif90 compiler.
+cmpitest, creates a C main program from a C library mpilib.c
+fmpitest, creates a Fortran main program from a Fortran library mpilib.f
+The C library mpilib.c is compiled using the mpicc compiler.
+The Fortran library mpilib.f is compiled using the mpif90 compiler.
 
 To compile and link each individual program, execute:
 

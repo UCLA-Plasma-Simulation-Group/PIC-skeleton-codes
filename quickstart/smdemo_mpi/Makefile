@@ -2,33 +2,25 @@
 
 # Makefile gfortran compiler with MacOS X
 
-CARBON = /System/Library/Frameworks/Carbon.framework/Carbon
-
-#FC90 = gfortran
-#CC = gcc
+#MPIFC = mpif90
+#MPICC = mpicc
 
 #OPTS90 = -O3
 #CCOPTS = -O3
 
-#MPI
-#LOPTS =
-
 # Makefile gfortran compiler with Linux
 
-FC90 = gfortran
-CC = gcc
+MPIFC = mpif90
+MPICC = mpicc
 
 OPTS90 = -O3
 CCOPTS = -O3
 
-#MPI
-LOPTS =
-
 #
 
-MPIOBJS = cmpimain.o dtimer.o
+MPIOBJS = cmpilib.o dtimer.o
 
-FMPIOBJS = fmpimain.o dtimer.o
+FMPIOBJS = fmpilib.o dtimer.o
 
 # Linkage rules
 
@@ -38,11 +30,11 @@ mpi: cmpitest fmpitest
 
 #MPI
 cmpitest : cmpitest.o $(MPIOBJS)
-	mpicc $(CCOPTS) $(LOPTS) -o cmpitest cmpitest.o \
+	$(MPICC) $(CCOPTS) $(LOPTS) -o cmpitest cmpitest.o \
       $(MPIOBJS)
 
 fmpitest : fmpitest.o $(FMPIOBJS)
-	mpif90 $(OPTS90) $(LOPTS) -o fmpitest fmpitest.o \
+	$(MPIFC) $(OPTS90) $(LOPTS) -o fmpitest fmpitest.o \
       $(FMPIOBJS)
 
 # Compilation rules
@@ -51,17 +43,17 @@ dtimer.o : dtimer.c
 	$(CC) $(CCOPTS) -c dtimer.c
 
 #MPI
-cmpimain.o : mpimain.c
-	mpicc $(CCOPTS) -o cmpimain.o -c mpimain.c
+cmpilib.o : mpilib.c
+	$(MPICC) $(CCOPTS) -o cmpilib.o -c mpilib.c
 
-fmpimain.o : mpimain.f
-	mpif90 $(OPTS90) -o fmpimain.o -c mpimain.f
+fmpilib.o : mpilib.f
+	$(MPIFC) $(OPTS90) -o fmpilib.o -c mpilib.f
 
 cmpitest.o : cmpitest.c
-	mpicc $(CCOPTS) -c cmpitest.c
+	$(MPICC) $(CCOPTS) -c cmpitest.c
 
 fmpitest.o : fmpitest.f90
-	mpif90 $(OPTS90) -c fmpitest.f90
+	$(MPIFC) $(OPTS90) -c fmpitest.f90
 
 clean:
 	rm -f *.o *.mod

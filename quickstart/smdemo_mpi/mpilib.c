@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include "mpi.h"
+#include "mpilib.h"
 
 /* nproc = number of real or virtual processors obtained */
 static int nproc;
@@ -84,6 +85,25 @@ void init_mpi(int *idproc, int *nvp, int *irc, int argc, char *argv[]) {
    msum = MPI_SUM;
    mmax = MPI_MAX;
    *nvp = nproc;
+   return;
+}
+
+/*--------------------------------------------------------------------*/
+void ppmax(float f[], float g[], int nxp) {
+/* this subroutine finds parallel maximum for each element of a vector
+   that is, f[k][j] = maximum as a function of k of f[k][j]
+   at the end, all processors contain the same maximum.
+   f = input and output float data
+   g = scratch float array
+   nxp = number of data values in vector
+local data */
+   int j, ierr;
+/* find maximum */
+   ierr = MPI_Allreduce(f,g,nxp,mreal,mmax,lgrp);
+/* copy output from scratch array */
+   for (j = 0; j < nxp; j++) {
+      f[j] = g[j];
+   }
    return;
 }
 

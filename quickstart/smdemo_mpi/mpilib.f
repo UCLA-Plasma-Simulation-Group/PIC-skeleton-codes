@@ -98,6 +98,37 @@ c operators
       return
       end
 c-----------------------------------------------------------------------
+      subroutine PPMAX(f,g,nxp)
+c this subroutine finds parallel maximum for each element of a vector
+c that is, f(j,k) = maximum as a function of k of f(j,k)
+c at the end, all processors contain the same maximum.
+c f = input and output real data
+c g = scratch real array
+c nxp = number of data values in vector
+      implicit none
+      real f, g
+      integer nxp
+      dimension f(nxp), g(nxp)
+c common blocks for parallel processing
+      integer nproc, lgrp, lstat, mreal, mint, mcplx, mdouble, lworld
+      integer msum, mmax
+      parameter(lstat=10)
+c lgrp = current communicator
+c mreal = default real type
+      common /PPARMS/ nproc, lgrp, mreal, mint, mcplx, mdouble, lworld
+c mmax = MPI_MAX
+      common /PPARMSX/ msum, mmax
+c local data
+      integer j, ierr
+c find maximum
+      call MPI_ALLREDUCE(f,g,nxp,mreal,mmax,lgrp,ierr)
+c copy output from scratch array
+      do 10 j = 1, nxp
+      f(j) = g(j)
+   10 continue
+      return
+      end
+c-----------------------------------------------------------------------
       subroutine VSCATTER(f,g,nx,nxp)
 c this subroutine performs a scatter of a real vector, that is,
 c successive nxp blocks of source f on processor 0, are sent to
