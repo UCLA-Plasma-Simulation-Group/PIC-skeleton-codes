@@ -12,10 +12,10 @@ Fortran.  The test case is simple vector add function. These codes can
 be used as templates for setting up more complex programs.
 
 For Pthreads, two executables can be created:
-cpthtest, creates a C main program from a C library pthmain.c
-fpthtest, creates a Fortran main program from a Fortran library pthmain.f
-The C library pthmain.c is compiled using the gcc compiler.
-The Fortran library pthmain.f is compiled using the gfortran compiler.
+cpthtest, creates a C main program from a C library pthlib.c
+fpthtest, creates a Fortran main program from a Fortran library pthlib.f
+The C library pthlib.c is compiled using the gcc compiler.
+The Fortran library pthlib.f is compiled using the gfortran compiler.
 All of these libraries rely on a library called LnxMP.c, which provides
 a simplified interface for the Posix pthreads library.  A description of
 the library LnxMP.c is in the document LnxMP.txt.

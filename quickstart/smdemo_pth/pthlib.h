@@ -1,6 +1,6 @@
 void init_pt();
 
-void setnthsize(int nth, int *irc);
+void setnthsize(int nth);
 
 void copy_memptr(float *f, float *p_f, int nsize);
 

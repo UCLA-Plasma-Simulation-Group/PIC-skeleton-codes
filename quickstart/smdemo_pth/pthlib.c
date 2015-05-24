@@ -4,6 +4,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include "LnxMP.h"
+#include "pthlib.h"
+
 
 #define MAXTHREADS                 16
 
@@ -48,21 +50,11 @@ void setnthsize(int nth) {
 }
 
 /*--------------------------------------------------------------------*/
-void copy_memptr(float *f, float *p_f, int nsize) {
-/* copyin float array */
-   int j;
-   for (j = 0; j < nsize; j++) {
-      p_f[j] = f[j];
-   }
-   return;
-}
-
-/*--------------------------------------------------------------------*/
 void ptadd(float *a, float *b, float *c, int nx, int *irc) {
 /*  multitasking vector add */
 /*  irc = ierror indicator (0 = no error) */
 /* local data */
-   int i, nmt, nxp, nxo;
+   int i, nmt, nxp, nxo, nxps;
    int nargs;
    nargs = 4;
    nmt = nthreads - 1;
@@ -79,8 +71,8 @@ void ptadd(float *a, float *b, float *c, int nx, int *irc) {
    }
 /* add remaining data */
    nxo = nxp*nmt;
-   nxp = nx - nxp*nmt;
-   padd(&a[nxo],&b[nxo],&c[nxo],&nxp);
+   nxps = nx - nxp*nmt;
+   padd(&a[nxo],&b[nxo],&c[nxo],&nxps);
 /* wait for tasks to complete */
    for (i = 0; i < nmt; i++) {
       MP_Taskwait(&idtask[i]);

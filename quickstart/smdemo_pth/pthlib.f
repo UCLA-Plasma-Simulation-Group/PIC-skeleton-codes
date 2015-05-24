@@ -12,6 +12,17 @@ c-----------------------------------------------------------------------
       return
       end
 c-----------------------------------------------------------------------
+      block data
+      implicit none
+c initialize common block for parallel processing
+      integer maxthreads, nthreads, idtask
+      parameter(maxthreads=16)
+      dimension idtask(maxthreads)
+      common /ptdata/ nthreads, idtask
+      save /ptdata/
+      data nthreads /1/
+      end
+c-----------------------------------------------------------------------
       subroutine INIT_PT(nth,irc)
 c initialize multi-tasking library
 c use nth threads if nth > 0; otherwise, use the number found
@@ -63,7 +74,7 @@ c common block for parallel processing
       dimension idtask(maxthreads)
       common /ptdata/ nthreads, idtask
 c local data
-      integer i, nmt, nxp, nxo
+      integer i, nmt, nxp, nxo, nxps
       external PADD
       nmt = nthreads - 1
       nxp = (nx - 1)/nthreads + 1
@@ -79,8 +90,8 @@ c check for errors
    10 continue
 c add remaining data
       nxo = nxp*nmt + 1
-      nxp = nx - nxp*nmt
-      call PADD(a(nxo),b(nxo),c(nxo),nxp)
+      nxps = nx - nxp*nmt
+      call PADD(a(nxo),b(nxo),c(nxo),nxps)
 c wait for tasks to complete
       do 20 i = 1, nmt
       call MP_TASKWAIT(idtask(i))

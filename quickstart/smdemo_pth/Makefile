@@ -2,8 +2,6 @@
 
 # Makefile gfortran compiler with MacOS X
 
-CARBON = /System/Library/Frameworks/Carbon.framework/Carbon
-
 #FC90 = gfortran
 #CC = gcc
 
@@ -28,9 +26,9 @@ PTLIBS = -lpthread
 
 #
 
-PTOBJS = cpthmain.o $(MPOBJS) dtimer.o
+PTOBJS = cpthlib.o $(MPOBJS) dtimer.o
 
-FPTOBJS = fpthmain.o $(MPOBJS) dtimer.o
+FPTOBJS = fpthlib.o $(MPOBJS) dtimer.o
 
 # Linkage rules
 
@@ -59,11 +57,11 @@ LnxMP.o : LnxMP.c
 LPProcessors.o : LPProcessors.c
 	$(CC) $(CCOPTS) -c LPProcessors.c
 
-cpthmain.o : pthmain.c
-	$(CC) $(CCOPTS) -o cpthmain.o -c pthmain.c
+cpthlib.o : pthlib.c
+	$(CC) $(CCOPTS) -o cpthlib.o -c pthlib.c
 
-fpthmain.o : pthmain.f
-	$(FC90) $(OPTS90) -o fpthmain.o -c pthmain.f
+fpthlib.o : pthlib.f
+	$(FC90) $(OPTS90) -o fpthlib.o -c pthlib.f
 
 cpthtest.o : cpthtest.c
 	$(CC) $(CCOPTS) -c cpthtest.c

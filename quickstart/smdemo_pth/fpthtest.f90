@@ -6,21 +6,24 @@
       implicit none
       integer :: nx = 1048576, nthreads = 1
       integer :: j, irc
-      real :: time = 0.0
       real :: eps, epsmax
+! timing data
       double precision :: dtime
-      real, dimension(:), pointer :: a, b, c, d
       integer, dimension(4) :: itime
+! data for Fortran
+      real, dimension(:), pointer :: a, b, c
+! data for Pthreads
       real, dimension(:), pointer :: p_a, p_b, p_c
 !
 ! initialize Host data
-      allocate(a(nx),b(nx),c(nx),d(nx))
+      allocate(a(nx),b(nx),c(nx))
+! initialize vectors
       do j = 1, nx
          b(j) = j
          c(j) = 2*j
       enddo
-      a = 0.0; d = -1.0
-! set up pthreads
+      a = 0.0
+! set up Pthreads
       irc = 0
       call init_pt(0,irc)
       if (irc /= 0) then
@@ -28,50 +31,38 @@
          stop
       endif
 !     call setnthsize(nthreads)
-! allocate data for pthreads
+! allocate data for Pthreads
       allocate(p_a(nx),p_b(nx),p_c(nx))
+! Copy initial data for Pthreads
+      p_b = b; p_c = c
 !
 ! First execute on Host in Fortran: a = b + c
       call dtimer(dtime,itime,-1)
       call fadd(a,b,c,nx)
       call dtimer(dtime,itime,1)
       write (*,*) 'Fortran add time=', real(dtime)
-! Copy data for pthreads
-      call dtimer(dtime,itime,-1)
-      p_b = b
-      p_c = c
-      call dtimer(dtime,itime,1)
-      time = time + real(dtime)
-      write (*,*) 'Copyin time=', real(dtime)
-! Execute with pthreads: g_a = g_b + g_c
+!
+! Execute with Pthreads: p_a = p_b + p_c
       call dtimer(dtime,itime,-1)
       call ptadd(p_a,p_b,p_c,nx,irc)
       call dtimer(dtime,itime,1)
-      time = time + real(dtime)
       if (irc /= 0) write (*,*) 'ptadd error: irc=',irc
       write (*,*) 'pthreads add time=', real(dtime)
-! Copy data from pthreads: d = g_a
-      call dtimer(dtime,itime,-1)
-      d = p_a
-      call dtimer(dtime,itime,1)
-      time = time + real(dtime)
-      write (*,*) 'Copyout time=', real(dtime)
-      write (*,*) 'Total pthreads time=',time
 !
-! Check for correctness: compare a and d
+! Check for correctness: compare a and p_a
       epsmax = 0.0
       do j = 1, nx
-         eps = abs(a(j)-d(j))
+         eps = abs(a(j)-p_a(j))
          if (eps > epsmax) epsmax = eps
       enddo
       write (*,*) 'maximum difference = ', epsmax
 !
-! deallocate memory for pthreads
+! deallocate memory for Pthreads
       deallocate(p_a,p_b,p_c)
-! close down pthreads
+! close down Pthreads
       call end_pt()
 ! deallocate Host memory
-      deallocate(a,b,c,d)
+      deallocate(a,b,c)
 !
       end program
 !
