@@ -7,6 +7,8 @@
 
 static int nblock_size = 64;
 static int ngrid_size = 1;
+int maxgsx = 65535;
+int mmcc = 0;
 static int devid;
 
 static cudaError_t crc;
@@ -80,20 +82,29 @@ extern "C" void init_cu(int dev, int *irc) {
          prop.name[0] = 0;
       }
       maxunits = prop.multiProcessorCount;
-      printf("j=%i:CUDA_DEVICE_NAME=%s,CUDA_MULTIPROCESSOR_COUNT=%i\n",
-             j,prop.name,maxunits);
-      msize = prop.totalGlobalMem;
-      z = ((double) msize)/1073741824.0;
-      printf("    CUDA_GLOBAL_MEM_SIZE=%u(%f GB)\n",msize,(float) z);
-      if (maxunits > maxcpus) {
-         maxcpus = maxunits;
-         jm = j;
+      if (dev <= 0) {
+         printf("j=%i:CUDA_DEVICE_NAME=%s,CUDA_MULTIPROCESSOR_COUNT=%i\n",
+                j,prop.name,maxunits);
+         msize = prop.totalGlobalMem;
+         z = ((double) msize)/1073741824.0;
+         mmcc = 10*prop.major + prop.minor;
+         printf("    CUDA_GLOBAL_MEM_SIZE=%lu(%f GB),Capability=%d\n",
+                msize,(float) z,mmcc);
+         printf("    Capability=%d\n",mmcc);
+         if (maxunits > maxcpus) {
+            maxcpus = maxunits;
+            jm = j;
+         }
       }
    }
    devid = jm;
-   if ((dev >= 0) && (dev < ndevs))
-      devid = dev;
+   if (dev >= 0)
+      devid = dev % ndevs;
    printf("using device j=%i\n",devid);
+/* get properties for this device */
+   crc = cudaGetDeviceProperties(&prop,devid);
+   maxgsx = prop.maxGridSize[0];
+   mmcc = 10*prop.major + prop.minor;
 /* set device */
    crc = cudaSetDevice(devid);
    if (crc) {

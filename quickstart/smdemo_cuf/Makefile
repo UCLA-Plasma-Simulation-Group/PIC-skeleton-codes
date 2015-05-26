@@ -17,7 +17,7 @@ NVOPTS = -O3
 #NVOPTS = -O -deviceemu
 #
 
-FCUOBJS = gpumain_cuf.o dtimer.o
+FCUOBJS = gpulib_cuf.o dtimer.o
 
 # Linkage rules
 
@@ -34,10 +34,10 @@ dtimer.o : dtimer.c
 	$(CC) $(CCOPTS) -c dtimer.c
 
 #CUDA FORTRAN
-gpumain_cuf.o : gpumain_cuf.cuf
-	pgf90 $(OPTS90) -c gpumain_cuf.cuf
+gpulib_cuf.o : gpulib_cuf.cuf
+	pgf90 $(OPTS90) -c gpulib_cuf.cuf
 
-fgputest_cuf.o : fgputest_cuf.f90 gpumain_cuf.o
+fgputest_cuf.o : fgputest_cuf.f90 gpulib_cuf.o
 	pgf90 -Mcuda $(OPTS90) -c fgputest_cuf.f90
 
 clean:

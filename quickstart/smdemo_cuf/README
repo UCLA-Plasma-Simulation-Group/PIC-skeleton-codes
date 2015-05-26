@@ -13,7 +13,7 @@ for setting up more complex programs.
 
 For CUDA Fortran, one executable can be created:
 fgputest_cuf, creates a Fortran main program from a Fortran library
-gpumain_cuf.cuf.  The Fortran library gpumain_cuf.cuf is compiled using
+gpumain_cuf.cuf.  The Fortran library gpulib_cuf.cuf is compiled using
 the PGI pgf90 CUDA compiler.  The main program fgputest_cuf.f90 is
 compiled using the PGI pgf90 CUDA compiler.
 

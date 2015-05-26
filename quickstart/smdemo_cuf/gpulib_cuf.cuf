@@ -1,0 +1,144 @@
+! GPU vector add test program for CUDA Fortran
+! written by Viktor K. Decyk, UCLA/
+      module gpulib_cuf
+      use cudafor
+      implicit none
+!
+      integer :: nblock_size = 64, ngrid_size = 1, maxgsx = 65535
+      integer :: mmcc = 0
+      integer :: devid, crc
+      save
+!
+      contains
+!
+!-----------------------------------------------------------------------
+      attributes(global) subroutine gadd(a,b,c,nx)
+      implicit none
+      integer, value :: nx
+      real :: a(nx), b(nx), c(nx)
+      integer :: j
+      j = threadIdx%x+blockDim%x*(blockIdx%x-1)
+      if (j <= nx) a(j) = b(j) + c(j)
+      end subroutine
+!
+!-----------------------------------------------------------------------
+      subroutine gpadd(a,b,c,nx)
+! Vector Add Interface
+      implicit none
+      integer :: nx
+      real, device, dimension(:) :: a(nx), b(nx), c(nx)
+      integer :: crc
+      type (dim3) :: dimBlock, dimGrid
+      dimBlock = dim3(nblock_size,1,1)
+      dimGrid = dim3((nx-1)/nblock_size+1,1,1)
+      call gadd<<<dimGrid,dimBlock>>>(a,b,c,nx)
+      crc = cudaThreadSynchronize()
+      end subroutine
+!
+      attributes(global) subroutine emptyKernel()
+      end subroutine
+!
+!-----------------------------------------------------------------------
+      subroutine empty_kernel()
+      implicit none
+      integer :: crc, ngx, ngy
+      type (dim3) :: dimBlock, dimGrid
+      ngx = min(nblock_size,32768)
+      ngy = (ngrid_size - 1)/ngx + 1
+      dimBlock = dim3(nblock_size,1,1)
+      dimGrid = dim3(ngx,ngy,1)
+      crc = cudaGetLastError()
+      call emptyKernel<<<dimGrid,dimBlock>>>()
+      crc = cudaThreadSynchronize()
+      crc = cudaGetLastError()
+      if (crc /= 0) then
+         write (*,*) 'emptyKernel real Error=', crc, ':',               &
+     &cudaGetErrorString(crc)
+         stop
+      endif
+      end subroutine
+!
+!-----------------------------------------------------------------------
+      subroutine init_cuf(dev,irc)
+! initialize CUDA with device dev or selects best GPU available
+! searches throughs devices, selects the device with the most compute
+! units, and saves the device id devid
+! if dev is a valid device, it is used, otherwise the GPU with the
+! most multi-processors is selected 
+! error code is modified only if there is an error
+      implicit none
+      integer, intent(in) :: dev
+      integer :: irc
+! local data
+      integer :: maxcpus = 0, jm = -1
+      integer :: j, js, ndevs, maxunits
+      integer(kind=8) :: msize
+      double precision :: z
+      type (cudaDeviceProp) :: prop
+! returns number of device
+      crc = cudaGetDeviceCount(ndevs)
+      if (crc /= 0) then
+         write (*,*) 'cudaGetDeviceCount Error=', crc, ':',             &
+     &cudaGetErrorString(crc)
+         irc = 1
+      endif
+! get information about devices
+      do j = 1, ndevs
+      js = j - 1
+      crc = cudaGetDeviceProperties(prop,js)
+      if (crc /= 0) then
+         write (*,*) 'cudaGetDeviceProperties Error=', crc, ':',        &
+     &cudaGetErrorString(crc)
+         prop%name = ''
+      endif
+      maxunits = prop%multiProcessorCount
+      if (dev <= 0) then
+         write (*,*) 'j=', js, ':CUDA_DEVICE_NAME=', trim(prop%name)
+         write (*,*) '    CUDA_MULTIPROCESSOR_COUNT=', maxunits
+         msize = prop%totalGlobalMem
+         z = dble(msize)/1073741824.0d0
+         mmcc = 10*prop%major + prop%minor
+         write (*,*) '    CUDA_GLOBAL_MEM_SIZE=',msize,'(',real(z),'GB)'
+         write (*,*) '    Capability=', mmcc
+         if (maxunits > maxcpus) then
+            maxcpus = maxunits
+            jm = js
+         endif
+      endif
+      enddo
+      devid = jm
+      if (dev >= 0) devid = mod(dev,ndevs)
+      write (*,*) 'using device j=', devid
+! get properties for this device
+      crc = cudaGetDeviceProperties(prop,devid)
+      maxgsx = prop%maxGridSize(1)
+      mmcc = 10*prop%major + prop%minor
+! set device
+      crc = cudaSetDevice(devid)
+      if (crc /= 0) then
+         write (*,*) 'cudaSetDevice Error=', crc, ':',                  &
+     &cudaGetErrorString(crc)
+         irc = 1
+      endif
+! run empty kernel
+      call empty_kernel()
+      end subroutine
+!
+!-----------------------------------------------------------------------
+      subroutine end_cuf()
+      implicit none
+      integer :: crc
+      crc = cudaThreadExit()
+      if (crc /= 0) then
+         write (*,*) 'cudaThreadExit Error=', crc, ':',                 &
+     &cudaGetErrorString(crc)
+      endif
+      end subroutine
+!
+!-----------------------------------------------------------------------
+      subroutine setgbsize(nblock)
+      integer, intent(in) :: nblock
+      nblock_size = nblock
+      end subroutine
+!
+      end module
