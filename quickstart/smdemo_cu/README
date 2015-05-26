@@ -12,11 +12,11 @@ The test case is simple vector add function. These codes can be used as
 templates for setting up more complex programs.
 
 For CUDA, two executables can be created:
-cgputest_cu, creates a C main program from a C library gpumain_cu.cu
-fgputest_cu, creates a Fortran main program from a C library gpumain_cu.cu
-The C library gpumain_cu.cu is compiled using the NVIDIA nvcc compiler.
+cgputest_cu, creates a C main program from a C library gpulib_cu.cu
+fgputest_cu, creates a Fortran main program from a C library gpulib_cu.cu
+The C library gpulib_cu.cu is compiled using the NVIDIA nvcc compiler.
 The main program cgputest_cu.c is compiled using gcc.
-The main program fgputest_cu.f90 is compiled using gfortran.
+The main program fgputest_cu.f03 is compiled using gfortran.
 
 To compile and link each individual program, execute:
 

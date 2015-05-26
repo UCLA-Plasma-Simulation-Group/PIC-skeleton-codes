@@ -11,65 +11,26 @@ static int devid;
 
 static cudaError_t crc;
 
+/*--------------------------------------------------------------------*/
+__global__ void gadd(float a[], float b[], float c[], int nx) {
+   int j;
+   j = threadIdx.x+blockDim.x*blockIdx.x;
+   if (j < nx)
+      a[j] = b[j] + c[j];
+   return;
+}
+
+/*--------------------------------------------------------------------*/
+extern "C" void gpadd(float *a, float *b, float *c, int nx) {
+/* Vector Add Interface for C */
+   dim3 dimBlock(nblock_size);
+   dim3 dimGrid((nx - 1)/nblock_size + 1);
+   gadd<<<dimGrid,dimBlock>>>(a,b,c,nx);
+   cudaThreadSynchronize();
+   return;
+}
+
 __global__ void emptyKernel() {}
-
-/*--------------------------------------------------------------------*/
-extern "C" void setgbsize(int nblock) {
-   nblock_size = nblock;
-   return;
-}
-
-/*--------------------------------------------------------------------*/
-extern "C" void g_fallocate(float **g_f, int nsize, int *irc) {
-/* allocate global float memory on GPU, return pointer to C */
-   void *gptr;
-   crc = cudaMalloc(&gptr,sizeof(float)*nsize);
-   if (crc) {
-      printf("cudaMalloc float Error=%d:%s,l=%d\n",crc,
-              cudaGetErrorString(crc),nsize);
-      *irc = 1;
-   }
-   *g_f = (float *)gptr;
-   return;
-}
-
-/*--------------------------------------------------------------------*/
-extern "C" void g_deallocate(float **g_f, int *irc) {
-/* deallocate global memory on GPU, return pointer to C */
-   crc = cudaFree((void *)*g_f);
-   if (crc) {
-      printf("cudaFree Error=%d:%s\n",crc,cudaGetErrorString(crc));
-      *irc = 1;
-   }
-   *g_f = NULL;
-   return;
-}
-
-/*--------------------------------------------------------------------*/
-extern "C" void copyin_gmemptr(float *f, float *g_f, int nsize) {
-/* copy float array from main memory to global GPU memory */
-   crc = cudaMemcpy((void *)g_f,f,sizeof(float)*nsize,
-                    cudaMemcpyHostToDevice);
-   if (crc) {
-      printf("cudaMemcpyHostToDevice float Error=%d:%s\n",crc,
-              cudaGetErrorString(crc));
-      exit(1);
-   }
-   return;
-}
-
-/*--------------------------------------------------------------------*/
-extern "C" void copyout_gmemptr(float *f, float *g_f, int nsize) {
-/* copy float array from global GPU memory to main memory */
-   crc = cudaMemcpy(f,(void *)g_f,sizeof(float)*nsize,
-                    cudaMemcpyDeviceToHost);
-   if (crc) {
-      printf("cudaMemcpyDeviceToHost float Error=%d:%s\n",crc,
-              cudaGetErrorString(crc));
-      exit(1);
-   }
-   return;
-}
 
 /*--------------------------------------------------------------------*/
 extern "C" void emptykernel() {
@@ -86,15 +47,6 @@ extern "C" void emptykernel() {
       printf("emptyKernel error=%d:%s\n",crc,cudaGetErrorString(crc));
       exit(1);
    }
-   return;
-}
-
-/*--------------------------------------------------------------------*/
-__global__ void gadd(float a[], float b[], float c[], int nx) {
-   int j;
-   j = threadIdx.x+blockDim.x*blockIdx.x;
-   if (j < nx)
-      a[j] = b[j] + c[j];
    return;
 }
 
@@ -156,15 +108,6 @@ extern "C" void init_cu(int dev, int *irc) {
 }
 
 /*--------------------------------------------------------------------*/
-extern "C" void gpadd(float *a, float *b, float *c, int nx) {
-/* Vector Add Interface for C */
-   dim3 dimBlock(nblock_size);
-   dim3 dimGrid((nx - 1)/nblock_size + 1);
-   gadd<<<dimGrid,dimBlock>>>(a,b,c,nx);
-   cudaThreadSynchronize();
-   return;
-}
-
 extern "C" void end_cu() {
    crc = cudaThreadExit();
    if (crc) {
@@ -173,58 +116,65 @@ extern "C" void end_cu() {
    return;
 }
 
+/*--------------------------------------------------------------------*/
+extern "C" void setgbsize(int nblock) {
+   nblock_size = nblock;
+   return;
+}
+
+/*--------------------------------------------------------------------*/
+extern "C" void gpu_fallocate(float **g_f, int nsize, int *irc) {
+/* allocate global float memory on GPU, return pointer to C */
+   void *gptr;
+   crc = cudaMalloc(&gptr,sizeof(float)*nsize);
+   if (crc) {
+      printf("cudaMalloc float Error=%d:%s,l=%d\n",crc,
+              cudaGetErrorString(crc),nsize);
+      *irc = 1;
+   }
+   *g_f = (float *)gptr;
+   return;
+}
+
+/*--------------------------------------------------------------------*/
+extern "C" void gpu_deallocate(float **g_f, int *irc) {
+/* deallocate global memory on GPU, return pointer to C */
+   crc = cudaFree((void *)*g_f);
+   if (crc) {
+      printf("cudaFree Error=%d:%s\n",crc,cudaGetErrorString(crc));
+      *irc = 1;
+   }
+   *g_f = NULL;
+   return;
+}
+
+/*--------------------------------------------------------------------*/
+extern "C" void gpu_fcopyin(float *f, float *g_f, int nsize) {
+/* copy float array from host memory to global GPU memory */
+   crc = cudaMemcpy((void *)g_f,f,sizeof(float)*nsize,
+                    cudaMemcpyHostToDevice);
+   if (crc) {
+      printf("cudaMemcpyHostToDevice float Error=%d:%s\n",crc,
+              cudaGetErrorString(crc));
+      exit(1);
+   }
+   return;
+}
+
+/*--------------------------------------------------------------------*/
+extern "C" void gpu_fcopyout(float *f, float *g_f, int nsize) {
+/* copy float array from global GPU memory to host memory */
+   crc = cudaMemcpy(f,(void *)g_f,sizeof(float)*nsize,
+                    cudaMemcpyDeviceToHost);
+   if (crc) {
+      printf("cudaMemcpyDeviceToHost float Error=%d:%s\n",crc,
+              cudaGetErrorString(crc));
+      exit(1);
+   }
+   return;
+}
+
 /* Interfaces to Fortran */
-
-/*--------------------------------------------------------------------*/
-extern "C" void setgbsize_(int *nblock) {
-   setgbsize(*nblock);
-   return;
-}
-
-/*--------------------------------------------------------------------*/
-extern "C" void g_fallocate_(unsigned long *gp_f, int *nsize, int *irc) {
-/* allocate global float memory on GPU, return pointer to Fortran */
-   float *fptr;
-   g_fallocate(&fptr,*nsize,irc);
-   *gp_f = (long )fptr;
-   return;
-}
-
-/*--------------------------------------------------------------------*/
-extern "C" void g_deallocate_(unsigned long *gp_f, int *irc) {
-/* deallocate global memory on GPU, return pointer to Fortran */
-   float *f;
-   f = (float *)*gp_f;
-   g_deallocate(&f,irc);
-   *gp_f = 0;
-   return;
-}
-
-/*--------------------------------------------------------------------*/
-extern "C" void copyin_gmemptr_(float *f, unsigned long *gp_f,
-                                int *nsize) {
-/* copy float array from main memory to global GPU memory */
-   float *g_f;
-   g_f = (float *)*gp_f;
-   copyin_gmemptr(f,g_f,*nsize);
-   return;
-}
-
-/*--------------------------------------------------------------------*/
-extern "C" void copyout_gmemptr_(float *f, unsigned long *gp_f,
-                                 int *nsize) {
-/* copy float array from global GPU memory to main memory */
-   float *g_f;
-   g_f = (float *)*gp_f;
-   copyout_gmemptr(f,g_f,*nsize);
-   return;
-}
-
-/*--------------------------------------------------------------------*/
-extern "C" void init_cu_(int *dev, int *irc) {
-   init_cu(*dev,irc);
-   return;
-}
 
 /*--------------------------------------------------------------------*/
 extern "C" void gpadd_(unsigned long *gp_a, unsigned long *gp_b,
@@ -238,7 +188,59 @@ extern "C" void gpadd_(unsigned long *gp_a, unsigned long *gp_b,
 }
 
 /*--------------------------------------------------------------------*/
+extern "C" void init_cu_(int *dev, int *irc) {
+   init_cu(*dev,irc);
+   return;
+}
+
+/*--------------------------------------------------------------------*/
 extern "C" void end_cu_() {
    end_cu();
+   return;
+}
+
+/*--------------------------------------------------------------------*/
+extern "C" void setgbsize_(int *nblock) {
+   setgbsize(*nblock);
+   return;
+}
+
+/*--------------------------------------------------------------------*/
+extern "C" void gpu_fallocate_(unsigned long *gp_f, int *nsize,
+                               int *irc) {
+/* allocate global float memory on GPU, return pointer to Fortran */
+   float *fptr;
+   gpu_fallocate(&fptr,*nsize,irc);
+   *gp_f = (long )fptr;
+   return;
+}
+
+/*--------------------------------------------------------------------*/
+extern "C" void gpu_deallocate_(unsigned long *gp_f, int *irc) {
+/* deallocate global memory on GPU, return pointer to Fortran */
+   float *f;
+   f = (float *)*gp_f;
+   gpu_deallocate(&f,irc);
+   *gp_f = 0;
+   return;
+}
+
+/*--------------------------------------------------------------------*/
+extern "C" void gpu_fcopyin_(float *f, unsigned long *gp_f,
+                             int *nsize) {
+/* copy float array from main memory to global GPU memory */
+   float *g_f;
+   g_f = (float *)*gp_f;
+   gpu_fcopyin(f,g_f,*nsize);
+   return;
+}
+
+/*--------------------------------------------------------------------*/
+extern "C" void gpu_fcopyout_(float *f, unsigned long *gp_f,
+                              int *nsize) {
+/* copy float array from global GPU memory to main memory */
+   float *g_f;
+   g_f = (float *)*gp_f;
+   gpu_fcopyout(f,g_f,*nsize);
    return;
 }
