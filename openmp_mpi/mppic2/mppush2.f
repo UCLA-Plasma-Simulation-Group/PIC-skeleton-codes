@@ -2483,3 +2483,47 @@ c written for the ibm by viktor k. decyk, ucla
       iflg = 1
       return
       end
+c-----------------------------------------------------------------------
+      subroutine PPPCOPYOUT(part,ppart,kpic,npp,npmax,nppmx,idimp,mxyp1,
+     1irc)
+c for 2d code, this subroutine copies segmented particle data ppart to
+c the array part with original tiled layout
+c spatial decomposition in y direction
+c input: all except part, npp, irc, output: part, npp, irc
+c part(i,j) = i-th coordinate for particle j in partition
+c ppart(i,j,k) = i-th coordinate for particle j in partition in tile k
+c kpic = number of particles per tile
+c npp = number of particles in partition
+c npmax = maximum number of particles in each partition
+c nppmx = maximum number of particles in tile
+c idimp = size of phase space = 5
+c mxyp1 = total number of tiles in partition
+c irc = maximum overflow, returned only if error occurs, when irc > 0
+      implicit none
+      integer npp, npmax, nppmx, idimp, mxyp1, irc
+      real part, ppart
+      integer kpic
+      dimension part(idimp,npmax), ppart(idimp,nppmx,mxyp1)
+      dimension kpic(mxyp1)
+c local data
+      integer i, j, k, npoff, nppp, ne, ierr
+      npoff = 0
+      ierr = 0
+c loop over tiles
+      do 30 k = 1, mxyp1
+      nppp = kpic(k)
+      ne = nppp + npoff
+      if (ne.gt.npmax) ierr = max(ierr,ne-npmax)
+      if (ierr.gt.0) nppp = 0
+c loop over particles in tile
+      do 20 j = 1, nppp
+      do 10 i = 1, idimp
+      part(i,j+npoff) = ppart(i,j,k)
+   10 continue
+   20 continue
+      npoff = npoff + nppp
+   30 continue
+      npp = npoff
+      if (ierr.gt.0) irc = ierr
+      return
+      end
