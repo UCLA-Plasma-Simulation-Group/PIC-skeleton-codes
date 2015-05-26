@@ -12,9 +12,9 @@ The test case is simple vector add function. These codes can be used as
 templates for setting up more complex programs.
 
 For OpenCL, two executables can be created:
-cgputest_cl, creates a C main program from a C library gpumain_cl.c
-fgputest_cl, creates a Fortran main program from a C library gpumain_cl.c
-The C library gpumain_cl.c is compiled using the gcc compiler.
+cgputest_cl, creates a C main program from a C library gpulib_cl.c
+fgputest_cl, creates a Fortran main program from a C library gpulib_cl.c
+The C library gpulib_cl.c is compiled using the gcc compiler.
 The main program fgputest_cl.f90 is compiled using gfortran.
 
 To compile and link each individual program, execute:
@@ -30,7 +30,7 @@ make
 
 The makefile is setup to use gcc, gfortran with Linux.  A version for
 Mac OS X is also in the Makefile, but is commented out.  (To run on
-MacOS the program gpumain_cl.c also needs to be changed to use the
+MacOS the program gpulib_cl.c also needs to be changed to use the
 header file OpenCL/opencl.h instead of CL/cl.h)
 
 To execute either program, type the name of the executable:

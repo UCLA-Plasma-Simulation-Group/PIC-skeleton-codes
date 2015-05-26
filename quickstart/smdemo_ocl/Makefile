@@ -2,8 +2,6 @@
 
 # Makefile gfortran compiler with MacOS X
 
-CARBON = /System/Library/Frameworks/Carbon.framework/Carbon
-
 #FC90 = gfortran
 #CC = gcc
 
@@ -23,14 +21,16 @@ OPTS90 = -O3
 CCOPTS = -O3
 
 #OpenCL
-CLI = -I/u/local/cuda/current/include
+OCLHOME = /u/local/cuda/current
+CLI = -I$(OCLHOME)/include
 #CLI = -I/usr/local/atisdk/include
 CLLIBS = -lOpenCL
-#CLLIBS = -L/usr/local/atisdk/lib/x86_64 -lOpenCL
+#OCLHOME = /usr/local/atisdk/lib/x86_64
+#CLLIBS = -L$(OCLHOME) -lOpenCL
 
 #
 
-CLOBJS = gpumain_cl.o dtimer.o
+CLOBJS = gpulib_cl.o dtimer.o
 
 # Linkage rules
 
@@ -53,14 +53,17 @@ dtimer.o : dtimer.c
 	$(CC) $(CCOPTS) -c dtimer.c
 
 #OPENCL
-gpumain_cl.o : gpumain_cl.c
-	$(CC) $(CCOPTS) -c gpumain_cl.c $(CLI)
+gpulib_cl.o : gpulib_cl.c
+	$(CC) $(CCOPTS) -c gpulib_cl.c $(CLI)
+
+ocllib_c.o : ocllib_c.f03
+	$(FC90) $(OPTS90) -o ocllib_c.o -c ocllib_c.f03
 
 cgputest_cl.o : cgputest_cl.c
 	$(CC) $(CCOPTS) -c cgputest_cl.c $(CLI)
 
-fgputest_cl.o : fgputest_cl.f90
-	$(FC90) $(OPTS90) -c fgputest_cl.f90
+fgputest_cl.o : fgputest_cl.f03 ocllib_c.o
+	$(FC90) $(OPTS90) -c fgputest_cl.f03
 
 clean:
 	rm -f *.o *.mod

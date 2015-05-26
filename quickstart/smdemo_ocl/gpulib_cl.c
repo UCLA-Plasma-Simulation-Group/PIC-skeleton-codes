@@ -27,96 +27,6 @@ static char knames[NKERNELS][NAMEL];
 static cl_event evnt;
 
 /*--------------------------------------------------------------------*/
-void setgbsize(int nblock) {
-   nblock_size = nblock;
-   return;
-}
-
-/*--------------------------------------------------------------------*/
-void g_fallocate(float **g_f, int nsize, int *irc) {
-/* allocate global float memory on GPU, return pointer to C */
-/* requires a valid context cnt                             */
-/* error code is modified only if there is an error         */
-   cl_mem clm;
-/* create a buffer object */
-   clm = clCreateBuffer(cnt,CL_MEM_READ_WRITE,sizeof(float)*nsize,NULL,
-                        &crc);
-   if (crc != CL_SUCCESS) {
-      printf("clCreateBuffer Error=%i\n",crc);
-      *irc = 1;
-   }
-   *g_f = (float *)clm;
-   return;
-}
-
-/*--------------------------------------------------------------------*/
-void g_f4allocate(float **g_f, int nsize, int *irc) {
-/* allocate global vector float memory on GPU, return pointer to C */
-/* requires a valid context cnt                             */
-/* error code is modified only if there is an error         */
-   int ns;
-   cl_mem clm;
-/* create a buffer object */
-   ns = (nsize - 1)/4 + 1;
-   clm = clCreateBuffer(cnt,CL_MEM_READ_WRITE,sizeof(cl_float4)*ns,NULL,
-                        &crc);
-   if (crc != CL_SUCCESS) {
-      printf("clCreateBuffer Vector Error=%i\n",crc);
-      *irc = 1;
-   }
-   *g_f = (float *)clm;
-   return;
-}
-
-/*--------------------------------------------------------------------*/
-void g_deallocate(float **g_f, int *irc) {
-/* deallocate global memory on GPU */
-/* error code is modified only if there is an error       */
-/* decrement memory object reference count */
-   cl_mem clm;
-   clm = (cl_mem) *g_f;
-   crc = clReleaseMemObject(clm);
-   if (crc != CL_SUCCESS) {
-      printf("clReleaseMemObject Error=%i\n",crc);
-      *irc = 1;
-   }
-   *g_f = NULL;
-   return;
-}
-
-/*--------------------------------------------------------------------*/
-void copyin_gmemptr(float *f, float *g_f, int nsize) {
-/* copy float array from main memory to global GPU memory */
-/* requires a valid command queue cmq                     */
-/* error code is modified only if there is an error       */
-   cl_mem clm;
-   clm = (cl_mem) g_f;
-   crc = clEnqueueWriteBuffer(cmq,clm,CL_TRUE,0,sizeof(float)*nsize,f,
-                              0,NULL,NULL);
-   if (crc != CL_SUCCESS) {
-      printf("clEnqueueWriteBuffer Error=%i\n",crc);
-      exit(1);
-   }
-   return;
-}
-
-/*--------------------------------------------------------------------*/
-void copyout_gmemptr(float *f, float *g_f, int nsize) {
-/* copy float array from global GPU memory to main memory */
-/* requires a valid command queue cmq                     */
-/* error code is modified only if there is an error       */
-   cl_mem clm;
-   clm = (cl_mem) g_f;
-   crc = clEnqueueReadBuffer(cmq,clm,CL_TRUE,0,sizeof(float)*nsize,f,
-                             0,NULL,NULL);
-   if (crc != CL_SUCCESS) {
-      printf("clEnqueueReadBuffer Error=%i\n",crc);
-      exit(1);
-   }
-   return;
-}
-
-/*--------------------------------------------------------------------*/
 const char* pSource[] = {
 "__kernel void gadd(__global float a[], __global float b[],",
 "                   __global float c[], int nx) {",
@@ -126,16 +36,78 @@ const char* pSource[] = {
 "      a[j] = b[j] + c[j];",
 "   return;",
 "}",
-"__kernel void vadd(__global float4 a[], __global float4 b[],",
-"                   __global float4 c[], int nx) {",
-"   int j, nxv;",
-"   nxv = (nx - 1)/4 + 1;",
-"   j = get_local_id(0)+get_local_size(0)*get_group_id(0);",
-"   if (j < nxv)",
-"      a[j] = b[j] + c[j];",
-"   return;",
-"}"
 };
+
+/*--------------------------------------------------------------------*/
+void gpadd(float *a, float *b, float *c, int nx) {
+/* Vector Add Interface for C */
+   static int kid = -1;
+   int n;
+   size_t lwks[1], gwks[1];
+   cl_mem g_a, g_b, g_c;
+/* find which kernel corresponds to function name */
+   if (kid < 0) {
+      for (n = 0; n < kernels; n++) {
+         if (!strcmp(knames[n],"gadd")) {
+            kid = n;
+            break;
+         }
+      }
+   }
+   if (kid < 0) {
+      printf("argument name %s not found\n","gadd");
+      exit(1);
+   }
+   g_a = (cl_mem) a;
+   g_b = (cl_mem) b;
+   g_c = (cl_mem) c;
+/* set argument value for kernel */
+   crc = clSetKernelArg(clks[kid],0,sizeof(cl_mem),(void *)&g_a);
+   if (crc != CL_SUCCESS) {
+      printf("arg %i:clSetKernelArg Error=%i\n",0,crc);
+      exit(1);
+   }
+   crc = clSetKernelArg(clks[kid],1,sizeof(cl_mem),(void *)&g_b);
+   if (crc != CL_SUCCESS) {
+      printf("arg %i:clSetKernelArg Error=%i\n",1,crc);
+      exit(1);
+   }
+   crc = clSetKernelArg(clks[kid],2,sizeof(cl_mem),(void *)&g_c);
+   if (crc != CL_SUCCESS) {
+      printf("arg %i:clSetKernelArg Error=%i\n",2,crc);
+      exit(1);
+   }
+   crc = clSetKernelArg(clks[kid],3,sizeof(int),(void *)&nx);
+   if (crc != CL_SUCCESS) {
+      printf("arg %i:clSetKernelArg Error=%i\n",3,crc);
+      exit(1);
+   }
+/* set up work sizes */
+   lwks[0] = nblock_size;
+   gwks[0] = ((nx - 1)/nblock_size + 1)*nblock_size;
+/* enqueue command to execute kernel */
+   crc = clEnqueueNDRangeKernel(cmq,clks[kid],1,NULL,gwks,lwks,0,NULL,
+                                &evnt);
+   if (crc != CL_SUCCESS) {
+      printf("clEnqueueNDRangeKernel Error=%i\n",crc);
+      exit(1);
+   }
+/* wait for event to complete */
+   crc = clWaitForEvents(1,&evnt);
+   if (crc != CL_SUCCESS) {
+      printf("clWaitForEvents Error=%i\n",crc);
+      exit(1);
+   }
+/* returns information about event */
+   crc = clGetEventInfo(evnt,CL_EVENT_COMMAND_EXECUTION_STATUS,
+                        sizeof(cl_int),&status,&psize);
+   if (crc != CL_SUCCESS) {
+      printf("clGetEventInfo Error=%i\n",crc);
+   }
+   if (crc != CL_COMPLETE) {
+      printf("event status=%i\n",status);
+   }
+}
 
 /*--------------------------------------------------------------------*/
 void init_cl(int platf, int dev, int *irc) {
@@ -317,148 +289,6 @@ void init_cl(int platf, int dev, int *irc) {
 }
 
 /*--------------------------------------------------------------------*/
-void gpadd(float *a, float *b, float *c, int nx) {
-/* Vector Add Interface for C */
-   static int kid = -1;
-   int n;
-   size_t lwks[1], gwks[1];
-   cl_mem g_a, g_b, g_c;
-/* find which kernel corresponds to function name */
-   if (kid < 0) {
-      for (n = 0; n < kernels; n++) {
-         if (!strcmp(knames[n],"gadd")) {
-            kid = n;
-            break;
-         }
-      }
-   }
-   if (kid < 0) {
-      printf("argument name %s not found\n","gadd");
-      exit(1);
-   }
-   g_a = (cl_mem) a;
-   g_b = (cl_mem) b;
-   g_c = (cl_mem) c;
-/* set argument value for kernel */
-   crc = clSetKernelArg(clks[kid],0,sizeof(cl_mem),(void *)&g_a);
-   if (crc != CL_SUCCESS) {
-      printf("arg %i:clSetKernelArg Error=%i\n",0,crc);
-      exit(1);
-   }
-   crc = clSetKernelArg(clks[kid],1,sizeof(cl_mem),(void *)&g_b);
-   if (crc != CL_SUCCESS) {
-      printf("arg %i:clSetKernelArg Error=%i\n",1,crc);
-      exit(1);
-   }
-   crc = clSetKernelArg(clks[kid],2,sizeof(cl_mem),(void *)&g_c);
-   if (crc != CL_SUCCESS) {
-      printf("arg %i:clSetKernelArg Error=%i\n",2,crc);
-      exit(1);
-   }
-   crc = clSetKernelArg(clks[kid],3,sizeof(int),(void *)&nx);
-   if (crc != CL_SUCCESS) {
-      printf("arg %i:clSetKernelArg Error=%i\n",3,crc);
-      exit(1);
-   }
-/* set up work sizes */
-   lwks[0] = nblock_size;
-   gwks[0] = ((nx - 1)/nblock_size + 1)*nblock_size;
-/* enqueue command to execute kernel */
-   crc = clEnqueueNDRangeKernel(cmq,clks[kid],1,NULL,gwks,lwks,0,NULL,
-                                &evnt);
-   if (crc != CL_SUCCESS) {
-      printf("clEnqueueNDRangeKernel Error=%i\n",crc);
-      exit(1);
-   }
-/* wait for event to complete */
-   crc = clWaitForEvents(1,&evnt);
-   if (crc != CL_SUCCESS) {
-      printf("clWaitForEvents Error=%i\n",crc);
-      exit(1);
-   }
-/* returns information about event */
-   crc = clGetEventInfo(evnt,CL_EVENT_COMMAND_EXECUTION_STATUS,
-                        sizeof(cl_int),&status,&psize);
-   if (crc != CL_SUCCESS) {
-      printf("clGetEventInfo Error=%i\n",crc);
-   }
-   if (crc != CL_COMPLETE) {
-      printf("event status=%i\n",status);
-   }
-}
-
-/*--------------------------------------------------------------------*/
-void vpadd(float *a, float *b, float *c, int nx) {
-/* Vector Add Interface for C */
-   static int kid = -1;
-   int n;
-   size_t lwks[1], gwks[1];
-   cl_mem g_a, g_b, g_c;
-/* find which kernel corresponds to function name */
-   if (kid < 0) {
-      for (n = 0; n < kernels; n++) {
-         if (!strcmp(knames[n],"vadd")) {
-            kid = n;
-            break;
-         }
-      }
-   }
-   if (kid < 0) {
-      printf("argument name %s not found\n","vadd");
-      exit(1);
-   }
-   g_a = (cl_mem) a;
-   g_b = (cl_mem) b;
-   g_c = (cl_mem) c;
-/* set argument value for kernel */
-   crc = clSetKernelArg(clks[kid],0,sizeof(cl_mem),(void *)&g_a);
-   if (crc != CL_SUCCESS) {
-      printf("arg %i:clSetKernelArg Error=%i\n",0,crc);
-      exit(1);
-   }
-   crc = clSetKernelArg(clks[kid],1,sizeof(cl_mem),(void *)&g_b);
-   if (crc != CL_SUCCESS) {
-      printf("arg %i:clSetKernelArg Error=%i\n",1,crc);
-      exit(1);
-   }
-   crc = clSetKernelArg(clks[kid],2,sizeof(cl_mem),(void *)&g_c);
-   if (crc != CL_SUCCESS) {
-      printf("arg %i:clSetKernelArg Error=%i\n",2,crc);
-      exit(1);
-   }
-   crc = clSetKernelArg(clks[kid],3,sizeof(int),(void *)&nx);
-   if (crc != CL_SUCCESS) {
-      printf("arg %i:clSetKernelArg Error=%i\n",3,crc);
-      exit(1);
-   }
-/* set up work sizes */
-   lwks[0] = nblock_size;
-   gwks[0] = ((nx - 1)/(4*nblock_size) + 1)*nblock_size;
-/* enqueue command to execute kernel */
-   crc = clEnqueueNDRangeKernel(cmq,clks[kid],1,NULL,gwks,lwks,0,NULL,
-                                &evnt);
-   if (crc != CL_SUCCESS) {
-      printf("clEnqueueNDRangeKernel Error=%i\n",crc);
-      exit(1);
-   }
-/* wait for event to complete */
-   crc = clWaitForEvents(1,&evnt);
-   if (crc != CL_SUCCESS) {
-      printf("clWaitForEvents Error=%i\n",crc);
-      exit(1);
-   }
-/* returns information about event */
-   crc = clGetEventInfo(evnt,CL_EVENT_COMMAND_EXECUTION_STATUS,
-                        sizeof(cl_int),&status,&psize);
-   if (crc != CL_SUCCESS) {
-      printf("clGetEventInfo Error=%i\n",crc);
-   }
-   if (crc != CL_COMPLETE) {
-      printf("event status=%i\n",status);
-   }
-}
-
-/*--------------------------------------------------------------------*/
 void end_cl(int *irc) {
 /* error code is modified only if there is an error       */
    int n;
@@ -491,68 +321,81 @@ void end_cl(int *irc) {
    return;
 }
 
+/*--------------------------------------------------------------------*/
+void gpu_setgbsize(int nblock) {
+   nblock_size = nblock;
+   return;
+}
+
+/*--------------------------------------------------------------------*/
+void gpu_fallocate(float **g_f, int nsize, int *irc) {
+/* allocate global float memory on GPU, return pointer to C */
+/* requires a valid context cnt                             */
+/* error code is modified only if there is an error         */
+   cl_mem clm;
+/* create a buffer object */
+   clm = clCreateBuffer(cnt,CL_MEM_READ_WRITE,sizeof(float)*nsize,NULL,
+                        &crc);
+   if (crc != CL_SUCCESS) {
+      printf("clCreateBuffer Error=%i\n",crc);
+      *irc = 1;
+   }
+   *g_f = (float *)clm;
+   return;
+}
+
+/*--------------------------------------------------------------------*/
+void gpu_deallocate(float **g_f, int *irc) {
+/* deallocate global memory on GPU */
+/* error code is modified only if there is an error       */
+/* decrement memory object reference count */
+   cl_mem clm;
+   clm = (cl_mem) *g_f;
+   crc = clReleaseMemObject(clm);
+   if (crc != CL_SUCCESS) {
+      printf("clReleaseMemObject Error=%i\n",crc);
+      *irc = 1;
+   }
+   *g_f = NULL;
+   return;
+}
+
+/*--------------------------------------------------------------------*/
+void gpu_fcopyin(float *f, float *g_f, int nsize) {
+/* copy float array from main memory to global GPU memory */
+/* requires a valid command queue cmq                     */
+/* error code is modified only if there is an error       */
+   cl_mem clm;
+   clm = (cl_mem) g_f;
+   crc = clEnqueueWriteBuffer(cmq,clm,CL_TRUE,0,sizeof(float)*nsize,f,
+                              0,NULL,NULL);
+   if (crc != CL_SUCCESS) {
+      printf("clEnqueueWriteBuffer Error=%i\n",crc);
+      exit(1);
+   }
+   return;
+}
+
+/*--------------------------------------------------------------------*/
+void gpu_fcopyout(float *f, float *g_f, int nsize) {
+/* copy float array from global GPU memory to main memory */
+/* requires a valid command queue cmq                     */
+/* error code is modified only if there is an error       */
+   cl_mem clm;
+   clm = (cl_mem) g_f;
+   crc = clEnqueueReadBuffer(cmq,clm,CL_TRUE,0,sizeof(float)*nsize,f,
+                             0,NULL,NULL);
+   if (crc != CL_SUCCESS) {
+      printf("clEnqueueReadBuffer Error=%i\n",crc);
+      exit(1);
+   }
+   return;
+}
+
 #undef NAMEL
 #undef NKERNELS
 
 /* Interfaces to Fortran */
-
-/*--------------------------------------------------------------------*/
-void setgbsize_(int *nblock) {
-   setgbsize(*nblock);
-   return;
-}
-
-/*--------------------------------------------------------------------*/
-void g_fallocate_(unsigned long *gp_f, int *nsize, int *irc) {
-/* allocate global float memory on GPU, return pointer to Fortran */
-   float *fptr;
-   g_fallocate(&fptr,*nsize,irc);
-   *gp_f = (long )fptr;
-   return;
-}
-
-/*--------------------------------------------------------------------*/
-void g_f4allocate_(unsigned long *gp_f, int *nsize, int *irc) {
-/* allocate global vector float memory on GPU, return pointer to Fortran */
-   float *fptr;
-   g_fallocate(&fptr,*nsize,irc);
-   *gp_f = (long )fptr;
-   return;
-}
-
-/*--------------------------------------------------------------------*/
-void g_deallocate_(unsigned long *gp_f, int *irc) {
-/* deallocate global memory on GPU, return pointer to Fortran */
-   float *f;
-   f = (float *)*gp_f;
-   g_deallocate(&f,irc);
-   *gp_f = 0;
-   return;
-}
-
-/*--------------------------------------------------------------------*/
-void copyin_gmemptr_(float *f, unsigned long *gp_f, int *nsize) {
-/* copy float array from main memory to global GPU memory */
-   float *g_f;
-   g_f = (float *)*gp_f;
-   copyin_gmemptr(f,g_f,*nsize);
-   return;
-}
-
-/*--------------------------------------------------------------------*/
-void copyout_gmemptr_(float *f, unsigned long *gp_f, int *nsize) {
-/* copy float array from global GPU memory to main memory */
-   float *g_f;
-   g_f = (float *)*gp_f;
-   copyout_gmemptr(f,g_f,*nsize);
-   return;
-}
-
-/*--------------------------------------------------------------------*/
-void init_cl_(int *platf, int *dev, int *irc) {
-   init_cl(*platf,*dev,irc);
-   return;
-}
 
 /*--------------------------------------------------------------------*/
 void gpadd_(unsigned long *gp_a, unsigned long *gp_b,
@@ -566,18 +409,56 @@ void gpadd_(unsigned long *gp_a, unsigned long *gp_b,
 }
 
 /*--------------------------------------------------------------------*/
-void vpadd_(unsigned long *gp_a, unsigned long *gp_b,
-            unsigned long *gp_c, int *nx) {
-/* Vector Add Interface for Fortran */
-   float *a, *b, *c;
-   a = (float *)*gp_a;
-   b = (float *)*gp_b;
-   c = (float *)*gp_c;
-   vpadd(a,b,c,*nx);
+void init_cl_(int *platf, int *dev, int *irc) {
+   init_cl(*platf,*dev,irc);
+   return;
 }
 
 /*--------------------------------------------------------------------*/
 void end_cl_(int *irc) {
    end_cl(irc);
+   return;
+}
+
+/*--------------------------------------------------------------------*/
+void gpu_setgbsize_(int *nblock) {
+   gpu_setgbsize(*nblock);
+   return;
+}
+
+/*--------------------------------------------------------------------*/
+void gpu_fallocate_(unsigned long *gp_f, int *nsize, int *irc) {
+/* allocate global float memory on GPU, return pointer to Fortran */
+   float *fptr;
+   gpu_fallocate(&fptr,*nsize,irc);
+   *gp_f = (long )fptr;
+   return;
+}
+
+/*--------------------------------------------------------------------*/
+void gpu_deallocate_(unsigned long *gp_f, int *irc) {
+/* deallocate global memory on GPU, return pointer to Fortran */
+   float *f;
+   f = (float *)*gp_f;
+   gpu_deallocate(&f,irc);
+   *gp_f = 0;
+   return;
+}
+
+/*--------------------------------------------------------------------*/
+void gpu_fcopyin_(float *f, unsigned long *gp_f, int *nsize) {
+/* copy float array from main memory to global GPU memory */
+   float *g_f;
+   g_f = (float *)*gp_f;
+   gpu_fcopyin(f,g_f,*nsize);
+   return;
+}
+
+/*--------------------------------------------------------------------*/
+void gpu_fcopyout_(float *f, unsigned long *gp_f, int *nsize) {
+/* copy float array from global GPU memory to main memory */
+   float *g_f;
+   g_f = (float *)*gp_f;
+   gpu_fcopyout(f,g_f,*nsize);
    return;
 }
