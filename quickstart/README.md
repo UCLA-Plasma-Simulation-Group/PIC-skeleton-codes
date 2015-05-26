@@ -1,6 +1,6 @@
 # PIC Skeleton Codes:  QuickStart
 
-These example codes show how to perform a simple parallel addition of two arrays using different parallel programming paradigms.  They are primarily intended to illustrate how to startup, run and shutdown a simple parallel code and how to compile and link it.  Examples are in both C and Fortran.
+These example codes show how to perform a simple parallel addition of two arrays using different parallel programming paradigms.  They are primarily intended to illustrate how to startup, run and shutdown a simple parallel code and how to compile and link it.  Examples are in both C and Fortran. These codes can be used as templates for setting up more complex programs.
 
 1. MPI:  smdemo_mpi
 2. OpenMP:  smdemo_omp
