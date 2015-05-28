@@ -133,13 +133,13 @@
       integer, value :: nx
       real, dimension(nx) :: a, b
 ! local data
-      integer :: j, js, jb, mx
+      integer :: j, js, id, mx
       mx = blockDim%x
-      js = threadIdx%x
-      jb = blockIdx%x
+      j = threadIdx%x
+      id = blockIdx%x
 !
-      j = js + mx*(jb - 1)
-      if (j <= nx) a(j) = b(j)
+      js = j + mx*(id - 1)
+      if (js <= nx) a(js) = b(js)
 !
       end subroutine
 !
@@ -152,14 +152,14 @@
       integer, value :: nx, ny
       real, dimension(nx,ny) :: a, b
 ! local data
-      integer :: j, js, jb, k, mx
+      integer :: j, k, js, id, mx
       mx = blockDim%x
-      js = threadIdx%x
-      jb = blockIdx%x
+      j = threadIdx%x
+      id = blockIdx%x
       k = blockIdx%y
 !
-      j = js + mx*(jb - 1)
-      if ((j <= nx).and.(k <= ny)) a(j,k) = b(j,k)
+      js = j + mx*(id - 1)
+      if ((js <= nx).and.(k <= ny)) a(js,k) = b(js,k)
 !
       end subroutine
 !
@@ -215,14 +215,14 @@
       integer, value :: nx, ny
       real, dimension(nx,ny) :: a, b
 ! local data
-      integer :: j, k, js, ks, jb, kb, mx, my
+      integer :: j, k, js, ks, idx, idy, mx, my
       mx = blockDim%x; my = blockDim%y
-      js = threadIdx%x; ks = threadIdx%y
-      jb = blockIdx%x; kb = blockIdx%y
+      j = threadIdx%x; k = threadIdx%y
+      idx = blockIdx%x; idy = blockIdx%y
 !
-      k = ks + my*(kb - 1)
-      j = js + mx*(jb - 1)
-      if ((j <= nx) .and. (k <= ny)) a(j,k) = b(j,k)
+      ks = k + my*(idy - 1)
+      js = j + mx*(idx - 1)
+      if ((js <= nx) .and. (ks <= ny)) a(js,ks) = b(js,ks)
 !
       end subroutine
 !
@@ -236,22 +236,22 @@
       real, dimension(ny,nx) :: a
       real, dimension(nx,ny) :: b
 ! local data
-      integer :: j, k, js, ks, jb, kb, joff, koff, mx, mxv
+      integer :: j, k, js, ks, idx, idy, joff, koff, mx, mxv
       real, shared, dimension(*) :: s
       mx = blockDim%x; mxv = mx + 1
-      js = threadIdx%x; ks = threadIdx%y
-      jb = blockIdx%x; kb = blockIdx%y
-      koff = mx*(kb - 1)
-      joff = mx*(jb - 1)
+      j = threadIdx%x; k = threadIdx%y
+      idx = blockIdx%x; idy = blockIdx%y
+      koff = mx*(idy - 1)
+      joff = mx*(idx - 1)
 !
-      k = ks + koff
-      j = js + joff
-      if ((j <= nx) .and. (k <= ny)) s(js+mxv*(ks-1)) = b(j,k)
+      ks = k + koff
+      js = j + joff
+      if ((js <= nx) .and. (ks <= ny)) s(j+mxv*(k-1)) = b(js,ks)
 ! synchronize threads
       call syncthreads()
-      j = ks + joff
-      k = js + koff
-      if ((j <= nx) .and. (k <= ny)) a(k,j) = s(ks+mxv*(js-1))
+      js = k + joff
+      ks = j + koff
+      if ((js <= nx) .and. (ks <= ny)) a(ks,js) = s(k+mxv*(j-1))
 !
       end subroutine
 !

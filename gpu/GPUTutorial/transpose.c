@@ -23,35 +23,31 @@ void  transpose2(float a[], float b[], int mx, int my, int nx, int ny) {
 /* segmented 2d transpose of length nx, ny, with block size mx, my */
 /* a = transpose(b)                                                */
 /* local data */
-   int j, k, js, ks, jb, kb, joff, koff, nbx, nby, mxv, mxm, mym;
+   int j, k, idx, idy, joff, koff, nbx, nby, mxv, mxm, mym;
 /* scratch fast, local array */
    float s[(mx+1)*my];
 /* nbx/nby = number of blocks in x/y */
    nbx = (nx - 1)/mx + 1; nby = (ny - 1)/my + 1;
    mxv = mx + 1;
 
-   for (kb = 0; kb < nby; kb++) {
-      koff = my*kb;
+   for (idy = 0; idy < nby; idy++) {
+      koff = my*idy;
       mym = my < ny-koff ? my : ny-koff;
-      for (jb = 0; jb < nbx; jb++) {
-         joff = mx*jb;
+      for (idx = 0; idx < nbx; idx++) {
+         joff = mx*idx;
          mxm = mx < nx-joff ? mx : nx-joff;
 
 /* copy in from slow memory with stride 1 into block of fast memory */
-         for (ks = 0; ks < mym; ks++) {
-            k = ks + koff;
-            for (js = 0; js < mxm; js++) {
-               j = js + joff;
-               s[js+mxv*ks] = b[j+nx*k];
+         for (k = 0; k < mym; k++) {
+            for (j = 0; j < mxm; j++) {
+               s[j+mxv*k] = b[j+joff+nx*(k+koff)];
             }
          }
 
 /* copy out to slow memory with stride 1 from block of fast memory */
-         for (js = 0; js < mxm; js++) {
-            j = js + joff;
-            for (ks = 0; ks < mym; ks++) {
-               k = ks + koff;
-               a[k+ny*j] = s[js+mxv*ks];
+         for (j = 0; j < mxm; j++) {
+            for (k = 0; k < mym; k++) {
+               a[k+koff+ny*(j+joff)] = s[j+mxv*k];
             }
          }
 

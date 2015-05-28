@@ -1,5 +1,5 @@
 /*--------------------------------------------------------------------*/
-/* C GPU Tutorial: Reduction        */
+/* CUDA C GPU Tutorial: Reduction        */
 /* written by Viktor K. Decyk, UCLA */
 
 #include <stdlib.h>

@@ -1,18 +1,24 @@
 !-----------------------------------------------------------------------
-! Fortran GPU Tutorial: Transpose
+! CUDA Fortran GPU Tutorial: Transpose
 ! written by Viktor K. Decyk, UCLA
       program example2
-      use  transpose
+      use transpose
       use gpuflib2
       implicit none
+! nx, ny = size of array
+! mx, my = data block size
       integer, parameter :: nx = 512, ny = 512, mx = 16, my = 16
+! nblock = block size on GPU
       integer :: nblock = 64
       integer :: j, k, irc
       real :: eps, epsmax
+! timing data
       double precision :: dtime
       integer, dimension(4) :: itime
+! data for Fortran Host
       real, dimension(nx,ny) :: b2
       real, dimension(ny,nx) :: a2, c2
+! data for GPU
       real, device, dimension(:,:), allocatable :: g_a2, g_b2
 !
 ! set up GPU
@@ -27,14 +33,16 @@
 ! allocate 2d data on GPU
       allocate(g_a2(ny,nx),g_b2(nx,ny))
 !
-! initialize 2d data
+! initialize 2d data on Host
       do k = 1, ny
       do j = 1, nx
          b2(j,k) = real(j + nx*(k-1))
       enddo
       enddo
       a2 = 0.0
+! copy data to GPU
       g_a2 = a2
+      g_b2 = b2
 !
 ! measure overhead time by running empty kernel
       call dtimer(dtime,itime,-1)
@@ -50,11 +58,12 @@
       write (*,*) 'Fortran 2d transpose time=', real(dtime)
 !
 ! 2d transpose on GPU with block size mx, mx
-      g_b2 = b2
       call dtimer(dtime,itime,-1)
       call gpu_transpose2(g_a2,g_b2,mx)
       call dtimer(dtime,itime,1)
       write (*,*) 'GPU 2d transpose time=', real(dtime)
+!
+! copy data from GPU
       c2 = g_a2
 !
 ! Check for correctness: compare a2 and g_a2

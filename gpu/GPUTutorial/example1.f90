@@ -1,19 +1,26 @@
 !-----------------------------------------------------------------------
-! Fortran GPU Tutorial: Copy
+! CUDA Fortran GPU Tutorial: Copy
 ! written by Viktor K. Decyk, UCLA
       program example1
       use copy
       use gpuflib2
       implicit none
+! nx, ny = size of array
       integer, parameter :: nx = 3000, ny = 600
+! nblock = block size on GPU
       integer :: nblock = 64
+! mx, my = data block size
+      integer :: mx, my
       real :: s = 0.5
-      integer :: j, k, mx, my, irc
+      integer :: j, k, irc
       real :: eps, epsmax
+! timing data
       double precision :: dtime
       integer, dimension(4) :: itime
+! data for Fortran Host
       real, dimension(nx) :: a1, b1
       real, dimension(nx,ny) :: a2, b2
+! data for GPU
       real, device, dimension(:), allocatable :: g_a1, g_b1
       real, device, dimension(:,:), allocatable :: g_a2, g_b2
 !
@@ -32,20 +39,23 @@
 ! allocate 2d data on GPU
       allocate(g_a2(nx,ny),g_b2(nx,ny))
 !
-! initialize 1d data on host
+! initialize 1d data on Host
       do j = 1, nx
          b1(j) = real(j)
       enddo
       a1 = 0.0
-      g_a1 = a1
-! initialize 2d data on host
+! initialize 2d data on Host
       do k = 1, ny
       do j = 1, nx
          b2(j,k) = real(j + nx*(k-1))
       enddo
       enddo
       a2 = 0.0
+! copy data to GPU
+      g_a1 = a1
+      g_b1 = b1
       g_a2 = a2
+      g_b2 = b2
 !
 ! measure overhead time by running empty kernel
       call dtimer(dtime,itime,-1)
@@ -53,9 +63,10 @@
       call dtimer(dtime,itime,1)
       write (*,*) 'Fortran empty kernel time=', real(dtime)
 !
+! 1D copy
       mx = 128
 !
-! segmented 1d copy on host with block size mx
+! segmented 1d copy on Host with block size mx
       call dtimer(dtime,itime,-1)
 !     call copy0(a1,b1)
       call copy1(a1,b1,mx)
@@ -63,11 +74,12 @@
       write (*,*) 'Fortran 1d copy time=', real(dtime)
 !
 ! 1d copy on GPU with block size mx
-      g_b1 = b1
       call dtimer(dtime,itime,-1)
       call gpu_copy1(g_a1,g_b1,mx)
       call dtimer(dtime,itime,1)
       write (*,*) 'GPU 1d copy time=', real(dtime)
+!
+! copy data from GPU
       b1 = g_a1
 !
 ! Check for correctness: compare a1 and g_a1
@@ -78,18 +90,18 @@
       enddo
       write (*,*) '1d copy maximum difference = ', epsmax
 !
+! 2D copy
       mx = 16; my = 16
 !
 ! segmented 2d copy on host with block size mx, my
       call dtimer(dtime,itime,-1)
 !     call copy2(a2,b2,mx)
-!     call saxpy2(a2,b2,mx)
+!     call saxpy2(a2,b2,s,mx)
       call copy3(a2,b2,mx,my)
       call dtimer(dtime,itime,1)
       write (*,*) 'Fortran 2d copy time=', real(dtime)
 !
 ! 2d copy on GPU with block size mx, my
-      g_b2 = b2
       call dtimer(dtime,itime,-1)
 !     call gpu_copy2a(g_a2,g_b2,mx)
 !     call gpu_copy2b(g_a2,g_b2,mx)
@@ -97,6 +109,8 @@
       call gpu_copy3(g_a2,g_b2,mx,my)
       call dtimer(dtime,itime,1)
       write (*,*) 'GPU 2d copy time=', real(dtime)
+!
+! copy data from GPU
       b2 = g_a2
 !
 ! Check for correctness: compare a2 and g_a2

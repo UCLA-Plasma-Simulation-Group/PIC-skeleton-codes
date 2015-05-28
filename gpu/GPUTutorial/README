@@ -7,25 +7,25 @@ risk; it may not be distributed without this notice included verbatim
 with each file.
 
 This file contains three extended example codes for illustrating how to
-program the NVIDIA GPU using Cuda, with both C and Fortran90 main
+program the NVIDIA GPU using Cuda, with both C and Fortran2003 main
 programs.  There is a simple serial version as well as a parallel Cuda
 version for each example.  All the Cuda C examples, as well as some
 utility functions, are in the file gpulib2.cu (with header gpulib2.h).
 This file also contains interfaces to Fortran77.  Interfaces to these
-functions for Fortran90 are in the file gpulib2_h.f90 (which creates the
-module gpulib2).  There is also a Unix timer function in the file
+functions for Fortran2003 are in the file gpulib2_c.f90 (which creates
+the module gpulib2_c).  There is also a Unix timer function in the file
 dtimer.c, which contains a Fortran77 interface.
 
 For example one, the files copy.f90 and copy.c (with header copy.h)
 contain the serial vector copy examples in Fortran90 and C,
-respectively.  The files fcexample1.f and example1.c contain the
+respectively.  The files fcexample1.f03 and example1.c contain the
 corresponding main programs.  For example two, the files transpose.f90
 and transpose.c (with header transpose.h) contain the serial transpose
-examples in Fortran90 and C, respectively.  The files fcexample2.f and
+examples in Fortran90 and C, respectively.  The files fcexample2.f03 and
 example2.c contain the corresponding main programs.  For example
 three, the files redux.f90 and redux.c (with header redux.h) contain the
 serial sum reduction examples in Fortran90 and C, respectively.  The
-files fcexample3.f and example3.c contain the corresponding main
+files fcexample3.f03 and example3.c contain the corresponding main
 programs.
 
 In addition to the Cuda examples, we also have Cuda Fortran examples.

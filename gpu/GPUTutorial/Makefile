@@ -22,6 +22,8 @@ OPTS90 = -O3
 #OPTS90 = -O3 -Mbounds -r8 -Mstandard
 
 #CUDA for MacOS
+#CUDAHOME = /usr/local/cuda
+#FCUDAHOME = /usr/local/cuda
 
 #NVOPTS = -O3 -arch sm_20
 #NVOPTS = -O3 -m64 -arch sm_20
@@ -30,17 +32,16 @@ OPTS90 = -O3
 #LOPTS = -L/usr/lib/gcc/i686-apple-darwin9/4.2.1 -lstdc++
 #LOPTS = -L/usr/lib/gcc/i686-apple-darwin10/4.2.1 -lstdc++
 #LOPTS = -L/usr/lib/gcc/i686-apple-darwin10/4.2.1/x86_64 -lstdc++
-#CARBON = /System/Library/Frameworks/Carbon.framework/Carbon
-#CULIBS = $(CARBON) -lSystemStubs -L/usr/local/cuda/lib -lcuda -lcudart
+#CULIBS = -lSystemStubs -L$(CUDAHOME)/lib -lcuda -lcudart
 
 #CUDA for Linux
+CUDAHOME = /u/local/cuda/5.5
 
 FNVOPTS = -O3 -ta=nvidia:cc20
 NVOPTS = -O3 -arch sm_20
 
-#CULIBS = -L/usr/local/cuda/lib64 -lcuda -lcudart
-#CULIBS = -L/usr/local/cuda/lib -lcuda -lcudart
-CULIBS = -L/u/local/cuda/4.0.17/lib64 -lcuda -lcudart
+CULIBS = -L$(CUDAHOME)/lib64 -lcuda -lcudart
+#CULIBS = -L$(CUDAHOME)/lib -lcuda -lcudart
 
 #
 
@@ -55,43 +56,43 @@ fccuda : fcexample1 fcexample2 fcexample3
 cudaf : fexample1 fexample2 fexample3
 
 #CUDA C
-cexample1 : cexample1.o dtimer.o
+cexample1 : cexample1.o ccopy.o gpulib2.o dtimer.o
 	$(CC) $(LOPTS) -o cexample1 cexample1.o ccopy.o gpulib2.o \
 	dtimer.o $(CULIBS)
 
-cexample2 : cexample2.o dtimer.o
+cexample2 : cexample2.o ctranspose.o gpulib2.o dtimer.o
 	$(CC) $(LOPTS) -o cexample2 cexample2.o ctranspose.o gpulib2.o \
 	dtimer.o $(CULIBS)
 
-cexample3 : cexample3.o dtimer.o
+cexample3 : cexample3.o credux.o gpulib2.o dtimer.o
 	$(CC) $(LOPTS) -o cexample3 cexample3.o credux.o gpulib2.o \
 	dtimer.o $(CULIBS)
 
-#Fortran with CUDA C
-fcexample1 : fcexample1.o dtimer.o
-	$(FC90) $(LOPTS) -o fcexample1 fcexample1.o fccopy.o gpulib2.o \
-	dtimer.o $(CULIBS)
+#Fortran2003 with CUDA C
+fcexample1 : fcexample1.o gpulib2.o dtimer.o
+	$(FC90) $(LOPTS) -o fcexample1 fcexample1.o fccopy.o gpulib2_c.o \
+	gpulib2.o dtimer.o $(CULIBS)
 
-fcexample2 : fcexample2.o dtimer.o
-	$(FC90) $(LOPTS) -o fcexample2 fcexample2.o fctranspose.o gpulib2.o \
-	dtimer.o $(CULIBS)
+fcexample2 : fcexample2.o gpulib2.o dtimer.o
+	$(FC90) $(LOPTS) -o fcexample2 fcexample2.o fctranspose.o gpulib2_c.o \
+	gpulib2.o dtimer.o $(CULIBS)
 
-fcexample3 : fcexample3.o dtimer.o
-	$(FC90) $(LOPTS) -o fcexample3 fcexample3.o fcredux.o gpulib2.o \
-	dtimer.o $(CULIBS)
+fcexample3 : fcexample3.o gpulib2.o dtimer.o
+	$(FC90) $(LOPTS) -o fcexample3 fcexample3.o fcredux.o gpulib2_c.o \
+	gpulib2.o dtimer.o $(CULIBS)
 
 #CUDA Fortran
 fexample1 : fexample1.o dtimer.o
 	$(FCU90) -o fexample1 fexample1.o fcopy.o gpuflib2.o \
-	dtimer.o $(CULIBS)
+	dtimer.o
 
 fexample2 : fexample2.o dtimer.o
 	$(FCU90) -o fexample2 fexample2.o ftranspose.o gpuflib2.o \
-	dtimer.o $(CULIBS)
+	dtimer.o
 
 fexample3 : fexample3.o dtimer.o
 	$(FCU90) -o fexample3 fexample3.o fredux.o gpuflib2.o \
-	dtimer.o $(CULIBS)
+	dtimer.o
 
 # Compilation rules
 
@@ -100,7 +101,7 @@ dtimer.o : dtimer.c
 
 #CUDA C
 gpulib2.o : gpulib2.cu
-	nvcc $(NVOPTS) -c gpulib2.cu -I/usr/local/cuda/include
+	nvcc $(NVOPTS) -c gpulib2.cu -I$(CUDAHOME)/include
 
 ccopy.o : copy.c
 	$(CC) $(CCOPTS) -o ccopy.o -c copy.c
@@ -111,18 +112,21 @@ ctranspose.o : transpose.c
 credux.o : redux.c
 	$(CC) $(CCOPTS) -o credux.o -c redux.c
 
-cexample1.o : example1.c ccopy.o gpulib2.o
+cexample1.o : example1.c
 	$(CC) $(CCOPTS) -o cexample1.o -c example1.c
 
-cexample2.o : example2.c ctranspose.o gpulib2.o
+cexample2.o : example2.c
 	$(CC) $(CCOPTS) -o cexample2.o -c example2.c
 
-cexample3.o : example3.c credux.o gpulib2.o
+cexample3.o : example3.c
 	$(CC) $(CCOPTS) -o cexample3.o -c example3.c
 
 #Fortran with CUDA C
 gpulib2_h.o : gpulib2_h.f90
 	$(FC90) $(OPTS90) -c gpulib2_h.f90
+
+gpulib2_c.o : gpulib2_c.f03
+	$(FC90) $(OPTS90) -c gpulib2_c.f03
 
 fccopy.o : copy.f90
 	$(FC90) $(OPTS90) -o fccopy.o -c copy.f90
@@ -133,18 +137,18 @@ fctranspose.o : transpose.f90
 fcredux.o : redux.f90
 	$(FC90) $(OPTS90) -o fcredux.o -c redux.f90
 
-fcexample1.o : fcexample1.f fccopy.o gpulib2_h.o
-	$(FC90) $(OPTS90) -c fcexample1.f
+fcexample1.o : fcexample1.f03 fccopy.o gpulib2_c.o
+	$(FC90) $(OPTS90) -c fcexample1.f03
 
-fcexample2.o : fcexample2.f fctranspose.o gpulib2_h.o
-	$(FC90) $(OPTS90) -c fcexample2.f
+fcexample2.o : fcexample2.f03 fctranspose.o gpulib2_c.o
+	$(FC90) $(OPTS90) -c fcexample2.f03
 	
-fcexample3.o : fcexample3.f fcredux.o gpulib2_h.o
-	$(FC90) $(OPTS90) -c fcexample3.f
+fcexample3.o : fcexample3.f03 fcredux.o gpulib2_c.o
+	$(FC90) $(OPTS90) -c fcexample3.f03
 
 #CUDA Fortran
 gpuflib2.o : gpuflib2.cuf
-	$(FCU90) $(FNVOPTS) -c gpuflib2.cuf -I/usr/local/cuda/include
+	$(FCU90) $(FNVOPTS) -c gpuflib2.cuf -I$(CUDAHOME)/include
 
 fcopy.o : copy.f90
 	$(FCU90) $(OPTS90) -o fcopy.o -c copy.f90

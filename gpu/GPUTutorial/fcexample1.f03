@@ -1,21 +1,29 @@
 !-----------------------------------------------------------------------
-! Fortran with CUDA C GPU Tutorial: Copy
+! Fortran2003 with CUDA C GPU Tutorial: Copy
 ! written by Viktor K. Decyk, UCLA
       program fcexample1
+      use iso_c_binding
       use copy
-      use gpulib2
+      use gpulib2_c
       implicit none
+! nx, ny = size of array
       integer, parameter :: nx = 3000, ny = 600
+! nblock = block size on GPU
       integer :: nblock = 64
+! mx, my = data block size
+      integer :: mx, my
       real :: s = 0.5
-      integer :: j, k, mx, my, irc
+      integer :: j, k, irc
+! timing data
       real :: eps, epsmax
       double precision :: dtime
       integer, dimension(4) :: itime
-      real, dimension(nx) :: a1, b1
-      real, dimension(nx,ny) :: a2, b2
-      integer, dimension(2) :: g_a1 = 0.0, g_b1 = 0.0
-      integer, dimension(2) :: g_a2 = 0.0, g_b2 = 0.0
+! data for Fortran Host
+      real, dimension(nx), target :: a1, b1
+      real, dimension(nx,ny), target :: a2, b2
+! data for GPU
+      type (c_ptr) :: g_a1 = c_null_ptr, g_b1 = c_null_ptr
+      type (c_ptr) :: g_a2 = c_null_ptr, g_b2 = c_null_ptr
 !
 ! set up GPU
       irc = 0
@@ -39,20 +47,23 @@
          stop
       endif
 !
-! initialize 1d data on host
+! initialize 1d data on Host
       do j = 1, nx
          b1(j) = real(j)
       enddo
       a1 = 0.0
-      call gpu_fcopyin(a1,g_a1,nx)
-! initialize 2d data on host
+! initialize 2d data on Host
       do k = 1, ny
       do j = 1, nx
          b2(j,k) = real(j + nx*(k-1))
       enddo
       enddo
       a2 = 0.0
-      call gpu_fcopyin(a2,g_a2,nx*ny)
+! copy data to GPU
+      call gpu_fcopyin(c_loc(a1),g_a1,nx)
+      call gpu_fcopyin(c_loc(b1),g_b1,nx)
+      call gpu_fcopyin(c_loc(a2),g_a2,nx*ny)
+      call gpu_fcopyin(c_loc(b2),g_b2,nx*ny)
 !
 ! measure overhead time by running empty kernel
       call dtimer(dtime,itime,-1)
@@ -60,9 +71,10 @@
       call dtimer(dtime,itime,1)
       write (*,*) 'Fortran empty kernel time=', real(dtime)
 !
+! 1D copy
       mx = 128
 !
-! segmented 1d copy on host with block size mx
+! segmented 1d copy on Host with block size mx
       call dtimer(dtime,itime,-1)
 !     call copy0(a1,b1)
       call copy1(a1,b1,mx)
@@ -70,12 +82,13 @@
       write (*,*) 'Fortran 1d copy time=', real(dtime)
 !
 ! 1d copy on GPU with block size mx
-      call gpu_fcopyin(b1,g_b1,nx)
       call dtimer(dtime,itime,-1)
       call gpu_copy1(g_a1,g_b1,mx,nx)
       call dtimer(dtime,itime,1)
       write (*,*) 'GPU 1d copy time=', real(dtime)
-      call gpu_fcopyout(b1,g_a1,nx);
+!
+! copy data from GPU
+      call gpu_fcopyout(c_loc(b1),g_a1,nx);
 !
 ! Check for correctness: compare a1 and g_a1
       epsmax = 0.0
@@ -85,18 +98,18 @@
       enddo
       write (*,*) '1d copy maximum difference = ', epsmax
 !
+! 2D copy
       mx = 32; my = 16
 !
 ! segmented 2d copy on host with block size mx, my
       call dtimer(dtime,itime,-1)
 !     call copy2(a2,b2,mx)
-!     call saxpy2(a2,b2,mx)
+!     call saxpy2(a2,b2,s,mx)
       call copy3(a2,b2,mx,my)
       call dtimer(dtime,itime,1)
       write (*,*) 'Fortran 2d copy time=', real(dtime)
 !
 ! 2d copy on GPU with block size mx, my
-      call gpu_fcopyin(b2,g_b2,nx*ny)
       call dtimer(dtime,itime,-1)
 !     call gpu_copy2a(g_a2,g_b2,mx,nx,ny)
 !     call gpu_copy2b(g_a2,g_b2,mx,nx,ny)
@@ -104,7 +117,9 @@
       call gpu_copy3(g_a2,g_b2,mx,my,nx,ny)
       call dtimer(dtime,itime,1)
       write (*,*) 'GPU 2d copy time=', real(dtime)
-      call gpu_fcopyout(b2,g_a2,nx*ny)
+!
+! copy data from GPU
+      call gpu_fcopyout(c_loc(b2),g_a2,nx*ny)
 !
 ! Check for correctness: compare a2 and g_a2
       epsmax = 0.0

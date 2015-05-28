@@ -1,5 +1,5 @@
 /*--------------------------------------------------------------------*/
-/* C GPU Tutorial: Copy            */
+/* CUDA C GPU Tutorial: Copy            */
 /* written by Viktor K. Decyk, UCLA */
 
 #include <stdlib.h>
@@ -11,17 +11,25 @@
 void dtimer(double *time, struct timeval *itime, int icntrl);
 
 int main(int argc, char *argv[]) {
+/* nx, ny = size of array */
    int nx = 3000, ny = 600;
+/* nblock = block size on GPU */
    int nblock = 64;
-   int j, k, mx, my, irc;
+/* mx, my = data block size */
+   int mx, my;
+   float s = 0.5;
+   int j, k, irc;
    float eps, epsmax;
+/* timing data */
    double dtime;
    struct timeval itime;
+/* data for C Host */
    float *a1 = NULL, *b1 = NULL;
    float *a2 = NULL, *b2 = NULL;
+/* data for GPU */
    float *g_a1 = NULL, *g_b1 = NULL;
    float *g_a2 = NULL, *g_b2 = NULL;
-/* allocate host data */
+/* allocate Host data */
    a1 = (float *) malloc(nx*sizeof(float));
    b1 = (float *) malloc(nx*sizeof(float));
    a2 = (float *) malloc(nx*ny*sizeof(float));
@@ -49,21 +57,24 @@ int main(int argc, char *argv[]) {
       exit(1);
    }
 
-/* initialize 1d data on host */
+/* initialize 1d data on Host */
    for (j = 0; j < nx; j++) {
       b1[j] = (float) (j + 1);
       a1[j] = 0.0;
    }
-   gpu_fcopyin(a1,g_a1,nx);
 
-/* initialize 2d data on host */
+/* initialize 2d data on Host */
    for (k = 0; k < ny; k++) {
       for (j = 0; j < nx; j++) {
          b2[j+nx*k] = (float) (j + nx*k + 1);
          a2[j+nx*k] = 0.0;
       }
    }
+/* copy data to GPU */
+   gpu_fcopyin(a1,g_a1,nx);
+   gpu_fcopyin(b1,g_b1,nx);
    gpu_fcopyin(a2,g_a2,nx*ny);
+   gpu_fcopyin(b2,g_b2,nx*ny);
 
 /* measure overhead time by running empty kernel */
    dtimer(&dtime,&itime,-1);
@@ -71,6 +82,7 @@ int main(int argc, char *argv[]) {
    dtimer(&dtime,&itime,1);
    printf("C empty kernel time=%e\n",(float)dtime);
 
+/* 1D copy */
    mx = 128;
 
 /* segmented 1d copy on host with block size mx */
@@ -81,11 +93,12 @@ int main(int argc, char *argv[]) {
    printf("C 1d copy time=%e\n",(float)dtime);
 
 /* 1d copy on GPU with block size mx */
-   gpu_fcopyin(b1,g_b1,nx);
    dtimer(&dtime,&itime,-1);
    gpu_copy1(g_a1,g_b1,mx,nx);
    dtimer(&dtime,&itime,1);
    printf("GPU 1d copy time=%e\n",(float)dtime);
+
+/* copy data from GPU */
    gpu_fcopyout(b1,g_a1,nx);
 
 /* Check for correctness: compare a1 and g_a1 */
@@ -99,7 +112,8 @@ int main(int argc, char *argv[]) {
    }
    printf("1d copy maximum difference = %e\n",epsmax);
 
-   mx = 32; my = 16;
+/* 2D copy */
+   mx = 16; my = 16;
 
 /* segmented 2d copy on host with block size mx, my */
    dtimer(&dtime,&itime,-1);
@@ -110,7 +124,6 @@ int main(int argc, char *argv[]) {
    printf("C 2d copy time=%e\n",(float)dtime);
 
 /* 2d copy on GPU with block size mx, my */
-   gpu_fcopyin(b2,g_b2,nx*ny);
    dtimer(&dtime,&itime,-1);
 /* gpu_copy2a(g_a2,g_b2,mx,nx,ny);   */
 /* gpu_copy2b(g_a2,g_b2,mx,nx,ny);   */
@@ -118,6 +131,8 @@ int main(int argc, char *argv[]) {
    gpu_copy3(g_a2,g_b2,mx,my,nx,ny);
    dtimer(&dtime,&itime,1);
    printf("GPU 2d copy time=%e\n",(float)dtime);
+
+/* copy data from GPU */
    gpu_fcopyout(b2,g_a2,nx*ny);
 
 /* Check for correctness: compare a2 and g_a2 */

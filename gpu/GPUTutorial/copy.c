@@ -22,15 +22,15 @@ void copy1(float a[], float b[], int mx, int nx) {
 /* segmented 1d copy of length nx, with block size mx */
 /* a = b                                              */
 /* local data */
-   int j, js, jb, nbx, mxm;
+   int j, id, nbx, joff, mxm;
 /* nbx = number of blocks */
    nbx = (nx - 1)/mx + 1;
 
-   for (jb = 0; jb < nbx; jb++) {
-      mxm = mx < nx-mx*jb ? mx : nx-mx*jb;
-      for (js = 0; js < mxm; js++) {
-         j = js + mx*jb;
-         a[j] = b[j];
+   for (id = 0; id < nbx; id++) {
+      joff = mx*id;
+      mxm = mx < nx-joff ? mx : nx-joff;
+      for (j = 0; j < mxm; j++) {
+         a[j+joff] = b[j+joff];
       }
    }
 
@@ -41,16 +41,16 @@ void copy2(float a[], float b[], int mx, int nx, int ny) {
 /* segmented 2d copy of length nx, ny, with block size mx */
 /* a = b                                                  */
 /* local data */
-   int j, k, js, jb, nbx, mxm;
+   int j, k, id, nbx, joff, mxm;
 /* nbx = number of blocks in x */
    nbx = (nx - 1)/mx + 1;
 
    for (k = 0; k < ny; k++) {
-      for (jb = 0; jb < nbx; jb++) {
-         mxm = mx < nx-mx*jb ? mx : nx-mx*jb;
-         for (js = 0; js < mxm; js++) {
-            j = js + mx*jb;
-            a[j+nx*k] = b[j+nx*k];
+      for (id = 0; id < nbx; id++) {
+         joff = mx*id;
+         mxm = mx < nx-joff ? mx : nx-joff;
+         for (j = 0; j < mxm; j++) {
+            a[j+joff+nx*k] = b[j+joff+nx*k];
          }
       }
    }
@@ -62,16 +62,16 @@ void saxpy2(float a[], float b[], float s, int mx, int nx, int ny) {
 /* segmented 2d vector multiply of length nx, ny, with block size mx */
 /* a = s*b + a                                                       */
 /* local data */
-   int j, k, js, jb, nbx, mxm;
+   int j, k, id, nbx, joff, mxm;
 /* nbx = number of blocks in x */
    nbx = (nx - 1)/mx + 1;
 
    for (k = 0; k < ny; k++) {
-      for (jb = 0; jb < nbx; jb++) {
-         mxm = mx < nx-mx*jb ? mx : nx-mx*jb;
-         for (js = 0; js < mxm; js++) {
-            j = js + mx*jb;
-            a[j+nx*k] = s*b[j+nx*k] + a[j+nx*k];
+      for (id = 0; id < nbx; id++) {
+         joff = mx*id;
+         mxm = mx < nx-joff ? mx : nx-joff;
+         for (j = 0; j < mxm; j++) {
+            a[j+joff+nx*k] = s*b[j+joff+nx*k] + a[j+joff+nx*k];
          }
       }
    }
@@ -83,19 +83,19 @@ void copy3(float a[], float b[], int mx, int my, int nx, int ny) {
 /* segmented 2d copy of length nx, ny, with block size mx, my */
 /* a = b                                                      */
 /* local data */
-   int j, k, js, ks, jb, kb, nbx, nby, mxm, mym;
+   int j, k, idx, idy, nbx, nby, joff, koff, mxm, mym;
 /* nbx/nby = number of blocks in x/y */
    nbx = (nx - 1)/mx + 1; nby = (ny - 1)/my + 1;
 
-   for (kb = 0; kb < nby; kb++) {
-      mym = my < ny-my*kb ? my : ny-my*kb;
-      for (jb = 0; jb < nbx; jb++) {
-         mxm = mx < nx-mx*jb ? mx : nx-mx*jb;
-         for (ks = 0; ks < mym; ks++) {
-            k = ks + my*kb;
-            for (js = 0; js < mxm; js++) {
-               j = js + mx*jb;
-               a[j+nx*k] = b[j+nx*k];
+   for (idy = 0; idy < nby; idy++) {
+      koff = my*idy;
+      mym = my < ny-koff ? my : ny-koff;
+      for (idx = 0; idx < nbx; idx++) {
+         joff = mx*idx;
+         mxm = mx < nx-joff ? mx : nx-joff;
+         for (k = 0; k < mym; k++) {
+            for (j = 0; j < mxm; j++) {
+               a[j+joff+nx*(k+koff)] = b[j+joff+nx*(k+koff)];
             }
          }
       }

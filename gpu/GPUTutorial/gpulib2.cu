@@ -150,6 +150,7 @@ extern "C" void init_cu(int dev, int *irc) {
          mmcc = 10*prop.major + prop.minor;
          printf("    CUDA_GLOBAL_MEM_SIZE=%u(%f GB),Capability=%d\n",
                 msize,(float) z,mmcc);
+         printf("    Capability=%d\n",mmcc);
          if (maxunits > maxcpus) {
             maxcpus = maxunits;
             jm = j;
@@ -194,13 +195,13 @@ __global__ void gcopy1(float a[], float b[], int nx) {
 /* ((nx-1)/mx+1) independent blocks         */
 /* nx = size of arrays in x                 */
 /* local data */
-   int j, js, jb, mx;
+   int j, js, id, mx;
    mx = blockDim.x;
-   js = threadIdx.x;
-   jb = blockIdx.x;
+   j = threadIdx.x;
+   id = blockIdx.x;
 
-   j = js + mx*jb;
-   if (j < nx) a[j] = b[j];
+   js = j + mx*id;
+   if (js < nx) a[js] = b[js];
 
    return;
 }
@@ -211,15 +212,15 @@ __global__ void gcopy2a(float a[], float b[], int nx, int ny) {
 /* one block of mx threads copies mx values */
 /* nbx*ny independent blocks                */
 /* local data */
-   int j, js, jb, k, mx;
+   int j, k, js, id, mx;
    mx = blockDim.x;
-   js = threadIdx.x;
-   jb = blockIdx.x;
+   j = threadIdx.x;
+   id = blockIdx.x;
    k = blockIdx.y;
 
-   j = js + mx*jb;
-   if ((j < nx) && (k < ny)) {
-      a[j+nx*k] = b[j+nx*k];
+   js = j + mx*id;
+   if ((js < nx) && (k < ny)) {
+      a[js+nx*k] = b[js+nx*k];
    }
 
    return;
@@ -271,15 +272,15 @@ __global__ void gcopy3(float a[], float b[], int nx, int ny) {
 /* one block of mx*my threads copies mx*my values */
 /* ((nx-1)/mx+1)*((ny-1)/my+1) independent blocks */
 /* local data */
-   int j, k, js, ks, jb, kb, mx, my;
+   int j, k, js, ks, idx, idy, mx, my;
    mx = blockDim.x; my = blockDim.y;
-   js = threadIdx.x; ks = threadIdx.y;
-   jb = blockIdx.x; kb = blockIdx.y;
+   j = threadIdx.x; k = threadIdx.y;
+   idx = blockIdx.x; idy = blockIdx.y;
 
-   k = ks + my*kb;
-   j = js + mx*jb;
-   if ((j < nx) && (k < ny))
-       a[j+nx*k] = b[j+nx*k];
+   ks = k + my*idy;
+   js = j + mx*idx;
+   if ((js < nx) && (ks < ny))
+       a[js+nx*ks] = b[js+nx*ks];
 
    return;
 }
@@ -290,24 +291,24 @@ __global__ void  gtranspose2(float a[], float b[], int nx, int ny) {
 /* one block of mx*mx threads transposes mx*mx values */
 /* ((nx-1)/mx+1)*((ny-1)/mx+1) independent blocks     */
 /* local data */
-   int j, k, js, ks, jb, kb, joff, koff, mx, mxv;
+   int j, k, js, ks, idx, idy, joff, koff, mx, mxv;
    extern __shared__ float s[];
    mx = blockDim.x; mxv = mx + 1;
-   js = threadIdx.x; ks = threadIdx.y;
-   jb = blockIdx.x; kb = blockIdx.y;
-   koff = mx*kb;
-   joff = mx*jb;
+   j = threadIdx.x; k = threadIdx.y;
+   idx = blockIdx.x; idy = blockIdx.y;
+   koff = mx*idy;
+   joff = mx*idx;
 
-   k = ks + koff;
-   j = js + joff;
-   if ((j < nx) && (k < ny))
-      s[js+mxv*ks] = b[j+nx*k];
+   ks = k + koff;
+   js = j + joff;
+   if ((js < nx) && (ks < ny))
+      s[j+mxv*k] = b[js+nx*ks];
 /* synchronize threads */
    __syncthreads();
-   j = ks + joff;
-   k = js + koff;
-   if ((j < nx) && (k < ny))
-      a[k+ny*j] = s[ks+mxv*js];
+   js = k + joff;
+   ks = j + koff;
+   if ((js < nx) && (ks < ny))
+      a[ks+ny*js] = s[k+mxv*j];
 
    return;
 }

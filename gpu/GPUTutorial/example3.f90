@@ -1,5 +1,5 @@
 !-----------------------------------------------------------------------
-! Fortran GPU Tutorial: Reduction
+! CUDA Fortran GPU Tutorial: Reduction
 ! written by Viktor K. Decyk, UCLA
       program example3
       use redux

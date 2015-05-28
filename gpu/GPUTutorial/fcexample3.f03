@@ -1,21 +1,29 @@
 !-----------------------------------------------------------------------
-! Fortran with CUDA C GPU Tutorial: Reduction
+! Fortran2003 with CUDA C GPU Tutorial: Reduction
 ! written by Viktor K. Decyk, UCLA
       program fcexample3
+      use iso_c_binding
       use redux
-      use gpulib2
+      use gpulib2_c
       implicit none
+! nx = size of array
+! mx = data block size, nbx = number of blocks in array
       integer, parameter :: nx = 3000, mx = 128, nbx = (nx - 1)/mx + 1
       integer, parameter :: nbxs = (nbx - 1)/mx + 1
+! nblock = block size on GPU
       integer :: nblock = 64
       integer :: j, k, irc
       real :: s, eps, epsmax
+! timing data
       double precision :: dtime
       integer, dimension(4) :: itime
-      real, dimension(1) :: t
-      real, dimension(nx) :: a1
-      real, dimension(nbx) :: d1
-      integer, dimension(2) :: g_a1 = 0.0, g_d1 = 0.0, g_s
+! data for Fortran Host
+      real, dimension(1), target :: t
+      real, dimension(nx), target :: a1
+      real, dimension(nbx), target :: d1
+! data for GPU
+      type (c_ptr) :: g_a1 = c_null_ptr, g_d1 = c_null_ptr
+      type (c_ptr) :: g_s = c_null_ptr
 !
 ! set up GPU
       irc = 0
@@ -36,13 +44,15 @@
          stop
       endif
 !
-! initialize 1d data on host
+! initialize 1d data on Host
       do j = 1, nx
          a1(j) = real(j)
       enddo
       d1 = 0.0
-      call gpu_fcopyin(d1,g_d1,nbx)
       s = 0.0; t = 0.0
+! copy data to GPU
+      call gpu_fcopyin(c_loc(d1),g_d1,nbx)
+      call gpu_fcopyin(c_loc(a1),g_a1,nx)
 !
 ! measure overhead time by running empty kernel
       call dtimer(dtime,itime,-1)
@@ -50,7 +60,7 @@
       call dtimer(dtime,itime,1)
       write (*,*) 'Fortran empty kernel time=', real(dtime)
 !
-! segmented 1d sum on host with block size mx
+! segmented 1d sum on Host with block size mx
       call dtimer(dtime,itime,-1)
 !     call sum0(a1,s)
 !     call sum1(a1,s,mx)
@@ -60,7 +70,6 @@
       write (*,*) 'Fortran 1d sum time=', real(dtime)
 !
 ! 1d sum on GPU with block size mx
-      call gpu_fcopyin(a1,g_a1,nx)
       call dtimer(dtime,itime,-1)
 !     call gpu_sum1(g_a1,g_s,mx,nx)
 !     call gpu_sum2(g_a1,g_d1,mx,nx)
@@ -68,8 +77,10 @@
       call gpu_sum3(g_a1,g_d1,g_s,mx,nx)
       call dtimer(dtime,itime,1)
       write (*,*) 'GPU 1d sum time=', real(dtime)
-      call gpu_fcopyout(a1,g_d1,nbx)
-      call gpu_fcopyout(t,g_s,1)
+!
+! copy data from GPU
+      call gpu_fcopyout(c_loc(a1),g_d1,nbx)
+      call gpu_fcopyout(c_loc(t),g_s,1)
 !
 ! Check for correctness: compare d1 and g_d1
       epsmax = 0.0

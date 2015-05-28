@@ -1,5 +1,5 @@
 /*--------------------------------------------------------------------*/
-/* C GPU Tutorial: Transpose        */
+/* CUDA C GPU Tutorial: Transpose        */
 /* written by Viktor K. Decyk, UCLA */
 
 #include <stdlib.h>
@@ -11,15 +11,21 @@
 void dtimer(double *time, struct timeval *itime, int icntrl);
 
 int main(int argc, char *argv[]) {
+/* nx, ny = size of array */
+/* mx, my = data block size */
    int nx = 512, ny = 512, mx = 16, my = 16;
+/* nblock = block size on GPU */
    int nblock = 64;
    int j, k, irc;
    float eps, epsmax;
+/* timing data */
    double dtime;
    struct timeval itime;
+/* data for C Host */
    float *a2 = NULL, *b2 = NULL, *c2 = NULL;
+/* data for GPU */
    float *g_a2 = NULL, *g_b2 = NULL;
-/* allocate host data */
+/* allocate Host data */
    a2 = (float *) malloc(ny*nx*sizeof(float));
    b2 = (float *) malloc(nx*ny*sizeof(float));
    c2 = (float *) malloc(ny*nx*sizeof(float));
@@ -42,14 +48,16 @@ int main(int argc, char *argv[]) {
       exit(1);
    }
 
-/* initialize 2d data on host */
+/* initialize 2d data on Host */
    for (k = 0; k < ny; k++) {
       for (j = 0; j < nx; j++) {
          b2[j+nx*k] = (float) (j + nx*k + 1);
          a2[k+ny*j] = 0.0;
       }
    }
+/* copy data to GPU */
    gpu_fcopyin(a2,g_a2,ny*nx);
+   gpu_fcopyin(b2,g_b2,nx*ny);
 
 /* measure overhead time by running empty kernel */
    dtimer(&dtime,&itime,-1);
@@ -65,11 +73,12 @@ int main(int argc, char *argv[]) {
    printf("C 2d transpose time=%e\n",(float)dtime);
 
 /* 2d transpose on GPU with block size mx, mx */
-   gpu_fcopyin(b2,g_b2,nx*ny);
    dtimer(&dtime,&itime,-1);
    gpu_transpose2(g_a2,g_b2,mx,nx,ny);
    dtimer(&dtime,&itime,1);
    printf("GPU 2d transpose time=%e\n",(float)dtime);
+
+/* copy data from GPU */
    gpu_fcopyout(c2,g_a2,nx*ny);
 
 /* Check for correctness: compare a2 and g_a2 */

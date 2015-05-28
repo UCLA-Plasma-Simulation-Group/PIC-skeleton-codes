@@ -29,16 +29,16 @@
       integer :: mx
       real, dimension(:) :: a, b
 ! local data
-      integer :: j, js, jb, nx, nbx
+      integer :: j, id, nx, nbx, joff
 ! nx = size of arrays in x
       nx = min(size(a,1),size(b,1))
 ! nbx = number of blocks
       nbx = (nx - 1)/mx + 1
 !
-      do jb = 1, nbx
-         do js = 1, min(mx,nx-mx*(jb-1))
-            j = js + mx*(jb - 1)
-            a(j) = b(j)
+      do id = 0, nbx-1
+         joff = mx*id
+         do j = 1, min(mx,nx-joff)
+            a(j+joff) = b(j+joff)
          enddo
       enddo
 !
@@ -51,17 +51,17 @@
       integer :: mx
       real, dimension(:,:) :: a, b
 ! local data
-      integer :: j, k, nx, ny, js, jb, nbx
+      integer :: j, k, id, nx, ny, nbx, joff
 ! nx/ny = size of arrays in x/y
       nx = min(size(a,1),size(b,1)); ny = min(size(a,2),size(b,2))
 ! nbx = number of blocks in x
       nbx = (nx - 1)/mx + 1
 !
       do k = 1, ny
-         do jb = 1, nbx
-            do js = 1, min(mx,nx-mx*(jb-1))
-               j = js + mx*(jb - 1)
-               a(j,k) = b(j,k)
+         do id = 0, nbx-1
+            joff = mx*id
+            do j = 1, min(mx,nx-joff)
+               a(j+joff,k) = b(j+joff,k)
             enddo
          enddo
       enddo
@@ -76,17 +76,17 @@
       real :: s
       real, dimension(:,:) :: a, b
 ! local data
-      integer :: j, k, nx, ny, js, jb, nbx
+      integer :: j, k, id, nx, ny, nbx, joff
 ! nx/ny = size of arrays in x/y
       nx = min(size(a,1),size(b,1)); ny = min(size(a,2),size(b,2))
 ! nbx = number of blocks in x
       nbx = (nx - 1)/mx + 1
 !
       do k = 1, ny
-         do jb = 1, nbx
-            do js = 1, min(mx,nx-mx*(jb-1))
-               j = js + mx*(jb - 1)
-               a(j,k) = s*b(j,k) + a(j,k)
+         do id = 0, nbx-1
+            joff = mx*id
+            do j = 1, min(mx,nx-joff)
+               a(j+joff,k) = s*b(j+joff,k) + a(j+joff,k)
             enddo
          enddo
       enddo
@@ -100,19 +100,19 @@
       integer :: mx, my
       real, dimension(:,:) :: a, b
 ! local data
-      integer :: j, k, nx, ny, js, ks, jb, kb, nbx, nby
+      integer :: j, k, idx, idy, nx, ny, nbx, nby, joff, koff
 ! nx/ny = size of arrays in x/y
       nx = min(size(a,1),size(b,1)); ny = min(size(a,2),size(b,2))
 ! nbx/nby = number of blocks in x/y
       nbx = (nx - 1)/mx + 1; nby = (ny - 1)/my + 1
 !
-      do kb = 1, nby
-         do jb = 1, nbx
-            do ks = 1, min(my,ny-my*(kb-1))
-               k = ks + my*(kb - 1)
-               do js = 1, min(mx,nx-mx*(jb-1))
-                  j = js + mx*(jb - 1)
-                  a(j,k) = b(j,k)
+      do idy = 0, nby-1
+         koff = my*idy
+         do idx = 0, nbx-1
+            joff = mx*idx
+            do k = 1, min(my,ny-koff)
+               do j = 1, min(mx,nx-joff)
+                  a(j+joff,k+koff) = b(j+joff,k+koff)
                enddo
             enddo
          enddo
