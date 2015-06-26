@@ -19,11 +19,12 @@
 #CCOPTS = -O3 -Wall -std=c99
 
 #CUDA
+#CUDAHOME = /usr/local/cuda
 #LOPTS = -L/usr/lib/gcc/i686-apple-darwin9/4.0.1 -lstdc++
 #LOPTS = -L/usr/lib/gcc/i686-apple-darwin9/4.2.1 -lstdc++
 #LOPTS = -L/usr/lib/gcc/i686-apple-darwin10/4.2.1 -lstdc++
 #LOPTS = -L/usr/lib/gcc/i686-apple-darwin10/4.2.1/x86_64 -lstdc++
-#CULIBS = $(CARBON) -lSystemStubs -L/usr/local/cuda/lib -lcuda -lcudart \
+#CULIBS = $(CARBON) -lSystemStubs -L$(CUDAHOME)/lib -lcuda -lcudart \
 #-lcufft
 
 #NVOPTS = -O3 -Xptxas=-v
@@ -50,11 +51,12 @@
 #CCOPTS = -O3 -Wall -std=c99
 
 #CUDA
+#CUDAHOME = /usr/local/cuda
 #LOPTS = -L/usr/lib/gcc/i686-apple-darwin9/4.0.1 -lstdc++
 #LOPTS = -L/usr/lib/gcc/i686-apple-darwin9/4.2.1 -lstdc++
 #LOPTS = -L/usr/lib/gcc/i686-apple-darwin10/4.2.1 -lstdc++
 #LOPTS = -L/usr/lib/gcc/i686-apple-darwin10/4.2.1/x86_64 -lstdc++
-#CULIBS = $(CARBON) -lSystemStubs -L/usr/local/cuda/lib -lcuda -lcudart \
+#CULIBS = $(CARBON) -lSystemStubs -L$(CUDAHOME)/lib -lcuda -lcudart \
 #-lcufft
 
 #NVOPTS = -O3 -arch sm_20
@@ -77,8 +79,10 @@
 
 #CCOPTS = -O3 -Wall -std=c99
 
+#CUDA
+#CUDAHOME = /u/local/cuda/5.5
 #LOPTS =
-#CULIBS = -L/u/local/cuda/5.0/lib64 -lcudart -lcufft
+#CULIBS = -L$(CUDAHOME)/lib64 -lcudart -lcufft
 #NVOPTS = -O3 -arch sm_20
 
 # Makefile gfortran compiler with Linux
@@ -98,12 +102,10 @@ OPTS03 = -O3
 CCOPTS = -O3 -Wall -std=c99
 
 #CUDA
+CUDAHOME = /u/local/cuda/5.5
 LOPTS =
-#CULIBS = -L/usr/local/cuda/lib64 -lcuda -lcudart -lcufft
-#CULIBS = -L/usr/local/cuda/lib -lcuda -lcudart -lcufft
-#CULIBS = -L/u/local/cuda/4.0.17/lib64 -lcuda -lcudart -lcufft
-CULIBS = -L/u/local/cuda/5.0/lib64 -lcudart -lcufft
-#CULIBS = -lcudart -lcufft
+CULIBS = -L$(CUDAHOME)/lib64 -lcuda -lcudart -lcufft
+#CULIBS = -L$(CUDAHOME)/lib -lcuda -lcudart -lcufft
 #NVOPTS = -O3 -Xptxas=-v
 NVOPTS = -O3 -arch sm_20
 
@@ -124,8 +126,9 @@ NVOPTS = -O3 -arch sm_20
 #CCOPTS = -O3 -Wall -std=c99
 
 #CUDA
+#CUDAHOME = /u/local/cuda/5.5
 #LOPTS =
-#CULIBS = -L/u/local/cuda/5.0/lib64 -lcudart -lcufft
+#CULIBS = -L$(CUDAHOME)/lib64 -lcudart -lcufft
 #NVOPTS = -O3 -arch sm_20
 
 # Makefile Cray compiler with Linux
@@ -175,13 +178,13 @@ dtimer.o : dtimer.c
 	$(CC) $(CCOPTS) -c dtimer.c
 
 gpulib2.o : gpulib2.cu
-	nvcc $(NVOPTS) -c gpulib2.cu -I/usr/local/cuda/include
+	nvcc $(NVOPTS) -c gpulib2.cu -I$(CUDAHOME)/include
 
 gpupush2.o : gpupush2.cu
-	nvcc $(NVOPTS) -c gpupush2.cu -I/usr/local/cuda/include
+	nvcc $(NVOPTS) -c gpupush2.cu -I$(CUDAHOME)/include
 
 gpufft2.o : gpufft2.cu
-	nvcc $(NVOPTS) -c gpufft2.cu -I/usr/local/cuda/include
+	nvcc $(NVOPTS) -c gpufft2.cu -I$(CUDAHOME)/include
 
 gpulib2_h.o : gpulib2_h.f90
 	$(FC90) $(OPTS90) -c gpulib2_h.f90

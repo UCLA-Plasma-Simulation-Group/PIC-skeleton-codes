@@ -148,7 +148,7 @@ extern "C" void init_cu(int dev, int *irc) {
          msize = prop.totalGlobalMem;
          z = ((double) msize)/1073741824.0;
          mmcc = 10*prop.major + prop.minor;
-         printf("    CUDA_GLOBAL_MEM_SIZE=%u(%f GB),Capability=%d\n",
+         printf("    CUDA_GLOBAL_MEM_SIZE=%lu(%f GB),Capability=%d\n",
                 msize,(float) z,mmcc);
          printf("    Capability=%d\n",mmcc);
          if (maxunits > maxcpus) {

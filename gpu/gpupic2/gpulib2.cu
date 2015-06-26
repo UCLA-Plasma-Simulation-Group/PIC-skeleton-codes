@@ -249,6 +249,7 @@ extern "C" void init_cu(int dev, int *irc) {
          mmcc = 10*prop.major + prop.minor;
          printf("    CUDA_GLOBAL_MEM_SIZE=%lu(%f GB),Capability=%d\n",
                 msize,(float) z,mmcc);
+         printf("    Capability=%d\n",mmcc);
          if (maxunits > maxcpus) {
             maxcpus = maxunits;
             jm = j;
