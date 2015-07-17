@@ -32,7 +32,7 @@
       real :: wke = 0.0, we = 0.0, wt = 0.0
 ! declare scalars for standard code
       integer :: nx, ny, nxh, nyh, nxe, nye, nxeh, nnxe, nxyh, nxhy
-      integer :: ny1, ntime, nloop, isign, ierr
+      integer :: ntime, nloop, isign, ierr
       real :: qbme, affp
       double precision :: np
 !
@@ -90,7 +90,7 @@
 ! nx/ny = number of grid points in x/y direction
       nx = 2**indx; ny = 2**indy; nxh = nx/2; nyh = max(1,ny/2)
       nxe = nx + 2; nye = ny + 2; nxeh = nxe/2; nnxe = ndim*nxe
-      nxyh = max(nx,ny)/2; nxhy = max(nxh,ny); ny1 = ny + 1
+      nxyh = max(nx,ny)/2; nxhy = max(nxh,ny)
 ! nloop = number of time steps in simulation
 ! ntime = current time step
       nloop = tend/dt + .0001; ntime = 0

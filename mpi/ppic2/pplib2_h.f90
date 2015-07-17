@@ -83,7 +83,7 @@
       interface
          subroutine PPNACGUARD2L(f,scr,nyp,nx,ndim,kstrt,nvp,nxv,nypmx)
          implicit none
-         integer, intent(in) :: nyp, kstrt, nvp, nx, nxv, nypmx
+         integer, intent(in) :: nyp, kstrt, nvp, nx, ndim, nxv, nypmx
          real, dimension(ndim,nxv,nypmx), intent(inout) :: f
          real, dimension(ndim,nxv), intent(inout) :: scr
          end subroutine
