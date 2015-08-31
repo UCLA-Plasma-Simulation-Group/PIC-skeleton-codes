@@ -1728,7 +1728,7 @@ c find particles out of bounds
       if ((dy.lt.edges(1)).or.(dy.ge.edges(2))) then
          ih = ih + 1
          if (ih.le.ntmax) then
-            ihole(ih+1) = j
+            ihole(ih+1) = nop
          else
             nh = 1
          endif
