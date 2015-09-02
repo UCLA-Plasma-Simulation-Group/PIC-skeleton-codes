@@ -2191,7 +2191,8 @@ c sine/cosine table for the angles 2*n*pi/nxy
 c-----------------------------------------------------------------------
       subroutine WPPFFT2R(f,g,bs,br,isign,ntpose,mixup,sct,ttp,indx,indy
      1,kstrt,nvp,nxvh,nyv,kxp,kyp,kypd,nxhyd,nxyhd)
-c wrapper function for parallel real to complex fft
+c wrapper function for 2d real to complex fft, with packed data
+c parallelized with MPI
       implicit none
       integer isign, ntpose, indx, indy, kstrt, nvp, nxvh, nyv, kxp, kyp
       integer kypd, nxhyd, nxyhd, mixup
@@ -2258,7 +2259,8 @@ c perform x fft
 c-----------------------------------------------------------------------
       subroutine WPPFFT2R3(f,g,bs,br,isign,ntpose,mixup,sct,ttp,indx,   
      1indy,kstrt,nvp,nxvh,nyv,kxp,kyp,kypd,nxhyd,nxyhd)
-c wrapper function for parallel real to complex fft
+c wrapper function for 3 2d real to complex ffts, with packed data
+c parallelized with MPI
       implicit none
       integer isign, ntpose, indx, indy, kstrt, nvp, nxvh, nyv, kxp, kyp
       integer kypd, nxhyd, nxyhd, mixup
@@ -2325,7 +2327,8 @@ c perform x fft
 c-----------------------------------------------------------------------
       subroutine WPPFFT2RN(f,g,bs,br,ss,isign,ntpose,mixup,sct,ttp,indx,
      1indy,kstrt,nvp,nxvh,nyv,kxp,kyp,kypd,ndim,nxhyd,nxyhd)
-c wrapper function for parallel real to complex fft
+c wrapper function for n 2d real to complex ffts, with packed data
+c parallelized with MPI
       implicit none
       integer isign, ntpose, indx, indy, kstrt, nvp, nxvh, nyv, kxp, kyp
       integer kypd, ndim, nxhyd, nxyhd, mixup
@@ -2609,7 +2612,7 @@ c local data
       nx = 2**indx
       nxh = nx/2
       ny = 2**indy
-      nyh = ny/2
+      nyh = max(1,ny/2)
       ny2 = ny + 2
       nxy = max0(nx,ny)
       nxhy = 2**indx1y
@@ -2976,7 +2979,7 @@ c local data
       nx = 2**indx
       nxh = nx/2
       ny = 2**indy
-      nyh = ny/2
+      nyh = max(1,ny/2)
       ny2 = ny + 2
       nxy = max0(nx,ny)
       nxhy = 2**indx1y
@@ -3298,7 +3301,7 @@ c this subroutine performs the y part of N two dimensional real to
 c complex fast fourier transforms and their inverses, for a subset of x,
 c using complex arithmetic, where N = ndim
 c for data which is distributed in blocks
-c for isign = (-1,1), input: all, output: f, g
+c for isign = (-1,1), input: all, output: g
 c for isign = -1, approximate flop count: M*(5*log2(M) + 10)/nvp
 c for isign = 1,  approximate flop count: M*(5*log2(M) + 8)/nvp
 c where M = (nx/2)*ny, and nvp = number of procs
@@ -3345,7 +3348,7 @@ c local data
       nx = 2**indx
       nxh = nx/2
       ny = 2**indy
-      nyh = ny/2
+      nyh = max(1,ny/2)
       ny2 = ny + 2
       nxy = max0(nx,ny)
       nxhy = 2**indx1y

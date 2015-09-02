@@ -920,7 +920,7 @@ local data                                                            */
    nx = 1L<<indx;
    nxh = nx/2;
    ny = 1L<<indy;
-   nyh = ny/2;
+   nyh = 1 > ny/2 ? 1 : ny/2;
    nxy = nx > ny ? nx : ny;
    nxhy = 1L<<indx1y;
    ks = kstrt - 1;
@@ -1297,7 +1297,7 @@ local data                                                            */
    nx = 1L<<indx;
    nxh = nx/2;
    ny = 1L<<indy;
-   nyh = ny/2;
+   nyh = 1 > ny/2 ? 1 : ny/2;
    nxy = nx > ny ? nx : ny;
    nxhy = 1L<<indx1y;
    ks = kstrt - 1;
@@ -1431,7 +1431,8 @@ void cwppfft2r(float complex f[], float complex g[], float complex bs[],
                float complex sct[], float *ttp, int indx, int indy,
                int kstrt, int nvp, int nxvh, int nyv, int kxp, int kyp,
                int kypd, int nxhyd, int nxyhd) {
-/* wrapper function for parallel real to complex fft */
+/* wrapper function for 2d real to complex fft, with packed data */
+/* parallelized with MPI */
 /* local data */
    int nxh, ny, ks, kxpp, kypp;
    static int kxpi = 1, kypi = 1;
@@ -1496,6 +1497,8 @@ void cwppfft2r2(float complex f[], float complex g[], float complex bs[],
                 float complex sct[], float *ttp, int indx, int indy,
                 int kstrt, int nvp, int nxvh, int nyv, int kxp, int kyp,
                 int kypd, int nxhyd, int nxyhd) {
+/* wrapper function for 2 2d real to complex ffts, with packed data */
+/* parallelized with MPI */
 /* local data */
    int nxh, ny, ks, kxpp, kypp;
    static int kxpi = 1, kypi = 1;

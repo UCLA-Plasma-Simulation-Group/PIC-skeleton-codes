@@ -1789,7 +1789,8 @@ c sine/cosine table for the angles 2*n*pi/nxy
 c-----------------------------------------------------------------------
       subroutine WPPFFT2R(f,g,bs,br,isign,ntpose,mixup,sct,ttp,indx,indy
      1,kstrt,nvp,nxvh,nyv,kxp,kyp,kypd,nxhyd,nxyhd)
-c wrapper function for parallel real to complex fft
+c wrapper function for 2d real to complex fft, with packed data
+c parallelized with MPI
       implicit none
       integer isign, ntpose, indx, indy, kstrt, nvp, nxvh, nyv, kxp, kyp
       integer kypd, nxhyd, nxyhd, mixup
@@ -1856,7 +1857,8 @@ c perform x fft
 c-----------------------------------------------------------------------
       subroutine WPPFFT2R3(f,g,bs,br,isign,ntpose,mixup,sct,ttp,indx,   
      1indy,kstrt,nvp,nxvh,nyv,kxp,kyp,kypd,nxhyd,nxyhd)
-c wrapper function for parallel real to complex fft
+c wrapper function for 3 2d real to complex ffts, with packed data
+c parallelized with MPI
       implicit none
       integer isign, ntpose, indx, indy, kstrt, nvp, nxvh, nyv, kxp, kyp
       integer kypd, nxhyd, nxyhd, mixup
@@ -2139,7 +2141,7 @@ c local data
       nx = 2**indx
       nxh = nx/2
       ny = 2**indy
-      nyh = ny/2
+      nyh = max(1,ny/2)
       ny2 = ny + 2
       nxy = max0(nx,ny)
       nxhy = 2**indx1y
@@ -2507,7 +2509,7 @@ c local data
       nx = 2**indx
       nxh = nx/2
       ny = 2**indy
-      nyh = ny/2
+      nyh = max(1,ny/2)
       ny2 = ny + 2
       nxy = max0(nx,ny)
       nxhy = 2**indx1y

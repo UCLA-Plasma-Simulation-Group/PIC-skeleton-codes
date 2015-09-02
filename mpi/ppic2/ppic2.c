@@ -330,7 +330,8 @@ L2000:
       printf("sort time = %f\n",tsort);
       tfield += tguard + tfft[0];
       printf("total solver time = %f\n",tfield);
-      time = tdpost + tpush + tmov + tsort;
+      tsort += tmov;
+      time = tdpost + tpush + tsort;
       printf("total particle time = %f\n",time);
       wt = time + tfield;
       printf("total time = %f\n",wt);
