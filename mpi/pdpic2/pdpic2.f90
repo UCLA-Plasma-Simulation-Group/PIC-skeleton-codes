@@ -71,13 +71,12 @@
       complex, dimension(:,:), pointer :: qt
 ! cut = vector current density in fourier space
 ! dcut = vector acceleration density in fourier space
-! cur = vector transverse electric field in fourier space
+! exyt = vector transverse electric field in fourier space
 ! amut = tensor momentum flux in fourier space
-      complex, dimension(:,:,:), pointer :: cut, dcut, cur, amut
-! exyt = vector total electric field in fourier space
+      complex, dimension(:,:,:), pointer :: cut, dcut, exyt, amut
 ! fxyt = vector longitudinal electric field in fourier space
 ! bxyt = vector magnetic field in fourier space
-      complex, dimension(:,:,:), pointer :: exyt, fxyt, bxyt
+      complex, dimension(:,:,:), pointer :: fxyt, bxyt
 ! ffc, ffe = form factor arrays for poisson solvers
       complex, dimension(:,:), pointer :: ffc, ffe
 ! mixup = bit reverse table for FFT
@@ -172,8 +171,8 @@
       allocate(exyze(ndim,nxe,nypmx),cue(ndim,nxe,nypmx))
       allocate(dcu(ndim,nxe,nypmx),cus(ndim,nxe,nypmx))
       allocate(amu(mdim,nxe,nypmx),bxyze(ndim,nxe,nypmx))
-      allocate(qt(nye,kxp),fxyt(ndim,nye,kxp),exyt(ndim,nye,kxp))
-      allocate(cut(ndim,nye,kxp),dcut(ndim,nye,kxp),cur(ndim,nye,kxp))
+      allocate(qt(nye,kxp),fxyt(ndim,nye,kxp))
+      allocate(cut(ndim,nye,kxp),dcut(ndim,nye,kxp),exyt(ndim,nye,kxp))
       allocate(amut(mdim,nye,kxp),bxyt(ndim,nye,kxp))
       allocate(ffc(nyh,kxp),ffe(nyh,kxp),mixup(nxhy),sct(nxyh))
       allocate(ihole(ntmax+1),npic(nypmx),ss(mdim,nxeh))
@@ -221,7 +220,7 @@
       q2m0 = wpm/affp
 ! calculate form factor: ffe
       isign = 0
-      call PPEPOISP23(dcut,cur,isign,ffe,ax,ay,affp,wpm,ci,wf,nx,ny,    &
+      call PPEPOISP23(dcut,exyt,isign,ffe,ax,ay,affp,wpm,ci,wf,nx,ny,   &
      &kstrt,nye,kxp,nyh)
 !
 ! initialize transverse electric field
@@ -403,21 +402,21 @@
       tfield = tfield + time
 !
 ! calculate transverse electric field with standard procedure:
-! updates cur, wf
+! updates exyt, wf
       call dtimer(dtime,itime,-1)
       isign = -1
-      call PPEPOISP23(dcut,cur,isign,ffe,ax,ay,affp,wpm,ci,wf,nx,ny,    &
+      call PPEPOISP23(dcut,exyt,isign,ffe,ax,ay,affp,wpm,ci,wf,nx,ny,   &
      &kstrt,nye,kxp,nyh)
       call dtimer(dtime,itime,1)
       time = real(dtime)
       tfield = tfield + time
 !
 ! transform transverse electric field to real space with standard
-! procedure: updates cus, modifies cur
+! procedure: updates cus, modifies exyt
       call dtimer(dtime,itime,-1)
       isign = 1
-      call WPPFFT2R3(cus,cur,bs,br,isign,ntpose,mixup,sct,ttp,indx,indy,&
-     &kstrt,nvp,nxeh,nye,kxp,kyp,nypmx,nxhy,nxyh)
+      call WPPFFT2R3(cus,exyt,bs,br,isign,ntpose,mixup,sct,ttp,indx,indy&
+     &,kstrt,nvp,nxeh,nye,kxp,kyp,nypmx,nxhy,nxyh)
       call dtimer(dtime,itime,1)
       time = real(dtime)
       tfft(1) = tfft(1) + time
@@ -537,21 +536,21 @@
       tfield = tfield + time
 !
 ! calculate transverse electric field with standard procedure:
-! updates cur, wf
+! updates exyt, wf
       call dtimer(dtime,itime,-1)
       isign = -1
-      call PPEPOISP23(dcut,cur,isign,ffe,ax,ay,affp,wpm,ci,wf,nx,ny,    &
+      call PPEPOISP23(dcut,exyt,isign,ffe,ax,ay,affp,wpm,ci,wf,nx,ny,   &
      &kstrt,nye,kxp,nyh)
       call dtimer(dtime,itime,1)
       time = real(dtime)
       tfield = tfield + time
 !
 ! transform transverse electric field to real space with standard
-! procedure: updates cus, modifies cur
+! procedure: updates cus, modifies exyt
       call dtimer(dtime,itime,-1)
       isign = 1
-      call WPPFFT2R3(cus,cur,bs,br,isign,ntpose,mixup,sct,ttp,indx,indy,&
-     &kstrt,nvp,nxeh,nye,kxp,kyp,nypmx,nxhy,nxyh)
+      call WPPFFT2R3(cus,exyt,bs,br,isign,ntpose,mixup,sct,ttp,indx,indy&
+     &,kstrt,nvp,nxeh,nye,kxp,kyp,nypmx,nxhy,nxyh)
       call dtimer(dtime,itime,1)
       time = real(dtime)
       tfft(1) = tfft(1) + time

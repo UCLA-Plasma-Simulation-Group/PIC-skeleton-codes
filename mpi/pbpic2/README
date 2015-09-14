@@ -112,9 +112,9 @@ Deposit section:
    PPMOVE2 (cppmove2): moves particles to appropriate processor from
                        from list supplied by PPGRJPOST2L or PPGJPOST2L
    PPGPOST2L (cppgpost2l): deposit charge density
-   PPACGUARD2X (cppacguard2xl): add charge density guard cells in x on
-                                local processor
-   PPNACGUARD2L (cppnacguard2l): add charge density guard cells in y
+   PPACGUARD2XL (cppacguard2xl): add current density guard cells in x on
+                                 local processor
+   PPNACGUARD2L (cppnacguard2l): add current density guard cells in y
                                  from remote processor
    PPAGUARD2XL (cppaguard2xl): add charge density guard cells in x on
                                local processor

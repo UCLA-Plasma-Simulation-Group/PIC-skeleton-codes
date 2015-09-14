@@ -76,13 +76,12 @@ int main(int argc, char *argv[]) {
    float complex *qt = NULL;
 /* cut = vector current density in fourier space */
 /* dcut = vector acceleration density in fourier space */
-/* cur = vector transverse electric field in fourier space */
+/* exyt = vector transverse electric field in fourier space */
 /* amut = tensor momentum flux in fourier space */
-   float complex *cut = NULL, *dcut = NULL, *cur = NULL, *amut = NULL;
-/* exyt = vector total electric field in fourier space */
+   float complex *cut = NULL, *dcut = NULL, *exyt = NULL, *amut = NULL;
 /* fxyt = vector longitudinal electric field in fourier space */
 /* bxyt = vector magnetic field in fourier space */
-   float complex *exyt = NULL, *fxyt = NULL, *bxyt = NULL;
+   float complex *fxyt = NULL, *bxyt = NULL;
 /* ffc, ffe = form factor arrays for poisson solvers */
 /* sct = sine/cosine table for FFT */
    float complex *ffc = NULL, *ffe = NULL;
@@ -187,10 +186,9 @@ int main(int argc, char *argv[]) {
    bxyze = (float *) malloc(ndim*nxe*nypmx*sizeof(float));
    qt = (float complex *) malloc(nye*kxp*sizeof(float complex));
    fxyt = (float complex *) malloc(ndim*nye*kxp*sizeof(float complex));
-   exyt = (float complex *) malloc(ndim*nye*kxp*sizeof(float complex));
    cut = (float complex *) malloc(ndim*nye*kxp*sizeof(float complex));
    dcut = (float complex *) malloc(ndim*nye*kxp*sizeof(float complex));
-   cur = (float complex *) malloc(ndim*nye*kxp*sizeof(float complex));
+   exyt = (float complex *) malloc(ndim*nye*kxp*sizeof(float complex));
    amut = (float complex *) malloc(mdim*nye*kxp*sizeof(float complex));
    bxyt = (float complex *) malloc(ndim*nye*kxp*sizeof(float complex));
    ffc = (float complex *) malloc(nyh*kxp*sizeof(float complex));
@@ -250,8 +248,8 @@ int main(int argc, char *argv[]) {
    q2m0 = wpm/affp;
 /* calculate form factor: ffe */
    isign = 0;
-   cppepoisp23(dcut,cur,isign,ffe,ax,ay,affp,wpm,ci,&wf,nx,ny,kstrt,nye,
-               kxp,nyh);
+   cppepoisp23(dcut,exyt,isign,ffe,ax,ay,affp,wpm,ci,&wf,nx,ny,kstrt,
+               nye,kxp,nyh);
 
 /* initialize transverse electric field */
    for (j = 0; j < ndim*nxe*nypmx; j++) {
@@ -444,20 +442,20 @@ L500: if (nloop <= ntime)
       tfield += time;
 
 /* calculate transverse electric field with standard procedure: */
-/* updates cur, wf                                              */
+/* updates exyt, wf                                             */
       dtimer(&dtime,&itime,-1);
       isign = -1;
-      cppepoisp23(dcut,cur,isign,ffe,ax,ay,affp,wpm,ci,&wf,nx,ny,kstrt,
+      cppepoisp23(dcut,exyt,isign,ffe,ax,ay,affp,wpm,ci,&wf,nx,ny,kstrt,
                   nye,kxp,nyh);
       dtimer(&dtime,&itime,1);
       time = (float) dtime;
       tfield += time;
 
 /* transform transverse electric field to real space with standard */
-/* procedure: updates cus, modifies cur */
+/* procedure: updates cus, modifies exyt */
       dtimer(&dtime,&itime,-1);
       isign = 1;
-      cwppfft2r3((float complex *)cus,cur,bs,br,isign,ntpose,mixup,sct,
+      cwppfft2r3((float complex *)cus,exyt,bs,br,isign,ntpose,mixup,sct,
                  &ttp,indx,indy,kstrt,nvp,nxeh,nye,kxp,kyp,nypmx,nxhy,
                  nxyh);
       dtimer(&dtime,&itime,1);
@@ -587,20 +585,20 @@ L500: if (nloop <= ntime)
          tfield += time;
  
 /* calculate convective part of transverse electric field with standard */
-/* procedure: updates cur, wf                                           */
+/* procedure: updates exyt, wf                                          */
          dtimer(&dtime,&itime,-1);
          isign = -1;
-         cppepoisp23(dcut,cur,isign,ffe,ax,ay,affp,wpm,ci,&wf,nx,ny,kstrt,
-                     nye,kxp,nyh);
+         cppepoisp23(dcut,exyt,isign,ffe,ax,ay,affp,wpm,ci,&wf,nx,ny,
+                     kstrt,nye,kxp,nyh);
          dtimer(&dtime,&itime,1);
          time = (float) dtime;
          tfield += time;
  
 /* transform transverse electric field to real space with standard */
-/* procedure: updates cus, modifies cur */
+/* procedure: updates cus, modifies exyt */
          dtimer(&dtime,&itime,-1);
          isign = 1;
-         cwppfft2r3((float complex *)cus,cur,bs,br,isign,ntpose,mixup,
+         cwppfft2r3((float complex *)cus,exyt,bs,br,isign,ntpose,mixup,
                     sct,&ttp,indx,indy,kstrt,nvp,nxeh,nye,kxp,kyp,nypmx,
                     nxhy,nxyh);
          dtimer(&dtime,&itime,1);
