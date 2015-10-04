@@ -107,8 +107,11 @@ Here's a table showing the names of the codes and their parallelism (ES means el
 ||mdpic2|D|C,Fortran|OpenMP|
 ||mdpic3|D|C,Fortran|OpenMP|
 ||ppic2|ES|C,Fortran|MPI|
+||ppic3|ES|C,Fortran|MPI|
 ||pbpic2|EM|C,Fortran|MPI|
+||pbpic3|EM|C,Fortran|MPI|
 ||pdpic2|D|C,Fortran|MPI|
+||pdpic3|D|C,Fortran|MPI|
 ||vpic2|ES|C,Fortran|SSE|
 ||vbpic2|EM|C,Fortran|SSE|
 |__2 Level Parallel__|
