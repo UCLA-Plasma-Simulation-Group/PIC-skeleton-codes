@@ -1,0 +1,32 @@
+wpm= 0.750001404021
+Initial Total Field, Kinetic and Total Energies:
+ 8.8668567e+02  8.4944520e+07  8.4945408e+07
+Initial Electrostatic, Transverse Electric and Magnetic Field Energies:
+ 1.9218221e-04  1.3794072e+01  8.8668549e+02
+ntime, ndc =  100 1
+MPI nodes nvpy, nvpz =  3 4
+Final Total Field, Kinetic and Total Energies:
+ 1.6229562e+04  8.4929616e+07  8.4945848e+07
+Final Electrostatic, Transverse Electric and Magnetic Field Energies:
+ 1.5394098e+04  1.2248803e+01  8.3546362e+02
+
+deposit time =  7.064974
+current deposit time =  16.945455
+current derivative deposit time =  152.243136
+total deposit time =  176.253565
+guard time =  5.10128
+solver time =  3.031338
+fft and transpose time =  30.7786 16.399
+push time =  30.630697
+particle move time =  1.264896
+sort time =  0.975002
+total solver time =  38.9111900825
+total particle time =  209.12416
+total time =  248.035350083
+
+Push Time (nsec) =  5.40957574491
+Deposit Time (nsec) =  31.127499651
+Sort Time (nsec) =  0.395580221106
+Total Particle Time (nsec) =  36.932655617
+
+

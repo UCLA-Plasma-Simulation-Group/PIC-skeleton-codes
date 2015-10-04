@@ -1,0 +1,578 @@
+!    -*- f90 -*-
+! Note: the context of this file is case sensitive.
+
+python module fppush3 ! in 
+    interface  ! in :fppush3
+        subroutine pdicomp32l(edges,nyzp,noff,nypmx,nzpmx,nypmn,nzpmn,ny,nz,kstrt,nvpy,nvpz,idps,idds) ! in :fppush3:ppush3pp_hpy.f90
+            real dimension(*),intent(inout) :: edges
+            integer dimension(*),intent(inout) :: nyzp
+            integer dimension(*),intent(inout) :: noff
+            integer intent(inout) :: nypmx
+            integer intent(inout) :: nzpmx
+            integer intent(inout) :: nypmn
+            integer intent(inout) :: nzpmn
+            integer intent(in) :: ny
+            integer intent(in) :: nz
+            integer intent(in) :: kstrt
+            integer intent(in) :: nvpy
+            integer intent(in) :: nvpz
+            integer intent(in) :: idps
+            integer intent(in) :: idds
+        end subroutine pdicomp32l
+    end interface 
+    interface  ! in :fppush3
+        subroutine fcomp32(nvp,nx,ny,nz,nvpy,nvpz,ierr) ! in :fppush3:ppush3pp_hpy.f90
+            integer intent(in) :: nvp
+            integer intent(in) :: nx
+            integer intent(in) :: ny
+            integer intent(in) :: nz
+            integer intent(inout) :: nvpy
+            integer intent(inout) :: nvpz
+            integer intent(inout) :: ierr
+        end subroutine fcomp32
+    end interface 
+    interface  ! in :fppush3
+        subroutine pdistr32(part,edges,npp,nps,vtx,vty,vtz,vdx,vdy,vdz,npx,npy,npz,nx,ny,nz,idimp,npmax,idps,ipbc,ierr) ! in :fppush3:ppush3pp_hpy.f90
+            real dimension(*),intent(inout) :: part
+            real dimension(*),intent(in) :: edges
+            integer intent(inout) :: npp
+            integer intent(in) :: nps
+            real intent(in) :: vtx
+            real intent(in) :: vty
+            real intent(in) :: vtz
+            real intent(in) :: vdx
+            real intent(in) :: vdy
+            real intent(in) :: vdz
+            integer intent(in) :: npx
+            integer intent(in) :: npy
+            integer intent(in) :: npz
+            integer intent(in) :: nx
+            integer intent(in) :: ny
+            integer intent(in) :: nz
+            integer intent(in) :: idimp
+            integer intent(in) :: npmax
+            integer intent(in) :: idps
+            integer intent(in) :: ipbc
+            integer intent(inout) :: ierr
+        end subroutine pdistr32
+    end interface 
+    interface  ! in :fppush3
+        subroutine ppgpush32l(part,fxyz,edges,npp,noff,ihole,qbm,dt,ek,nx,ny,nz,idimp,npmax,nxv,nypmx,nzpmx,idps,idds,ntmax,ipbc) ! in :fppush3:ppush3pp_hpy.f90
+            real dimension(*),intent(inout) :: part
+            real dimension(*),intent(in) :: fxyz
+            real dimension(*),intent(in) :: edges
+            integer intent(in) :: npp
+            integer dimension(*),intent(in) :: noff
+            integer dimension(*),intent(inout) :: ihole
+            real intent(in) :: qbm
+            real intent(in) :: dt
+            real intent(inout) :: ek
+            integer intent(in) :: nx
+            integer intent(in) :: ny
+            integer intent(in) :: nz
+            integer intent(in) :: idimp
+            integer intent(in) :: npmax
+            integer intent(in) :: nxv
+            integer intent(in) :: nypmx
+            integer intent(in) :: nzpmx
+            integer intent(in) :: idps
+            integer intent(in) :: idds
+            integer intent(in) :: ntmax
+            integer intent(in) :: ipbc
+        end subroutine ppgpush32l
+    end interface 
+    interface  ! in :fppush3
+        subroutine ppgpost32l(part,q,npp,noff,qm,idimp,npmax,nxv,nypmx,nzpmx,idds) ! in :fppush3:ppush3pp_hpy.f90
+            real dimension(*),intent(in) :: part
+            real dimension(*),intent(inout) :: q
+            integer intent(in) :: npp
+            integer dimension(*),intent(in) :: noff
+            real intent(in) :: qm
+            integer intent(in) :: idimp
+            integer intent(in) :: npmax
+            integer intent(in) :: nxv
+            integer intent(in) :: nypmx
+            integer intent(in) :: nzpmx
+            integer intent(in) :: idds
+        end subroutine ppgpost32l
+    end interface 
+    interface  ! in :fppush3
+        subroutine ppdsortp32yzl(parta,partb,npic,npp,noff,nyzp,idimp,npmax,nyzpm1,idds) ! in :fppush3:ppush3pp_hpy.f90
+            real dimension(*),intent(in) :: parta
+            real dimension(*),intent(inout) :: partb
+            integer dimension(*),intent(inout) :: npic
+            integer intent(in) :: npp
+            integer dimension(*),intent(in) :: noff
+            integer dimension(*),intent(in) :: nyzp
+            integer intent(in) :: idimp
+            integer intent(in) :: npmax
+            integer intent(in) :: nyzpm1
+            integer intent(in) :: idds
+        end subroutine ppdsortp32yzl
+    end interface 
+    interface  ! in :fppush3
+        subroutine ppcguard32xl(fxyz,nyzp,nx,ndim,nxe,nypmx,nzpmx,idds) ! in :fppush3:ppush3pp_hpy.f90
+            real dimension(*),intent(inout) :: fxyz
+            integer dimension(*),intent(in) :: nyzp
+            integer intent(in) :: nx
+            integer intent(in) :: ndim
+            integer intent(in) :: nxe
+            integer intent(in) :: nypmx
+            integer intent(in) :: nzpmx
+            integer intent(in) :: idds
+        end subroutine ppcguard32xl
+    end interface 
+    interface  ! in :fppush3
+        subroutine ppaguard32xl(q,nyzp,nx,nxe,nypmx,nzpmx,idds) ! in :fppush3:ppush3pp_hpy.f90
+            real dimension(*),intent(inout) :: q
+            integer dimension(*),intent(in) :: nyzp
+            integer intent(in) :: nx
+            integer intent(in) :: nxe
+            integer intent(in) :: nypmx
+            integer intent(in) :: nzpmx
+            integer intent(in) :: idds
+        end subroutine ppaguard32xl
+    end interface 
+    interface  ! in :fppush3
+        subroutine ppois332(q,fxyz,isign,ffc,ax,ay,az,affp,we,nx,ny,nz,kstrt,nvpy,nvpz,nzv,kxyp,kyzp,nzhd) ! in :fppush3:ppush3pp_hpy.f90
+            complex dimension(*),intent(in) :: q
+            complex dimension(*),intent(inout) :: fxyz
+            integer intent(in) :: isign
+            complex dimension(*),intent(inout) :: ffc
+            real intent(in) :: ax
+            real intent(in) :: ay
+            real intent(in) :: az
+            real intent(in) :: affp
+            real intent(inout) :: we
+            integer intent(in) :: nx
+            integer intent(in) :: ny
+            integer intent(in) :: nz
+            integer intent(in) :: kstrt
+            integer intent(in) :: nvpy
+            integer intent(in) :: nvpz
+            integer intent(in) :: nzv
+            integer intent(in) :: kxyp
+            integer intent(in) :: kyzp
+            integer intent(in) :: nzhd
+        end subroutine ppois332
+    end interface 
+    interface  ! in :fppush3
+        subroutine wpfft32rinit(mixup,sct,indx,indy,indz,nxhyzd,nxyzhd) ! in :fppush3:ppush3pp_hpy.f90
+            integer dimension(*),intent(inout) :: mixup
+            complex dimension(*),intent(inout) :: sct
+            integer intent(in) :: indx
+            integer intent(in) :: indy
+            integer intent(in) :: indz
+            integer intent(in) :: nxhyzd
+            integer intent(in) :: nxyzhd
+        end subroutine wpfft32rinit
+    end interface 
+    interface  ! in :fppush3
+        subroutine wppfft32r(f,g,h,bs,br,isign,ntpose,mixup,sct,ttp,indx,indy,indz,kstrt,nvpy,nvpz,nxvh,nyv,nzv,kxyp,kyp,kyzp,kzp,kxypd,kypd,kyzpd,kzpd,kzyp,nxhyzd,nxyzhd) ! in :fppush3:ppush3pp_hpy.f90
+            real dimension(*),intent(inout) :: f
+            complex dimension(*),intent(inout) :: g
+            complex dimension(*),intent(inout) :: h
+            complex dimension(*),intent(inout) :: bs
+            complex dimension(*),intent(inout) :: br
+            integer intent(in) :: isign
+            integer intent(in) :: ntpose
+            integer dimension(*),intent(in) :: mixup
+            complex dimension(*),intent(in) :: sct
+            real intent(inout) :: ttp
+            integer intent(in) :: indx
+            integer intent(in) :: indy
+            integer intent(in) :: indz
+            integer intent(in) :: kstrt
+            integer intent(in) :: nvpy
+            integer intent(in) :: nvpz
+            integer intent(in) :: nxvh
+            integer intent(in) :: nyv
+            integer intent(in) :: nzv
+            integer intent(in) :: kxyp
+            integer intent(in) :: kyp
+            integer intent(in) :: kyzp
+            integer intent(in) :: kzp
+            integer intent(in) :: kxypd
+            integer intent(in) :: kypd
+            integer intent(in) :: kyzpd
+            integer intent(in) :: kzpd
+            integer intent(in) :: kzyp
+            integer intent(in) :: nxhyzd
+            integer intent(in) :: nxyzhd
+        end subroutine wppfft32r
+    end interface 
+    interface  ! in :fppush3
+        subroutine wppfft32r3(f,g,h,bs,br,isign,ntpose,mixup,sct,ttp,indx,indy,indz,kstrt,nvpy,nvpz,nxvh,nyv,nzv,kxyp,kyp,kyzp,kzp,kxypd,kypd,kyzpd,kzpd,kzyp,nxhyzd,nxyzhd) ! in :fppush3:ppush3pp_hpy.f90
+            real dimension(*),intent(inout) :: f
+            complex dimension(*),intent(inout) :: g
+            complex dimension(*),intent(inout) :: h
+            complex dimension(*),intent(inout) :: bs
+            complex dimension(*),intent(inout) :: br
+            integer intent(in) :: isign
+            integer intent(in) :: ntpose
+            integer dimension(*),intent(in) :: mixup
+            complex dimension(*),intent(in) :: sct
+            real intent(inout) :: ttp
+            integer intent(in) :: indx
+            integer intent(in) :: indy
+            integer intent(in) :: indz
+            integer intent(in) :: kstrt
+            integer intent(in) :: nvpy
+            integer intent(in) :: nvpz
+            integer intent(in) :: nxvh
+            integer intent(in) :: nyv
+            integer intent(in) :: nzv
+            integer intent(in) :: kxyp
+            integer intent(in) :: kyp
+            integer intent(in) :: kyzp
+            integer intent(in) :: kzp
+            integer intent(in) :: kxypd
+            integer intent(in) :: kypd
+            integer intent(in) :: kyzpd
+            integer intent(in) :: kzpd
+            integer intent(in) :: kzyp
+            integer intent(in) :: nxhyzd
+            integer intent(in) :: nxyzhd
+        end subroutine wppfft32r3
+    end interface 
+    interface  ! in :fppush3
+        subroutine ppfft32rxx(f,isign,mixup,sct,indx,indy,indz,kstrt,nvp,kypi,kypp,nxvh,kzpp,kypd,kzpd,nxhyzd,nxyzhd) ! in :fppush3:ppush3pp_hpy.f90
+            real dimension(*),intent(inout) :: f
+            integer intent(in) :: isign
+            integer dimension(*),intent(in) :: mixup
+            complex dimension(*),intent(in) :: sct
+            integer intent(in) :: indx
+            integer intent(in) :: indy
+            integer intent(in) :: indz
+            integer intent(in) :: kstrt
+            integer intent(in) :: nvp
+            integer intent(in) :: kypi
+            integer intent(in) :: kypp
+            integer intent(in) :: nxvh
+            integer intent(in) :: kzpp
+            integer intent(in) :: kypd
+            integer intent(in) :: kzpd
+            integer intent(in) :: nxhyzd
+            integer intent(in) :: nxyzhd
+        end subroutine ppfft32rxx
+    end interface 
+    interface  ! in :fppush3
+        subroutine ppfft32rxy(g,isign,mixup,sct,indx,indy,indz,kstrt,nvpy,nvpz,kxypi,kxypp,nyv,kzpp,kxypd,kzpd,nxhyzd,nxyzhd) ! in :fppush3:ppush3pp_hpy.f90
+            complex dimension(*),intent(inout) :: g
+            integer intent(in) :: isign
+            integer dimension(*),intent(in) :: mixup
+            complex dimension(*),intent(in) :: sct
+            integer intent(in) :: indx
+            integer intent(in) :: indy
+            integer intent(in) :: indz
+            integer intent(in) :: kstrt
+            integer intent(in) :: nvpy
+            integer intent(in) :: nvpz
+            integer intent(in) :: kxypi
+            integer intent(in) :: kxypp
+            integer intent(in) :: nyv
+            integer intent(in) :: kzpp
+            integer intent(in) :: kxypd
+            integer intent(in) :: kzpd
+            integer intent(in) :: nxhyzd
+            integer intent(in) :: nxyzhd
+        end subroutine ppfft32rxy
+    end interface 
+    interface  ! in :fppush3
+        subroutine ppfft32rxz(h,isign,mixup,sct,indx,indy,indz,kstrt,nvpy,nvpz,kxypi,kxypp,nzv,kyzp,kxypd,kyzpd,nxhyzd,nxyzhd) ! in :fppush3:ppush3pp_hpy.f90
+            complex dimension(*),intent(inout) :: h
+            integer intent(in) :: isign
+            integer dimension(*),intent(in) :: mixup
+            complex dimension(*),intent(in) :: sct
+            integer intent(in) :: indx
+            integer intent(in) :: indy
+            integer intent(in) :: indz
+            integer intent(in) :: kstrt
+            integer intent(in) :: nvpy
+            integer intent(in) :: nvpz
+            integer intent(in) :: kxypi
+            integer intent(in) :: kxypp
+            integer intent(in) :: nzv
+            integer intent(in) :: kyzp
+            integer intent(in) :: kxypd
+            integer intent(in) :: kyzpd
+            integer intent(in) :: nxhyzd
+            integer intent(in) :: nxyzhd
+        end subroutine ppfft32rxz
+    end interface 
+    interface  ! in :fppush3
+        subroutine ppfft32r3xx(f,isign,mixup,sct,indx,indy,indz,kstrt,nvp,kypi,kypp,nxvh,kzpp,kypd,kzpd,nxhyzd,nxyzhd) ! in :fppush3:ppush3pp_hpy.f90
+            real dimension(*),intent(inout) :: f
+            integer intent(in) :: isign
+            integer dimension(*),intent(in) :: mixup
+            complex dimension(*),intent(in) :: sct
+            integer intent(in) :: indx
+            integer intent(in) :: indy
+            integer intent(in) :: indz
+            integer intent(in) :: kstrt
+            integer intent(in) :: nvp
+            integer intent(in) :: kypi
+            integer intent(in) :: kypp
+            integer intent(in) :: nxvh
+            integer intent(in) :: kzpp
+            integer intent(in) :: kypd
+            integer intent(in) :: kzpd
+            integer intent(in) :: nxhyzd
+            integer intent(in) :: nxyzhd
+        end subroutine ppfft32r3xx
+    end interface 
+    interface  ! in :fppush3
+        subroutine ppfft32r3xy(g,isign,mixup,sct,indx,indy,indz,kstrt,nvpy,nvpz,kxypi,kxypp,nyv,kzpp,kxypd,kzpd,nxhyzd,nxyzhd) ! in :fppush3:ppush3pp_hpy.f90
+            complex dimension(*),intent(inout) :: g
+            integer intent(in) :: isign
+            integer dimension(*),intent(in) :: mixup
+            complex dimension(*),intent(in) :: sct
+            integer intent(in) :: indx
+            integer intent(in) :: indy
+            integer intent(in) :: indz
+            integer intent(in) :: kstrt
+            integer intent(in) :: nvpy
+            integer intent(in) :: nvpz
+            integer intent(in) :: kxypi
+            integer intent(in) :: kxypp
+            integer intent(in) :: nyv
+            integer intent(in) :: kzpp
+            integer intent(in) :: kxypd
+            integer intent(in) :: kzpd
+            integer intent(in) :: nxhyzd
+            integer intent(in) :: nxyzhd
+        end subroutine ppfft32r3xy
+    end interface 
+    interface  ! in :fppush3
+        subroutine ppfft32r3xz(h,isign,mixup,sct,indx,indy,indz,kstrt,nvpy,nvpz,kxypi,kxypp,nzv,kyzp,kxypd,kyzpd,nxhyzd,nxyzhd) ! in :fppush3:ppush3pp_hpy.f90
+            complex dimension(*),intent(inout) :: h
+            integer intent(in) :: isign
+            integer dimension(*),intent(in) :: mixup
+            complex dimension(*),intent(in) :: sct
+            integer intent(in) :: indx
+            integer intent(in) :: indy
+            integer intent(in) :: indz
+            integer intent(in) :: kstrt
+            integer intent(in) :: nvpy
+            integer intent(in) :: nvpz
+            integer intent(in) :: kxypi
+            integer intent(in) :: kxypp
+            integer intent(in) :: nzv
+            integer intent(in) :: kyzp
+            integer intent(in) :: kxypd
+            integer intent(in) :: kyzpd
+            integer intent(in) :: nxhyzd
+            integer intent(in) :: nxyzhd
+        end subroutine ppfft32r3xz
+    end interface 
+    interface  ! in :fppush3
+        subroutine ppinit2(idproc,nvp) ! in :fppush3:ppush3pp_hpy.f90
+            integer intent(inout) :: idproc
+            integer intent(inout) :: nvp
+        end subroutine ppinit2
+    end interface 
+    interface  ! in :fppush3
+        subroutine ppexit ! in :fppush3:ppush3pp_hpy.f90
+        end subroutine ppexit
+    end interface 
+    interface  ! in :fppush3
+        subroutine ppabort ! in :fppush3:ppush3pp_hpy.f90
+        end subroutine ppabort
+    end interface 
+    interface  ! in :fppush3
+        subroutine pwtimera(icntrl,time,dtime) ! in :fppush3:ppush3pp_hpy.f90
+            integer intent(in) :: icntrl
+            real intent(inout) :: time
+            double precision intent(inout) :: dtime
+        end subroutine pwtimera
+    end interface 
+    interface  ! in :fppush3
+        subroutine ppsum(f,g,nxp) ! in :fppush3:ppush3pp_hpy.f90
+            real dimension(*),intent(inout) :: f
+            real dimension(*),intent(inout) :: g
+            integer intent(in) :: nxp
+        end subroutine ppsum
+    end interface 
+    interface  ! in :fppush3
+        subroutine ppdsum(f,g,nxp) ! in :fppush3:ppush3pp_hpy.f90
+            double precision dimension(*),intent(inout) :: f
+            double precision dimension(*),intent(inout) :: g
+            integer intent(in) :: nxp
+        end subroutine ppdsum
+    end interface 
+    interface  ! in :fppush3
+        subroutine ppimax(if_bn,ig,nxp) ! in :fppush3:ppush3pp_hpy.f90
+            integer dimension(*),intent(inout) :: if_bn
+            integer dimension(*),intent(inout) :: ig
+            integer intent(in) :: nxp
+        end subroutine ppimax
+    end interface 
+    interface  ! in :fppush3
+        subroutine ppdmax(f,g,nxp) ! in :fppush3:ppush3pp_hpy.f90
+            double precision dimension(*),intent(inout) :: f
+            double precision dimension(*),intent(inout) :: g
+            integer intent(in) :: nxp
+        end subroutine ppdmax
+    end interface 
+    interface  ! in :fppush3
+        subroutine ppncguard32l(f,scs,nyzp,kstrt,nvpy,nvpz,nxv,nypmx,nzpmx,idds) ! in :fppush3:ppush3pp_hpy.f90
+            real dimension(*),intent(inout) :: f
+            real dimension(*),intent(inout) :: scs
+            integer dimension(*),intent(in) :: nyzp
+            integer intent(in) :: kstrt
+            integer intent(in) :: nvpy
+            integer intent(in) :: nvpz
+            integer intent(in) :: nxv
+            integer intent(in) :: nypmx
+            integer intent(in) :: nzpmx
+            integer intent(in) :: idds
+        end subroutine ppncguard32l
+    end interface 
+    interface  ! in :fppush3
+        subroutine ppnaguard32l(f,scs,scr,nyzp,kstrt,nvpy,nvpz,nx,nxv,nypmx,nzpmx,idds) ! in :fppush3:ppush3pp_hpy.f90
+            real dimension(*),intent(inout) :: f
+            real dimension(*),intent(inout) :: scs
+            real dimension(*),intent(inout) :: scr
+            integer dimension(*),intent(in) :: nyzp
+            integer intent(in) :: kstrt
+            integer intent(in) :: nvpy
+            integer intent(in) :: nvpz
+            integer intent(in) :: nx
+            integer intent(in) :: nxv
+            integer intent(in) :: nypmx
+            integer intent(in) :: nzpmx
+            integer intent(in) :: idds
+        end subroutine ppnaguard32l
+    end interface 
+    interface  ! in :fppush3
+        subroutine ppnacguard32l(f,scs,scr,nyzp,ndim,kstrt,nvpy,nvpz,nx,nxv,nypmx,nzpmx,idds) ! in :fppush3:ppush3pp_hpy.f90
+            real dimension(*),intent(inout) :: f
+            real dimension(*),intent(inout) :: scs
+            real dimension(*),intent(inout) :: scr
+            integer dimension(*),intent(in) :: nyzp
+            integer intent(in) :: ndim
+            integer intent(in) :: kstrt
+            integer intent(in) :: nvpy
+            integer intent(in) :: nvpz
+            integer intent(in) :: nx
+            integer intent(in) :: nxv
+            integer intent(in) :: nypmx
+            integer intent(in) :: nzpmx
+            integer intent(in) :: idds
+        end subroutine ppnacguard32l
+    end interface 
+    interface  ! in :fppush3
+        subroutine pptpos3a(f,g,s,t,nx,ny,nz,kxyp,kyp,kzp,kstrt,nvpy,nxv,nyv,kxypd,kypd,kzpd) ! in :fppush3:ppush3pp_hpy.f90
+            real dimension(*),intent(in) :: f
+            complex dimension(*),intent(inout) :: g
+            complex dimension(*),intent(inout) :: s
+            complex dimension(*),intent(inout) :: t
+            integer intent(in) :: nx
+            integer intent(in) :: ny
+            integer intent(in) :: nz
+            integer intent(in) :: kxyp
+            integer intent(in) :: kyp
+            integer intent(in) :: kzp
+            integer intent(in) :: kstrt
+            integer intent(in) :: nvpy
+            integer intent(in) :: nxv
+            integer intent(in) :: nyv
+            integer intent(in) :: kxypd
+            integer intent(in) :: kypd
+            integer intent(in) :: kzpd
+        end subroutine pptpos3a
+    end interface 
+    interface  ! in :fppush3
+        subroutine pptpos3b(g,h,s,t,nx,ny,nz,kxyp,kyzp,kzp,kstrt,nvpy,nvpz,nyv,nzv,kxypd,kyzpd,kzpd) ! in :fppush3:ppush3pp_hpy.f90
+            complex dimension(*),intent(inout) :: g
+            complex dimension(*),intent(inout) :: h
+            complex dimension(*),intent(inout) :: s
+            complex dimension(*),intent(inout) :: t
+            integer intent(in) :: nx
+            integer intent(in) :: ny
+            integer intent(in) :: nz
+            integer intent(in) :: kxyp
+            integer intent(in) :: kyzp
+            integer intent(in) :: kzp
+            integer intent(in) :: kstrt
+            integer intent(in) :: nvpy
+            integer intent(in) :: nvpz
+            integer intent(in) :: nyv
+            integer intent(in) :: nzv
+            integer intent(in) :: kxypd
+            integer intent(in) :: kyzpd
+            integer intent(in) :: kzpd
+        end subroutine pptpos3b
+    end interface 
+    interface  ! in :fppush3
+        subroutine ppntpos3a(f,g,s,t,nx,ny,nz,kxyp,kyp,kzp,kstrt,nvpy,ndim,nxv,nyv,kxypd,kypd,kzpd) ! in :fppush3:ppush3pp_hpy.f90
+            real dimension(*),intent(in) :: f
+            complex dimension(*),intent(inout) :: g
+            complex dimension(*),intent(inout) :: s
+            complex dimension(*),intent(inout) :: t
+            integer intent(in) :: nx
+            integer intent(in) :: ny
+            integer intent(in) :: nz
+            integer intent(in) :: kxyp
+            integer intent(in) :: kyp
+            integer intent(in) :: kzp
+            integer intent(in) :: kstrt
+            integer intent(in) :: nvpy
+            integer intent(in) :: ndim
+            integer intent(in) :: nxv
+            integer intent(in) :: nyv
+            integer intent(in) :: kxypd
+            integer intent(in) :: kypd
+            integer intent(in) :: kzpd
+        end subroutine ppntpos3a
+    end interface 
+    interface  ! in :fppush3
+        subroutine ppntpos3b(g,h,s,t,nx,ny,nz,kxyp,kyzp,kzp,kstrt,nvpy,nvpz,ndim,nyv,nzv,kxypd,kyzpd,kzpd) ! in :fppush3:ppush3pp_hpy.f90
+            complex dimension(*),intent(inout) :: g
+            complex dimension(*),intent(inout) :: h
+            complex dimension(*),intent(inout) :: s
+            complex dimension(*),intent(inout) :: t
+            integer intent(in) :: nx
+            integer intent(in) :: ny
+            integer intent(in) :: nz
+            integer intent(in) :: kxyp
+            integer intent(in) :: kyzp
+            integer intent(in) :: kzp
+            integer intent(in) :: kstrt
+            integer intent(in) :: nvpy
+            integer intent(in) :: nvpz
+            integer intent(in) :: ndim
+            integer intent(in) :: nyv
+            integer intent(in) :: nzv
+            integer intent(in) :: kxypd
+            integer intent(in) :: kyzpd
+            integer intent(in) :: kzpd
+        end subroutine ppntpos3b
+    end interface 
+    interface  ! in :fppush3
+        subroutine ppmove32(part,edges,npp,sbufr,sbufl,rbufr,rbufl,ihole,ny,nz,kstrt,nvpy,nvpz,idimp,npmax,idps,nbmax,ntmax,info) ! in :fppush3:ppush3pp_hpy.f90
+            real dimension(*),intent(inout) :: part
+            real dimension(*),intent(in) :: edges
+            integer intent(inout) :: npp
+            real dimension(*),intent(inout) :: sbufr
+            real dimension(*),intent(inout) :: sbufl
+            real dimension(*),intent(inout) :: rbufr
+            real dimension(*),intent(inout) :: rbufl
+            integer dimension(*),intent(inout) :: ihole
+            integer intent(in) :: ny
+            integer intent(in) :: nz
+            integer intent(in) :: kstrt
+            integer intent(in) :: nvpy
+            integer intent(in) :: nvpz
+            integer intent(in) :: idimp
+            integer intent(in) :: npmax
+            integer intent(in) :: idps
+            integer intent(in) :: nbmax
+            integer intent(in) :: ntmax
+            integer dimension(*),intent(inout) :: info
+        end subroutine ppmove32
+    end interface 
+end python module fppush3
+
+! This file was auto-generated with f2py (version:2).
+! See http://cens.ioc.ee/projects/f2py2e/

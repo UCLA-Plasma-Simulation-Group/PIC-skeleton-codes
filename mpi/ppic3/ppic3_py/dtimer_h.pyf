@@ -1,0 +1,15 @@
+!    -*- f90 -*-
+! Note: the context of this file is case sensitive.
+
+python module dtimer ! in 
+    interface  ! in :dtimer
+        subroutine dtimer(dtime,itime,icntrl) ! in :dtimer:dtimer_hpy.f90
+            double precision intent(inout) :: dtime
+            integer dimension(4),intent(inout) :: itime
+            integer intent(in) :: icntrl
+        end subroutine dtimer
+    end interface 
+end python module dtimer
+
+! This file was auto-generated with f2py (version:2).
+! See http://cens.ioc.ee/projects/f2py2e/
