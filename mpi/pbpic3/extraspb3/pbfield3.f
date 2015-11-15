@@ -1,4 +1,5 @@
-c Fortran library for Skeleton 3D Darwin MPI PIC Code field diagnostics
+c Fortran library for Skeleton 3D Electromagnetic MPI PIC Code field
+c diagnostics
 c written by viktor k. decyk, ucla
 c copyright 1994-2015, regents of the university of california
 c-----------------------------------------------------------------------

@@ -73,7 +73,7 @@ int main(int argc, char *argv[]) {
    float *fxyze = NULL, *exyze = NULL, *bxyze = NULL;
 /* qt, qs = scalar charge density field arrays in fourier space */
    float complex *qt = NULL, *qs = NULL;
-/* cut = scalar charge density field arrays in fourier space */
+/* cut = vector current density field arrays in fourier space */
 /* dcut = vector acceleration density in fourier space */
 /* exyzt = vector transverse electric field in fourier space */
 /* amut = tensor momentum flux in fourier space */
@@ -178,8 +178,8 @@ int main(int argc, char *argv[]) {
                      printf("combination not supported nvpz,nz= %d,%d\n",
                             nvpz,nz);
       }
-      if ((nypmn < 1) || (nzpmn < 1)) goto L3000;
    }
+   if ((nypmn < 1) || (nzpmn < 1)) goto L3000;
 /* initialize additional scalars for MPI code */
 /* kyp = number of complex grids in each field partition in y direction */
    kyp = (ny - 1)/nvpy + 1;

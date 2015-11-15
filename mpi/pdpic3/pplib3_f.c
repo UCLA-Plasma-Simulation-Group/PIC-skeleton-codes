@@ -3,7 +3,7 @@
 
 #include <complex.h>
 
-void ppinit2_(int *idproc, int *nvp, int *argc, char *argv[]);
+void ppinit2_(int *idproc, int *nvp);
 
 void ppexit_();
 
@@ -69,7 +69,7 @@ void ppmoveg32_(float *part, float *edges, int *npp, float *sbufr,
 
 /*--------------------------------------------------------------------*/
 void cppinit2(int *idproc, int *nvp, int argc, char *argv[]) {
-   ppinit2_(idproc,nvp,&argc,argv);
+   ppinit2_(idproc,nvp);
    return;
 }
 

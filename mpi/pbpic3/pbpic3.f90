@@ -57,7 +57,7 @@
       real, dimension(:,:,:,:), pointer :: cue, fxyze, bxyze
 ! qt, qs = scalar charge density field arrays in fourier space
       complex, dimension(:,:,:), pointer :: qt, qs
-! cut = scalar charge density field arrays in fourier space
+! cut = vector current density field arrays in fourier space
       complex, dimension(:,:,:,:), pointer :: cut
 ! fxyzt, fxyzs = vector electric field arrays in fourier space
 ! bxyzt = vector magnetic field arrays in fourier space
@@ -151,8 +151,8 @@
          if (nzpmn < 1) then
             write (*,*) 'combination not supported nvpz, nz =',nvpz,nz
          endif
-         if ((nypmn < 1).or.(nzpmn < 1)) go to 3000
       endif
+      if ((nypmn < 1).or.(nzpmn < 1)) go to 3000
 ! initialize additional scalars for MPI code
 ! kyp = number of complex grids in each field partition in y direction
       kyp = (ny - 1)/nvpy + 1

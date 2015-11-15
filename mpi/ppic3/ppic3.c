@@ -152,8 +152,8 @@ int main(int argc, char *argv[]) {
                      printf("combination not supported nvpz,nz= %d,%d\n",
                             nvpz,nz);
       }
-      if ((nypmn < 1) || (nzpmn < 1)) goto L3000;
    }
+   if ((nypmn < 1) || (nzpmn < 1)) goto L3000;
 /* initialize additional scalars for MPI code */
 /* kyp = number of complex grids in each field partition in y direction */
    kyp = (ny - 1)/nvpy + 1;

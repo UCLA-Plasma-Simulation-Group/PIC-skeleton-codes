@@ -122,9 +122,9 @@ if (kstrt==1):
       print "combination not supported nvpy, ny =",nvpy,ny
    if (nzpmn < 1):
       print "combination not supported nvpz, nz =",nvpz,nz
-   if ((nypmn < 1) or (nzpmn < 1)):
-      ppexit()
-      exit(0)
+if ((nypmn < 1) or (nzpmn < 1)):
+   ppexit()
+   exit(0)
 # initialize additional scalars for MPI code
 # kyp = number of complex grids in each field partition in y direction
 kyp = int((ny - 1)/nvpy) + 1
@@ -165,7 +165,7 @@ bxyz = numpy.empty((ndim,nze,kxyp,kyzp),complex_type,'F')
 # qt, qs = scalar charge density field arrays in fourier space
 qt = numpy.empty((nze,kxyp,kyzp),complex_type,'F')
 qs = numpy.empty((nye,kxyp,nzpmx),complex_type,'F')
-# cut = scalar charge density field arrays in fourier space
+# cut = vector current density field arrays in fourier space
 cut = numpy.empty((ndim,nze,kxyp,kyzp),complex_type,'F')
 # fxyzt = vector longitudinal electric field in fourier space
 fxyzt = numpy.empty((ndim,nze,kxyp,kyzp),complex_type,'F')

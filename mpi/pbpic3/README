@@ -232,6 +232,7 @@ processors in y, and the grid size in z is an exact multiple of the
 number of processors in z.
 
 The file output contains the results produced for the default parameters.
+Typical timing results are shown in the file fpbpic3_bench.pdf.
 
 The Fortran version can be compiled to run with double precision by
 changing the Makefile (typically by setting the compiler options flags

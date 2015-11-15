@@ -197,7 +197,7 @@ npz = number of electrons distributed in z direction.
 tend = time at end of simulation, in units of plasma frequency.
 dt = time interval between successive calculations.
    The number of time steps the code runs is given by tend/dt.
-   dt should be less than .45*ci for the electromagnetic code.
+   typically, dt should be less than .2 for the Darwin code
 vtx/vty/vtz = thermal velocity of electrons in x/y/z direction.
    a typical value is 1.0.
 vx0/vy0/vz0 = drift velocity of electrons in x/y/z direction.
@@ -256,6 +256,7 @@ processors in y, and the grid size in z is an exact multiple of the
 number of processors in z.
 
 The file output contains the results produced for the default parameters.
+Typical timing results are shown in the file fpdpic3_bench.pdf.
 
 The Fortran version can be compiled to run with double precision by
 changing the Makefile (typically by setting the compiler options flags
