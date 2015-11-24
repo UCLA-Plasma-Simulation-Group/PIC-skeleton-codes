@@ -104,7 +104,7 @@ pic3.f90    Fortran90 main program
 pic3.c      C main program
 push3.f     Fortran77 procedure library
 push3_h.f90 Fortran90 procedure interface (header) library
-push3.c     C procedure library [Not yet implemented]
+push3.c     C procedure library
 push3.h     C procedure header library
 dtimer.c    C timer function, used by both C and Fortran
 
@@ -115,20 +115,23 @@ and .h adhere to the C99 standard.
 The makefile is setup to use gcc and gfortran with Linux.  A version for
 Mac OS X is also in the Makefile, but is commented out.  
 
-Two executables can be created, fpic3 for Fortran and cpic3_f for a C
-main program calling the Fortran procedure library
+Two executables can be created, fpic3 for Fortran and cpic3 for C.
 
 To compile program, execute:
 
-Make program_name
+make program_name
 
-where program_name is either: fpic3 or cpic3_f.
+where program_name is either: fpic3 or cpic3, or execute:
+
+make
+
+to create both programs.
 
 To execute, type the name of the executable:
 
 ./program_name
 
-where program_name is either fpic3 or cpic3_f.
+where program_name is either fpic3 or cpic3.
 
 The file output contains the results produced for the default parameters.
 
@@ -136,5 +139,6 @@ The Fortran version can be compiled to run with double precision by
 changing the Makefile (typically by setting the compiler options flags
 -r8).
 
-The library push3_f.c contains wrapper functions to allow the Fortran
-library to be called from C.
+The library push3.c contains wrapper functions to allow the C library to
+be called from Fortran. The library push3_f.c contains wrapper functions
+to allow the Fortran library to be called from C.

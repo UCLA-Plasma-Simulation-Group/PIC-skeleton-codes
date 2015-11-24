@@ -368,9 +368,9 @@ c clear counter array
    10 continue
 c find how many particles in each grid
       do 20 j = 1, nop
-      m = parta(2,j) + 1.0
+      m = parta(2,j)
       l = parta(3,j)
-      l = m + ny1*l
+      l = m + ny1*l + 1
       npic(l) = npic(l) + 1
    20 continue
 c find address offset
@@ -382,9 +382,9 @@ c find address offset
    30 continue
 c find addresses of particles at each grid and reorder particles
       do 50 j = 1, nop
-      m = parta(2,j) + 1.0
+      m = parta(2,j)
       l = parta(3,j)
-      l = m + ny1*l
+      l = m + ny1*l + 1
       ip = npic(l) + 1
       do 40 i = 1, idimp
       partb(i,ip) = parta(i,j)
@@ -407,6 +407,7 @@ c nze = third dimension of field arrays, must be >= nz+1
       dimension fxyz(3,nxe,nye,nze)
 c local data
       integer j, k, l
+c copy edges of extended field
       do 30 l = 1, nz
       do 10 k = 1, ny
       fxyz(1,nx+1,k,l) = fxyz(1,1,k,l)
@@ -454,6 +455,7 @@ c nze = third dimension of field arrays, must be >= nz+1
       real q
       integer nx, ny, nz, nxe, nye, nze
       dimension q(nxe,nye,nze)
+c local data
       integer j, k, l
 c accumulate edges of extended field
       do 30 l = 1, nz
@@ -578,10 +580,10 @@ c prepare form factor array
       return
 c calculate force/charge and sum field energy
    40 wp = 0.0d0
+c mode numbers 0 < kx < nx/2, 0 < ky < ny/2, and 0 < kz < nz/2
       do 90 l = 2, nzh
       l1 = nz2 - l
       dkz = dnz*real(l - 1)
-c mode numbers 0 < kx < nx/2, 0 < ky < ny/2, and 0 < kz < nz/2
       do 60 k = 2, nyh
       k1 = ny2 - k
       dky = dny*real(k - 1)
@@ -924,7 +926,7 @@ c written by viktor k. decyk, ucla
       dimension f(nxhd,nyd,nzd), mixup(nxhyzd), sct(nxyzhd)
 c local data
       integer indx1, ndx1yz, nx, nxh, nxhh, nxh2, ny, nyh, ny2
-      integer nz, nzh, nz2, nxyz, nxhyz, nzt, nrx, nry
+      integer nz, nxyz, nxhyz, nzt, nrx, nry
       integer i, j, k, l, n, j1, j2, k1, k2, ns, ns2, km, kmr
       real ani
       complex t1, t2, t3
@@ -939,8 +941,6 @@ c local data
       nyh = ny/2
       ny2 = ny + 2
       nz = 2**indz
-      nzh = nz/2
-      nz2 = nz + 2
       nxyz = max0(nx,ny,nz)
       nxhyz = 2**ndx1yz
       nzt = nzi + nzp - 1
@@ -1183,7 +1183,7 @@ c written by viktor k. decyk, ucla
       integer mixup
       dimension f(nxhd,nyd,nzd), mixup(nxhyzd), sct(nxyzhd)
 c local data
-      integer indx1, ndx1yz, nx, nxh, nxhh, nxh2, ny, nyh, ny2
+      integer indx1, ndx1yz, nx, nxh, ny, nyh
       integer nz, nzh, nz2, nxyz, nxhyz, nyt, nrz
       integer i, j, k, l, n, j1, j2, k1, k2, l1, ns, ns2, km, kmr
       complex t1, t2
@@ -1192,11 +1192,8 @@ c local data
       ndx1yz = max0(indx1,indy,indz)
       nx = 2**indx
       nxh = nx/2
-      nxhh = nx/4
-      nxh2 = nxh + 2
       ny = 2**indy
       nyh = ny/2
-      ny2 = ny + 2
       nz = 2**indz
       nzh = nz/2
       nz2 = nz + 2
@@ -1364,7 +1361,7 @@ c written by viktor k. decyk, ucla
       dimension f(3,nxhd,nyd,nzd), mixup(nxhyzd), sct(nxyzhd)
 c local data
       integer indx1, ndx1yz, nx, nxh, nxhh, nxh2, ny, nyh, ny2
-      integer nz, nzh, nz2, nxyz, nxhyz, nzt, nrx, nry
+      integer nz, nxyz, nxhyz, nzt, nrx, nry
       integer i, j, k, l, n, jj, j1, j2, k1, k2, ns, ns2, km, kmr
       real at1, at2, ani
       complex t1, t2, t3, t4
@@ -1379,8 +1376,6 @@ c local data
       nyh = ny/2
       ny2 = ny + 2
       nz = 2**indz
-      nzh = nz/2
-      nz2 = nz + 2
       nxyz = max0(nx,ny,nz)
       nxhyz = 2**ndx1yz
       nzt = nzi + nzp - 1
@@ -1705,7 +1700,7 @@ c written by viktor k. decyk, ucla
       integer mixup
       dimension f(3,nxhd,nyd,nzd), mixup(nxhyzd), sct(nxyzhd)
 c local data
-      integer indx1, ndx1yz, nx, nxh, nxhh, nxh2, ny, nyh, ny2
+      integer indx1, ndx1yz, nx, nxh, ny, nyh
       integer nz, nzh, nz2, nxyz, nxhyz, nyt, nrz
       integer i, j, k, l, n, jj, j1, j2, k1, k2, l1, ns, ns2, km, kmr
       complex t1, t2, t3, t4
@@ -1714,11 +1709,8 @@ c local data
       ndx1yz = max0(indx1,indy,indz)
       nx = 2**indx
       nxh = nx/2
-      nxhh = nx/4
-      nxh2 = nxh + 2
       ny = 2**indy
       nyh = ny/2
-      ny2 = ny + 2
       nz = 2**indz
       nzh = nz/2
       nz2 = nz + 2
