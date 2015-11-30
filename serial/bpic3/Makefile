@@ -72,9 +72,9 @@ CCOPTS = -O3 -Wall -std=c99
 
 # Linkage rules
 
-all : fbpic3
+all : fbpic3 cbpic3
 
-special: cbpic3_f
+special: cbpic3_f fbpic3_c
 
 fbpic3 : fbpic3.o fbpush3.o dtimer.o
 	$(FC90) $(OPTS90) -o fbpic3 fbpic3.o fbpush3.o bpush3_h.o \
@@ -83,8 +83,8 @@ fbpic3 : fbpic3.o fbpush3.o dtimer.o
 cbpic3 : cbpic3.o cbpush3.o dtimer.o
 	$(CC) $(CCOPTS) -o cbpic3 cbpic3.o cbpush3.o dtimer.o -lm
 
-fbpic3_c : fbpic3_c.o cbpush3.o dtimer.o
-	$(FC90) $(OPTS90) -o fbpic3_c fbpic3_c.o cbpush3.o dtimer.o
+fbpic3_c : fbpic3_c.o cbpush3.o dtimer.o 
+	$(FC90) $(OPTS90) -o fbpic3_c fbpic3_c.o cbpush3.o dtimer.o 
 
 cbpic3_f : cbpic3.o cbpush3_f.o fbpush3.o dtimer.o
 	$(FC90) $(CCOPTS) -o cbpic3_f cbpic3.o cbpush3_f.o fbpush3.o \

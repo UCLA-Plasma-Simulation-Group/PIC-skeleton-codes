@@ -1044,9 +1044,9 @@ c clear counter array
    10 continue
 c find how many particles in each grid
       do 20 j = 1, nop
-      m = parta(2,j) + 1.0
+      m = parta(2,j)
       l = parta(3,j)
-      l = m + ny1*l
+      l = m + ny1*l + 1
       npic(l) = npic(l) + 1
    20 continue
 c find address offset
@@ -1058,9 +1058,9 @@ c find address offset
    30 continue
 c find addresses of particles at each grid and reorder particles
       do 50 j = 1, nop
-      m = parta(2,j) + 1.0
+      m = parta(2,j)
       l = parta(3,j)
-      l = m + ny1*l
+      l = m + ny1*l + 1
       ip = npic(l) + 1
       do 40 i = 1, idimp
       partb(i,ip) = parta(i,j)
@@ -1508,6 +1508,7 @@ c cux(kx=pi) = cuy(kx=pi) = cuz(kx=pi) = 0,
 c cux(ky=pi) = cuy(ky=pi) = cux(ky=pi) = 0,
 c cux(kz=pi) = cuy(kz=pi) = cuz(kz=pi) = 0,
 c cux(kx=0,ky=0,kz=0) = cuy(kx=0,ky=0,kz=0) = cuz(kx=0,ky=0,kz=0) = 0.
+c cu(i,j,k,l) = complex current density for fourier mode (j-1,k-1,l-1)
 c nx/ny/nz = system length in x/y/z direction
 c nxvh = second dimension of field arrays, must be >= nxh
 c nyv = third dimension of field arrays, must be >= ny
@@ -2607,6 +2608,7 @@ c includes additional smoothing
       complex fxyz, exyz, ffc
       dimension fxyz(3,nxvh,nyv,nzv), exyz(3,nxvh,nyv,nzv)
       dimension ffc(nxhd,nyhd,nzhd)
+c local data
       integer i, j, k, l, nxh, nyh, nzh, ny2, nz2, k1, l1
       real at1
       nxh = nx/2
@@ -2887,7 +2889,7 @@ c written by viktor k. decyk, ucla
       dimension f(nxhd,nyd,nzd), mixup(nxhyzd), sct(nxyzhd)
 c local data
       integer indx1, ndx1yz, nx, nxh, nxhh, nxh2, ny, nyh, ny2
-      integer nz, nzh, nz2, nxyz, nxhyz, nzt, nrx, nry
+      integer nz, nxyz, nxhyz, nzt, nrx, nry
       integer i, j, k, l, n, j1, j2, k1, k2, ns, ns2, km, kmr
       real ani
       complex t1, t2, t3
@@ -2902,8 +2904,6 @@ c local data
       nyh = ny/2
       ny2 = ny + 2
       nz = 2**indz
-      nzh = nz/2
-      nz2 = nz + 2
       nxyz = max0(nx,ny,nz)
       nxhyz = 2**ndx1yz
       nzt = nzi + nzp - 1
@@ -3146,7 +3146,7 @@ c written by viktor k. decyk, ucla
       integer mixup
       dimension f(nxhd,nyd,nzd), mixup(nxhyzd), sct(nxyzhd)
 c local data
-      integer indx1, ndx1yz, nx, nxh, nxhh, nxh2, ny, nyh, ny2
+      integer indx1, ndx1yz, nx, nxh, ny, nyh
       integer nz, nzh, nz2, nxyz, nxhyz, nyt, nrz
       integer i, j, k, l, n, j1, j2, k1, k2, l1, ns, ns2, km, kmr
       complex t1, t2
@@ -3155,11 +3155,8 @@ c local data
       ndx1yz = max0(indx1,indy,indz)
       nx = 2**indx
       nxh = nx/2
-      nxhh = nx/4
-      nxh2 = nxh + 2
       ny = 2**indy
       nyh = ny/2
-      ny2 = ny + 2
       nz = 2**indz
       nzh = nz/2
       nz2 = nz + 2
@@ -3327,7 +3324,7 @@ c written by viktor k. decyk, ucla
       dimension f(3,nxhd,nyd,nzd), mixup(nxhyzd), sct(nxyzhd)
 c local data
       integer indx1, ndx1yz, nx, nxh, nxhh, nxh2, ny, nyh, ny2
-      integer nz, nzh, nz2, nxyz, nxhyz, nzt, nrx, nry
+      integer nz, nxyz, nxhyz, nzt, nrx, nry
       integer i, j, k, l, n, jj, j1, j2, k1, k2, ns, ns2, km, kmr
       real at1, at2, ani
       complex t1, t2, t3, t4
@@ -3342,8 +3339,6 @@ c local data
       nyh = ny/2
       ny2 = ny + 2
       nz = 2**indz
-      nzh = nz/2
-      nz2 = nz + 2
       nxyz = max0(nx,ny,nz)
       nxhyz = 2**ndx1yz
       nzt = nzi + nzp - 1
@@ -3668,7 +3663,7 @@ c written by viktor k. decyk, ucla
       integer mixup
       dimension f(3,nxhd,nyd,nzd), mixup(nxhyzd), sct(nxyzhd)
 c local data
-      integer indx1, ndx1yz, nx, nxh, nxhh, nxh2, ny, nyh, ny2
+      integer indx1, ndx1yz, nx, nxh, ny, nyh
       integer nz, nzh, nz2, nxyz, nxhyz, nyt, nrz
       integer i, j, k, l, n, jj, j1, j2, k1, k2, l1, ns, ns2, km, kmr
       complex t1, t2, t3, t4
@@ -3677,11 +3672,8 @@ c local data
       ndx1yz = max0(indx1,indy,indz)
       nx = 2**indx
       nxh = nx/2
-      nxhh = nx/4
-      nxh2 = nxh + 2
       ny = 2**indy
       nyh = ny/2
-      ny2 = ny + 2
       nz = 2**indz
       nzh = nz/2
       nz2 = nz + 2
