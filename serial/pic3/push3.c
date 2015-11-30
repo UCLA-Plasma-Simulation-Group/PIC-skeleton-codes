@@ -531,7 +531,7 @@ local data                                                 */
          fxyz[1+3*j+3*nxe*k+nxye3*nz] = fxyz[1+3*j+3*nxe*k];
          fxyz[2+3*j+3*nxe*k+nxye3*nz] = fxyz[2+3*j+3*nxe*k];
       }
-      fxyz[0+3*nx+3*nxe*k+nxye3*nz] = fxyz[3*nxe*k];
+      fxyz[3*nx+3*nxe*k+nxye3*nz] = fxyz[3*nxe*k];
       fxyz[1+3*nx+3*nxe*k+nxye3*nz] = fxyz[1+3*nxe*k];
       fxyz[2+3*nx+3*nxe*k+nxye3*nz] = fxyz[2+3*nxe*k];
    }
@@ -619,15 +619,15 @@ void cpois33(float complex q[], float complex fxyz[], int isign,
    fx(ky=pi) = fy(ky=pi) = fx(ky=pi) = 0,
    fx(kz=pi) = fy(kz=pi) = fz(kz=pi) = 0,
    fx(kx=0,ky=0,kz=0) = fy(kx=0,ky=0,kz=0) = fz(kx=0,ky=0,kz=0) = 0.
-   q[l][k][j] = complex charge density for fourier mode (j-1,k-1,l-1)
+   q[l][k][j] = complex charge density for fourier mode (j,k,l)
    fxyz[l][k][j][0] = x component of complex force/charge
    fxyz[l][k][j][1] = y component of complex force/charge
    fxyz[l][k][j][2] = z component of complex force/charge
-   all for fourier mode (j-1,k-1,l-1)
+   all for fourier mode (j,k,l)
    cimag(ffc[l][k][j]) = finite-size particle shape factor s
-   for fourier mode (j-1,k-1,l-1)
+   for fourier mode (j,k,l)
    creal(ffc[l][k][j]) = potential green's function g
-   for fourier mode (j-1,k-1,l-1)
+   for fourier mode (j,k,l)
    ax/ay/az = half-width of particle in x/y/z direction
    affp = normalization constant = nx*ny*nz/np,
    where np=number of particles
@@ -867,7 +867,7 @@ L40: wp = 0.0;
    fxyz[3*l1] = zero;
    fxyz[1+3*l1] = zero;
    fxyz[2+3*l1] = zero;
-   fxyz[+3*(k1+l1)] = zero;
+   fxyz[3*(k1+l1)] = zero;
    fxyz[1+3*(k1+l1)] = zero;
    fxyz[2+3*(k1+l1)] = zero;
    *we = wp*((float) nx)*((float) ny)*((float) nz);
@@ -1798,6 +1798,7 @@ L230: for (n = nzi-1; n < nzt; n++) {
    return;
 }
 
+/*--------------------------------------------------------------------*/
 void cfft3r3z(float complex f[], int isign, int mixup[],
               float complex sct[], int indx, int indy, int indz,
               int nyi, int nyp, int nxhd, int nyd, int nzd, int nxhyzd, 

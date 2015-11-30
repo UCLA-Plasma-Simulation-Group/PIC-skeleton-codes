@@ -116,7 +116,7 @@ Two executables can be created, fpic2 for Fortran and cpic2 for C.
 
 To compile program, execute:
 
-Make program_name
+make program_name
 
 where program_name is either: fpic2 or cpic2, or execute:
 
