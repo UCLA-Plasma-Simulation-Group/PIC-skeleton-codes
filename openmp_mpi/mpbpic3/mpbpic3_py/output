@@ -1,0 +1,47 @@
+ number of cpus found =            2
+ maximum number of threads =            2
+ using            2  thread(s)
+ number of cpus found =            2
+ maximum number of threads =            2
+ using            2  thread(s)
+ number of cpus found =            2
+ maximum number of threads =            2
+ using            2  thread(s)
+ number of cpus found =            2
+ maximum number of threads =            2
+ using            2  thread(s)
+ number of cpus found =            2
+ maximum number of threads =            2
+ using            2  thread(s)
+ number of cpus found =            2
+ maximum number of threads =            2
+ using            2  thread(s)
+Initial Total Field, Kinetic and Total Energies:
+ 8.4485840e+02  8.3917744e+07  8.3918592e+07
+Initial Electrostatic, Transverse Electric and Magnetic Field Energies:
+ 1.6702412e-04  0.0000000e+00  8.4485822e+02
+ntime, relativity =  285 1
+MPI nodes nvpy, nvpz =  2 3
+Final Total Field, Kinetic and Total Energies:
+ 1.5948786e+04  8.3902736e+07  8.3918688e+07
+Final Electrostatic, Transverse Electric and Magnetic Field Energies:
+ 1.5087253e+04  3.3893852e+01  8.2764008e+02
+
+deposit time =  20.222965
+current deposit time =  56.624946
+total deposit time =  76.847911
+guard time =  6.624693
+solver time =  3.798325
+fft and transpose time =  25.9026 15.6145
+push time =  117.831706
+particle move time =  3.378014
+sort time =  2.475764
+total solver time =  36.3255887245
+total particle time =  200.533395
+total time =  236.858983724
+
+Push Time (nsec) =  7.30169406566
+Deposit Time (nsec) =  4.76204541846
+Sort Time (nsec) =  0.362741892953
+Total Particle Time (nsec) =  12.4264813771
+
