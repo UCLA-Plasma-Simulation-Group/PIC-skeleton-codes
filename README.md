@@ -120,8 +120,11 @@ Here's a table showing the names of the codes and their parallelism (ES means el
 ||gpufpic2|ES|C,Fortran|CUDA(Fortran)+Vectorization|
 ||gpufbpic2|EM|C,Fortran|CUDA(Fortran)+Vectorization|
 ||mppic2|ES|C,Fortran|OpenMP+MPI|
+||mppic3|ES|C,Fortran|OpenMP+MPI|
 ||mpbpic2|EM|C,Fortran|OpenMP+MPI|
+||mpbpic3|EM|C,Fortran|OpenMP+MPI|
 ||mpdpic2|D|C,Fortran|OpenMP+MPI|
+||mpdpic3|D|C,Fortran|OpenMP+MPI|
 ||vmpic2|ES|C,Fortran|OpenMP+SSE|
 ||vmpic3|ES|C,Fortran|OpenMP+SSE|
 ||vmbpic2|EM|C,Fortran|OpenMP+SEE|
