@@ -36,7 +36,7 @@ c nxhd = first dimension of form factor array, must be >= nx/2
 c nyhd = second dimension of form factor array, must be >= ny/2
 c nzhd = third dimension of form factor array, must be >= nz/2
       implicit none
-      integer  nx, ny, nz, nxvh, nyv, nzv, nxhd, nyhd, nzhd
+      integer nx, ny, nz, nxvh, nyv, nzv, nxhd, nyhd, nzhd
       real we
       complex q, pot, ffc
       dimension q(nxvh,nyv,nzv), pot(nxvh,nyv,nzv)
@@ -921,6 +921,261 @@ c mode numbers ky = 0, ny/2
       axyz(2,1,k1,l1) = zero
       axyz(3,1,k1,l1) = zero
       wm = real(nx)*real(ny)*real(nz)*wp
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine ETFIELD33(dcu,exyz,ffe,ci,wf,nx,ny,nz,nxvh,nyv,nzv,nxhd
+     1,nyhd,nzhd)
+c this subroutine solves 3d poisson's equation in fourier space for
+c unsmoothed transverse electric field, with periodic boundary
+c conditions.
+c using algorithm described in J. Busnardo-Neto, P. L. Pritchett,
+c A. T. Lin, and J. M. Dawson, J. Computational Phys. 23, 300 (1977).
+c input: dcu,ffe,ci,nx,ny,nz,nxvh,nyv,nzv,nxhd,nyhd,nzhd
+c output: exyz, wf
+c approximate flop count is:
+c 128*nxc*nyc*nzc + 66*(nxc*nyc + nxc*nzc + nyc*nzc)
+c where nxc = nx/2 - 1, nyc = ny/2 - 1, nzc = nz/2 - 1
+c unsmoothed transverse electric field is calculated using the equation:
+c ex(kx,ky,kz) = -ci*ci*g(kx,ky,kz)*dcux(kx,ky,kz)
+c ey(kx,ky,kz) = -ci*ci*g(kx,ky,kz)*dcuy(kx,ky,kz)
+c ez(kx,ky,kz) = -ci*ci*g(kx,ky,kz)*dcuz(kx,ky,kz)
+c where kx = 2pi*j/nx, ky = 2pi*k/ny, kz = 2pi*l/nz, and
+c j,k,l = fourier mode numbers,
+c g(kx,ky,kz) = (affp/(kx**2+ky**2+kz**2))*s(kx,ky,kz),
+c s(kx,ky,kz) = exp(-((kx*ax)**2+(ky*ay)**2+(kz*az)**2)/2), except for
+c ex(kx=pi) = ey(kx=pi) = ez(kx=pi) = 0,
+c ex(ky=pi) = ey(ky=pi) = ex(ky=pi) = 0,
+c ex(kz=pi) = ey(kz=pi) = ez(kz=pi) = 0,
+c ex(kx=0,ky=0,kz=0) = ey(kx=0,ky=0,kz=0) = ez(kx=0,ky=0,kz=0) = 0.
+c dcu(i,j,k,l) = transverse part of complex derivative of current for
+c fourier mode (j-1,k-1,l-1)
+c exyz(1,j,k,l) = x component of complex transverse electric field
+c exyz(2,j,k,l) = y component of complex transverse electric field
+c exyz(3,j,k,l) = z component of complex transverse electric field
+c all for fourier mode (j-1,k-1,l-1)
+c aimag(ffe(j,k,l)) = finite-size particle shape factor s
+c for fourier mode (j-1,k-1,l-1)
+c real(ffe(j,k,l)) = potential green's function g
+c for fourier mode (j-1,k-1,l-1)
+c ci = reciprocal of velocity of light
+c transverse electric field energy is also calculated, using
+c wf = nx*ny*nz*sum((affp/((kx**2+ky**2+kz**2)*ci*ci)**2)
+c    |dcu(kx,ky,kz)*s(kx,ky,kz)|**2)
+c where affp = normalization constant = nx*ny*nz/np, and where
+c np=number of particles
+c this expression is valid only if the derivative of current is
+c divergence-free
+c nx/ny/nz = system length in x/y/z direction
+c nxvh = first dimension of field arrays, must be >= nxh
+c nyv = second dimension of field arrays, must be >= ny
+c nzv = third dimension of field arrays, must be >= nz
+c nxhd = first dimension of form factor array, must be >= nxh
+c nyhd = second dimension of form factor array, must be >= nyh
+c nzhd = third dimension of form factor array, must be >= nzh
+      implicit none
+      integer nx, ny, nz, nxvh, nyv, nzv, nxhd, nyhd, nzhd
+      real ci, wf
+      complex dcu, exyz, ffe
+      dimension dcu(3,nxvh,nyv,nzv), exyz(3,nxvh,nyv,nzv)
+      dimension ffe(nxhd,nyhd,nzhd)
+c local data
+      integer nxh, nyh, nzh, ny2, nz2, j, k, l, k1, l1
+      real ci2, at1, at2
+      complex zero
+      double precision wp
+      nxh = nx/2
+      nyh = max(1,ny/2)
+      nzh = max(1,nz/2)
+      ny2 = ny + 2
+      nz2 = nz + 2
+      zero = cmplx(0.0,0.0)
+      ci2 = ci*ci
+c calculate unsmoothed transverse electric field and sum field energy
+      wp = 0.0d0
+c mode numbers 0 < kx < nx/2, 0 < ky < ny/2, and 0 < kz < nz/2
+      do 50 l = 2, nzh
+      l1 = nz2 - l
+      do 20 k = 2, nyh
+      k1 = ny2 - k
+      do 10 j = 2, nxh
+      at2 = -ci2*real(ffe(j,k,l))
+      at1 = at2*at2
+      exyz(1,j,k,l) = at2*dcu(1,j,k,l)
+      exyz(2,j,k,l) = at2*dcu(2,j,k,l)
+      exyz(3,j,k,l) = at2*dcu(3,j,k,l)
+      exyz(1,j,k1,l) = at2*dcu(1,j,k1,l)
+      exyz(2,j,k1,l) = at2*dcu(2,j,k1,l)
+      exyz(3,j,k1,l) = at2*dcu(3,j,k1,l)
+      exyz(1,j,k,l1) = at2*dcu(1,j,k,l1)
+      exyz(2,j,k,l1) = at2*dcu(2,j,k,l1)
+      exyz(3,j,k,l1) = at2*dcu(3,j,k,l1)
+      exyz(1,j,k1,l1) = at2*dcu(1,j,k1,l1)
+      exyz(2,j,k1,l1) = at2*dcu(2,j,k1,l1)
+      exyz(3,j,k1,l1) = at2*dcu(3,j,k1,l1)
+      wp = wp + at1*(dcu(1,j,k,l)*conjg(dcu(1,j,k,l))                   
+     1   + dcu(2,j,k,l)*conjg(dcu(2,j,k,l))                             
+     2   + dcu(3,j,k,l)*conjg(dcu(3,j,k,l))                             
+     3   + dcu(1,j,k1,l)*conjg(dcu(1,j,k1,l))                           
+     4   + dcu(2,j,k1,l)*conjg(dcu(2,j,k1,l))                           
+     5   + dcu(3,j,k1,l)*conjg(dcu(3,j,k1,l))                           
+     6   + dcu(1,j,k,l1)*conjg(dcu(1,j,k,l1))                           
+     7   + dcu(2,j,k,l1)*conjg(dcu(2,j,k,l1))                           
+     8   + dcu(3,j,k,l1)*conjg(dcu(3,j,k,l1))                           
+     9   + dcu(1,j,k1,l1)*conjg(dcu(1,j,k1,l1))                         
+     a   + dcu(2,j,k1,l1)*conjg(dcu(2,j,k1,l1))                         
+     b   + dcu(3,j,k1,l1)*conjg(dcu(3,j,k1,l1)))
+   10 continue
+   20 continue
+c mode numbers kx = 0, nx/2
+      do 30 k = 2, nyh
+      k1 = ny2 - k
+      at2 = -ci2*real(ffe(1,k,l))
+      at1 = at2*at2
+      exyz(1,1,k,l) = at2*dcu(1,1,k,l)
+      exyz(2,1,k,l) = at2*dcu(2,1,k,l)
+      exyz(3,1,k,l) = at2*dcu(3,1,k,l)
+      exyz(1,1,k1,l) = zero
+      exyz(2,1,k1,l) = zero
+      exyz(3,1,k1,l) = zero
+      exyz(1,1,k,l1) = at2*dcu(1,1,k,l1)
+      exyz(2,1,k,l1) = at2*dcu(2,1,k,l1)
+      exyz(3,1,k,l1) = at2*dcu(3,1,k,l1)
+      exyz(1,1,k1,l1) = zero
+      exyz(2,1,k1,l1) = zero
+      exyz(3,1,k1,l1) = zero
+      wp = wp + at1*(dcu(1,1,k,l)*conjg(dcu(1,1,k,l))                   
+     1   + dcu(2,1,k,l)*conjg(dcu(2,1,k,l))                             
+     2   + dcu(3,1,k,l)*conjg(dcu(3,1,k,l))                             
+     3   + dcu(1,1,k,l1)*conjg(dcu(1,1,k,l1))                           
+     4   + dcu(2,1,k,l1)*conjg(dcu(2,1,k,l1))                           
+     5   + dcu(3,1,k,l1)*conjg(dcu(3,1,k,l1)))
+   30 continue
+c mode numbers ky = 0, ny/2
+      k1 = nyh + 1
+      do 40 j = 2, nxh
+      at2 = -ci2*real(ffe(j,1,l))
+      at1 = at2*at2
+      exyz(1,j,1,l) = at2*dcu(1,j,1,l)
+      exyz(2,j,1,l) = at2*dcu(2,j,1,l)
+      exyz(3,j,1,l) = at2*dcu(3,j,1,l)
+      exyz(1,j,k1,l) = zero
+      exyz(2,j,k1,l) = zero
+      exyz(3,j,k1,l) = zero
+      exyz(1,j,1,l1) = at2*dcu(1,j,1,l1)
+      exyz(2,j,1,l1) = at2*dcu(2,j,1,l1)
+      exyz(3,j,1,l1) = at2*dcu(3,j,1,l1)
+      exyz(1,j,k1,l1) = zero
+      exyz(2,j,k1,l1) = zero
+      exyz(3,j,k1,l1) = zero
+      wp = wp + at1*(dcu(1,j,1,l)*conjg(dcu(1,j,1,l))                   
+     1   + dcu(2,j,1,l)*conjg(dcu(2,j,1,l))                             
+     2   + dcu(3,j,1,l)*conjg(dcu(3,j,1,l))                             
+     3   + dcu(1,j,1,l1)*conjg(dcu(1,j,1,l1))                           
+     4   + dcu(2,j,1,l1)*conjg(dcu(2,j,1,l1))                           
+     5   + dcu(3,j,1,l1)*conjg(dcu(3,j,1,l1)))
+   40 continue
+c mode numbers kx = 0, nx/2
+      at2 = -ci2*real(ffe(1,1,l))
+      at1 = at2*at2
+      exyz(1,1,1,l) = at2*dcu(1,1,1,l)
+      exyz(2,1,1,l) = at2*dcu(2,1,1,l)
+      exyz(3,1,1,l) = at2*dcu(3,1,1,l)
+      exyz(1,1,k1,l) = zero
+      exyz(2,1,k1,l) = zero
+      exyz(3,1,k1,l) = zero
+      exyz(1,1,1,l1) = zero
+      exyz(2,1,1,l1) = zero
+      exyz(3,1,1,l1) = zero
+      exyz(1,1,k1,l1) = zero
+      exyz(2,1,k1,l1) = zero
+      exyz(3,1,k1,l1) = zero
+      wp = wp + at1*(dcu(1,1,1,l)*conjg(dcu(1,1,1,l))                   
+     1   + dcu(2,1,1,l)*conjg(dcu(2,1,1,l))                             
+     2   + dcu(3,1,1,l)*conjg(dcu(3,1,1,l)))
+   50 continue
+c mode numbers kz = 0, nz/2
+      l1 = nzh + 1
+      do 70 k = 2, nyh
+      k1 = ny2 - k
+      do 60 j = 2, nxh
+      at2 = -ci2*real(ffe(j,k,1))
+      at1 = at2*at2
+      exyz(1,j,k,1) = at2*dcu(1,j,k,1)
+      exyz(2,j,k,1) = at2*dcu(2,j,k,1)
+      exyz(3,j,k,1) = at2*dcu(3,j,k,1)
+      exyz(1,j,k1,1) = at2*dcu(1,j,k1,1)
+      exyz(2,j,k1,1) = at2*dcu(2,j,k1,1)
+      exyz(3,j,k1,1) = at2*dcu(3,j,k1,1)
+      exyz(1,j,k,l1) = zero
+      exyz(2,j,k,l1) = zero
+      exyz(3,j,k,l1) = zero
+      exyz(1,j,k1,l1) = zero
+      exyz(2,j,k1,l1) = zero
+      exyz(3,j,k1,l1) = zero
+      wp = wp + at1*(dcu(1,j,k,1)*conjg(dcu(1,j,k,1))                   
+     1   + dcu(2,j,k,1)*conjg(dcu(2,j,k,1))                             
+     2   + dcu(3,j,k,1)*conjg(dcu(3,j,k,1))                             
+     3   + dcu(1,j,k1,1)*conjg(dcu(1,j,k1,1))                           
+     4   + dcu(2,j,k1,1)*conjg(dcu(2,j,k1,1))                           
+     5   + dcu(3,j,k1,1)*conjg(dcu(3,j,k1,1)))
+   60 continue
+   70 continue
+c mode numbers kx = 0, nx/2
+      do 80 k = 2, nyh
+      k1 = ny2 - k
+      at2 = -ci2*real(ffe(1,k,1))
+      at1 = at2*at2
+      exyz(1,1,k,1) = at2*dcu(1,1,k,1)
+      exyz(2,1,k,1) = at2*dcu(2,1,k,1)
+      exyz(3,1,k,1) = at2*dcu(3,1,k,1)
+      exyz(1,1,k1,1) = zero
+      exyz(2,1,k1,1) = zero
+      exyz(3,1,k1,1) = zero
+      exyz(1,1,k,l1) = zero
+      exyz(2,1,k,l1) = zero
+      exyz(3,1,k,l1) = zero
+      exyz(1,1,k1,l1) = zero
+      exyz(2,1,k1,l1) = zero
+      exyz(3,1,k1,l1) = zero
+      wp = wp + at1*(dcu(1,1,k,1)*conjg(dcu(1,1,k,1))                   
+     1   + dcu(2,1,k,1)*conjg(dcu(2,1,k,1))                             
+     2   + dcu(3,1,k,1)*conjg(dcu(3,1,k,1)))
+   80 continue
+c mode numbers ky = 0, ny/2
+      k1 = nyh + 1
+      do 90 j = 2, nxh
+      at2 = -ci2*real(ffe(j,1,1))
+      at1 = at2*at2
+      exyz(1,j,1,1) = at2*dcu(1,j,1,1)
+      exyz(2,j,1,1) = at2*dcu(2,j,1,1)
+      exyz(3,j,1,1) = at2*dcu(3,j,1,1)
+      exyz(1,j,k1,1) = zero
+      exyz(2,j,k1,1) = zero
+      exyz(3,j,k1,1) = zero
+      exyz(1,j,1,l1) = zero
+      exyz(2,j,1,l1) = zero
+      exyz(3,j,1,l1) = zero
+      exyz(1,j,k1,l1) = zero
+      exyz(2,j,k1,l1) = zero
+      exyz(3,j,k1,l1) = zero
+      wp = wp + at1*(dcu(1,j,1,1)*conjg(dcu(1,j,1,1))                   
+     1   + dcu(2,j,1,1)*conjg(dcu(2,j,1,1))                             
+     2   + dcu(3,j,1,1)*conjg(dcu(3,j,1,1)))
+   90 continue
+      exyz(1,1,1,1) = zero
+      exyz(2,1,1,1) = zero
+      exyz(3,1,1,1) = zero
+      exyz(1,1,k1,1) = zero
+      exyz(2,1,k1,1) = zero
+      exyz(3,1,k1,1) = zero
+      exyz(1,1,1,l1) = zero
+      exyz(2,1,1,l1) = zero
+      exyz(3,1,1,l1) = zero
+      exyz(1,1,k1,l1) = zero
+      exyz(2,1,k1,l1) = zero
+      exyz(3,1,k1,l1) = zero
+      wf = real(nx*ny*nz)*wp/real(ffe(1,1,1))
       return
       end
 c-----------------------------------------------------------------------

@@ -714,7 +714,7 @@ c deposit current
 c-----------------------------------------------------------------------
       subroutine GDJPOST3L(part,fxyz,bxyz,dcu,amu,qm,qbm,dt,idimp,nop,  
      1nxv,nyv,nzv)
-c for 3 code, this subroutine calculates particle momentum flux
+c for 3d code, this subroutine calculates particle momentum flux
 c and acceleration density using first-order spline interpolation.
 c scalar version using guard cells
 c 350 flops/particle, 1 divide, 126 loads, 72 stores
@@ -1006,7 +1006,7 @@ c deposit momentum flux and acceleration density,
 c-----------------------------------------------------------------------
       subroutine GDCJPOST3L(part,fxyz,bxyz,cu,dcu,amu,qm,qbm,dt,idimp,  
      1nop,nxv,nyv,nzv)
-c for 3 code, this subroutine calculates particle momentum flux,
+c for 3d code, this subroutine calculates particle momentum flux,
 c acceleration density and current density using first-order spline
 c interpolation.
 c scalar version using guard cells
@@ -1356,9 +1356,9 @@ c clear counter array
    10 continue
 c find how many particles in each grid
       do 20 j = 1, nop
-      m = parta(2,j) + 1.0
+      m = parta(2,j)
       l = parta(3,j)
-      l = m + ny1*l
+      l = m + ny1*l + 1
       npic(l) = npic(l) + 1
    20 continue
 c find address offset
@@ -1370,9 +1370,9 @@ c find address offset
    30 continue
 c find addresses of particles at each grid and reorder particles
       do 50 j = 1, nop
-      m = parta(2,j) + 1.0
+      m = parta(2,j)
       l = parta(3,j)
-      l = m + ny1*l
+      l = m + ny1*l + 1
       ip = npic(l) + 1
       do 40 i = 1, idimp
       partb(i,ip) = parta(i,j)
@@ -2396,26 +2396,26 @@ c mode numbers ky = 0, ny/2
       return
       end
 c-----------------------------------------------------------------------
-      subroutine BADDEXT3(bxy,omx,omy,omz,nx,ny,nz,nxe,nye,nze)
+      subroutine BADDEXT3(bxyz,omx,omy,omz,nx,ny,nz,nxe,nye,nze)
 c adds constant to magnetic field for 3d code
-c bxy = magnetic field
+c bxyz = magnetic field
 c omx/omy/omz = magnetic field electron cyclotron frequency in x/y/z 
 c nx/ny/nz = system length in x/y/z direction
 c nxe = second dimension of magnetic field array, nxe must be >= nx
 c nye = third dimension of magnetic field array, nye must be >= ny
 c nze = fourth dimension of magnetic field array, nze must be >= nz
       implicit none
-      real bxy, omx, omy, omz
+      real bxyz, omx, omy, omz
       integer nx, ny, nz, nxe, nye, nze
-      dimension bxy(3,nxe,nye,nze)
+      dimension bxyz(3,nxe,nye,nze)
 c local data
       integer j, k, l
       do 30 l = 1, nz
       do 20 k = 1, ny
       do 10 j = 1, nx
-      bxy(1,j,k,l) = bxy(1,j,k,l) + omx
-      bxy(2,j,k,l) = bxy(2,j,k,l) + omy
-      bxy(3,j,k,l) = bxy(3,j,k,l) + omz
+      bxyz(1,j,k,l) = bxyz(1,j,k,l) + omx
+      bxyz(2,j,k,l) = bxyz(2,j,k,l) + omy
+      bxyz(3,j,k,l) = bxyz(3,j,k,l) + omz
    10 continue
    20 continue
    30 continue
@@ -2483,11 +2483,11 @@ c local data
       dnz = 6.28318530717959/real(nz)
       zero = cmplx(0.0,0.0)
 c calculate transverse part of current
+c mode numbers 0 < kx < nx/2, 0 < ky < ny/2, and 0 < kz < nz/2
       do 50 l = 2, nzh
       l1 = nz2 - l
       dkz = dnz*real(l - 1)
       dkz2 = dkz*dkz
-c mode numbers 0 < kx < nx/2, 0 < ky < ny/2, and 0 < kz < nz/2
       do 20 k = 2, nyh
       k1 = ny2 - k
       dky = dny*real(k - 1)
@@ -2770,7 +2770,8 @@ c dcu(3,kx,ky,kz) = dcu(3,kx,ky,kz)
 c                 - kz*(kx*dcu(1,kx,ky,kz)+ky*dcu(2,kx,ky,kz)
 c                      +kz*dcu(3,kx,ky,kz))/(kx*kx+ky*ky+kz*kz)
 c on input:
-c dcu(i,j,k,l) = complex acceleration density for fourier mode (j-1,k-1)
+c dcu(i,j,k,l) = complex acceleration density for
+c fourier mode (j-1,k-1,l-1)
 c on output:
 c dcu(i,j,k,l) = transverse part of complex derivative of current for
 c fourier mode (j-1,k-1,l-1)
@@ -2803,11 +2804,11 @@ c local data
       dnz = 6.28318530717959/real(nz)
       zero = cmplx(0.0,0.0)
 c calculate transverse part of current
+c mode numbers 0 < kx < nx/2, 0 < ky < ny/2, and 0 < kz < nz/2
       do 50 l = 2, nzh
       l1 = nz2 - l
       dkz = dnz*real(l - 1)
       dkz2 = dkz*dkz
-c mode numbers 0 < kx < nx/2, 0 < ky < ny/2, and 0 < kz < nz/2
       do 20 k = 2, nyh
       k1 = ny2 - k
       dky = dny*real(k - 1)
@@ -3771,7 +3772,7 @@ c written by viktor k. decyk, ucla
       dimension f(nxhd,nyd,nzd), mixup(nxhyzd), sct(nxyzhd)
 c local data
       integer indx1, ndx1yz, nx, nxh, nxhh, nxh2, ny, nyh, ny2
-      integer nz, nzh, nz2, nxyz, nxhyz, nzt, nrx, nry
+      integer nz, nxyz, nxhyz, nzt, nrx, nry
       integer i, j, k, l, n, j1, j2, k1, k2, ns, ns2, km, kmr
       real ani
       complex t1, t2, t3
@@ -3786,8 +3787,6 @@ c local data
       nyh = ny/2
       ny2 = ny + 2
       nz = 2**indz
-      nzh = nz/2
-      nz2 = nz + 2
       nxyz = max0(nx,ny,nz)
       nxhyz = 2**ndx1yz
       nzt = nzi + nzp - 1
@@ -4030,7 +4029,7 @@ c written by viktor k. decyk, ucla
       integer mixup
       dimension f(nxhd,nyd,nzd), mixup(nxhyzd), sct(nxyzhd)
 c local data
-      integer indx1, ndx1yz, nx, nxh, nxhh, nxh2, ny, nyh, ny2
+      integer indx1, ndx1yz, nx, nxh, ny, nyh
       integer nz, nzh, nz2, nxyz, nxhyz, nyt, nrz
       integer i, j, k, l, n, j1, j2, k1, k2, l1, ns, ns2, km, kmr
       complex t1, t2
@@ -4039,11 +4038,8 @@ c local data
       ndx1yz = max0(indx1,indy,indz)
       nx = 2**indx
       nxh = nx/2
-      nxhh = nx/4
-      nxh2 = nxh + 2
       ny = 2**indy
       nyh = ny/2
-      ny2 = ny + 2
       nz = 2**indz
       nzh = nz/2
       nz2 = nz + 2
@@ -4205,13 +4201,13 @@ c December 1993.
 c written by viktor k. decyk, ucla
       implicit none
       integer isign, indx, indy, indz, nzi, nzp, nxhd, nyd, nzd
-      integer nxhyzd,nxyzhd
+      integer nxhyzd, nxyzhd
       complex f, sct
       integer mixup
       dimension f(3,nxhd,nyd,nzd), mixup(nxhyzd), sct(nxyzhd)
 c local data
       integer indx1, ndx1yz, nx, nxh, nxhh, nxh2, ny, nyh, ny2
-      integer nz, nzh, nz2, nxyz, nxhyz, nzt, nrx, nry
+      integer nz, nxyz, nxhyz, nzt, nrx, nry
       integer i, j, k, l, n, jj, j1, j2, k1, k2, ns, ns2, km, kmr
       real at1, at2, ani
       complex t1, t2, t3, t4
@@ -4226,8 +4222,6 @@ c local data
       nyh = ny/2
       ny2 = ny + 2
       nz = 2**indz
-      nzh = nz/2
-      nz2 = nz + 2
       nxyz = max0(nx,ny,nz)
       nxhyz = 2**ndx1yz
       nzt = nzi + nzp - 1
@@ -4552,7 +4546,7 @@ c written by viktor k. decyk, ucla
       integer mixup
       dimension f(3,nxhd,nyd,nzd), mixup(nxhyzd), sct(nxyzhd)
 c local data
-      integer indx1, ndx1yz, nx, nxh, nxhh, nxh2, ny, nyh, ny2
+      integer indx1, ndx1yz, nx, nxh, ny, nyh
       integer nz, nzh, nz2, nxyz, nxhyz, nyt, nrz
       integer i, j, k, l, n, jj, j1, j2, k1, k2, l1, ns, ns2, km, kmr
       complex t1, t2, t3, t4
@@ -4561,11 +4555,8 @@ c local data
       ndx1yz = max0(indx1,indy,indz)
       nx = 2**indx
       nxh = nx/2
-      nxhh = nx/4
-      nxh2 = nxh + 2
       ny = 2**indy
       nyh = ny/2
-      ny2 = ny + 2
       nz = 2**indz
       nzh = nz/2
       nz2 = nz + 2
@@ -4769,7 +4760,7 @@ c written by viktor k. decyk, ucla
       dimension f(ndim,nxhd,nyd,nzd), mixup(nxhyzd), sct(nxyzhd)
 c local data
       integer indx1, ndx1yz, nx, nxh, nxhh, nxh2, ny, nyh, ny2
-      integer nz, nzh, nz2, nxyz, nxhyz, nzt, nrx, nry, ns, ns2, km, kmr
+      integer nz, nxyz, nxhyz, nzt, nrx, nry, ns, ns2, km, kmr
       integer i, j, k, l, n, k1, k2, j1, j2, jj
       complex t1, t2, t3
       real ani
@@ -4784,8 +4775,6 @@ c local data
       nyh = ny/2
       ny2 = ny + 2
       nz = 2**indz
-      nzh = nz/2
-      nz2 = nz + 2
       nxyz = max0(nx,ny,nz)
       nxhyz = 2**ndx1yz
       nzt = nzi + nzp - 1
@@ -5064,7 +5053,7 @@ c written by viktor k. decyk, ucla
       complex f, sct
       dimension f(ndim,nxhd,nyd,nzd), mixup(nxhyzd), sct(nxyzhd)
 c local data
-      integer indx1, ndx1yz, nx, nxh, nxhh, nxh2, ny, nyh, ny2
+      integer indx1, ndx1yz, nx, nxh, ny, nyh
       integer nz, nzh, nz2, nxyz, nxhyz, nyt, nrz, ns, ns2, km, kmr
       integer i, j, k, l, n, k1, k2, j1, j2, l1, jj
       complex t1, t2
@@ -5073,11 +5062,8 @@ c local data
       ndx1yz = max0(indx1,indy,indz)
       nx = 2**indx
       nxh = nx/2
-      nxhh = nx/4
-      nxh2 = nxh + 2
       ny = 2**indy
       nyh = ny/2
-      ny2 = ny + 2
       nz = 2**indz
       nzh = nz/2
       nz2 = nz + 2

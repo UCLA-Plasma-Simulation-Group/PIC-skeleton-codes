@@ -58,6 +58,20 @@
       end interface
 !
       interface
+         subroutine ETFIELD33(dcu,exyz,ffe,ci,wf,nx,ny,nz,nxvh,nyv,nzv, &
+     &nxhd,nyhd,nzhd)
+         implicit none
+         integer, intent(in) :: nx, ny, nz, nxvh, nyv, nzv
+         integer, intent(in) :: nxhd, nyhd, nzhd
+         real, intent(in) :: ci
+         real, intent(inout) :: wf
+         real, dimension(3,2*nxvh,nyv,nzv), intent(in) :: dcu
+         complex, dimension(3,nxvh,nyv,nzv), intent(inout) :: exyz
+         complex, dimension(nxhd,nyhd,nzhd), intent(in) :: ffe
+         end subroutine
+      end interface
+!
+      interface
          subroutine SMOOTH3(q,qs,ffc,nx,ny,nz,nxvh,nyv,nzv,nxhd,nyhd,   &
      &nzhd)
          implicit none

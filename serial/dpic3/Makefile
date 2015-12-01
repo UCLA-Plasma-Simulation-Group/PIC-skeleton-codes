@@ -72,9 +72,9 @@ CCOPTS = -O3 -Wall -std=c99
 
 # Linkage rules
 
-all : fdpic3
+all : fdpic3 cdpic3
 
-special: cdpic3_f
+special: cdpic3_f fdpic3_c
 
 fdpic3 : fdpic3.o fdpush3.o dtimer.o
 	$(FC90) $(OPTS90) -o fdpic3 fdpic3.o fdpush3.o dpush3_h.o \

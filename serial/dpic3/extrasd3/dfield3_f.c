@@ -21,6 +21,11 @@ void apotp33_(float complex *cu, float complex *axyz,
               int *ny, int *nz, int *nxvh, int *nyv, int *nzv,
               int *nxhd, int *nyhd, int *nzhd);
 
+void etfield33_(float complex *dcu, float complex *exyz,
+                float complex *ffe, float *ci, float *wf, int *nx,
+                int *ny, int *nz, int *nxvh, int *nyv, int *nzv, 
+                int *nxhd, int *nyhd, int *nzhd);
+
 void smooth3_(float complex *q, float complex *qs, float complex *ffc,
               int *nx, int *ny, int *nz, int *nxvh, int *nyv, int *nzv,
               int *nxhd, int *nyhd, int *nzhd);
@@ -87,6 +92,16 @@ void capotp33(float complex cu[], float complex axyz[],
               int nzhd) {
    apotp33_(cu,axyz,ffc,&ci,wm,&nx,&ny,&nz,&nxvh,&nyv,&nzv,&nxhd,&nyhd,
             &nzhd);
+   return;
+}
+
+/*--------------------------------------------------------------------*/
+void cetfield33(float complex dcu[], float complex exyz[], 
+                float complex ffe[], float ci, float *wf, int nx,
+                int ny, int nz, int nxvh, int nyv, int nzv, int nxhd, 
+                int nyhd, int nzhd) {
+   etfield33_(dcu,exyz,ffe,&ci,wf,&nx,&ny,&nz,&nxvh,&nyv,&nzv,&nxhd,
+              &nyhd,&nzhd);
    return;
 }
 
