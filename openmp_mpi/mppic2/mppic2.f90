@@ -66,7 +66,7 @@
       integer, dimension(:), pointer :: mixup
 ! sct = sine/cosine table for FFT
       complex, dimension(:), pointer :: sct
-      real, dimension(4) :: wtot, work
+      double precision, dimension(4) :: wtot, work
 !
 ! declare arrays for MPI code
 ! bs/br = complex send/receive buffers for data transpose
@@ -351,7 +351,7 @@
       wtot(2) = wke
       wtot(3) = 0.0
       wtot(4) = we + wke
-      call PPSUM(wtot,work,4)
+      call PPDSUM(wtot,work,4)
       we = wtot(1)
       wke = wtot(2)
       if (ntime==0) then
