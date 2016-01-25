@@ -4884,6 +4884,48 @@ void cwppfft2rm3(float complex f[], float complex g[],
    return;
 }
 
+/*--------------------------------------------------------------------*/
+void cpppcopyout(float part[], float ppart[], int kpic[], int *npp,
+                 int npmax, int nppmx, int idimp, int mxyp1, int *irc) {
+/* for 2d code, this subroutine copies segmented particle data ppart to
+   the array part with original tiled layout
+   spatial decomposition in y direction
+   input: all except part, npp, irc, output: part, npp, irc
+   part[j][i] = i-th coordinate for particle j
+   ppart[k][j][i] = i-th coordinate for particle j in tile k
+   kpic = number of particles per tilees
+   npp = number of particles in partition
+   npmax = maximum number of particles in each partition
+   nppmx = maximum number of particles in tile
+   idimp = size of phase space = 5
+   mxyp1 = total number of tiles in partition
+   irc = maximum overflow, returned only if error occurs, when irc > 0
+local data                                                            */
+   int i, j, k, npoff, nppp, ne, ierr;
+   npoff = 0;
+   ierr = 0;
+/* loop over tiles */
+   for (k = 0; k < mxyp1; k++) {
+      nppp = kpic[k];
+      ne = nppp + npoff;
+      if (ne > npmax)
+         ierr = ierr > ne-npmax ? ierr : ne-npmax;
+      if (ierr > 0)
+         nppp = 0;
+/* loop over particles in tile */
+      for (j = 0; j < nppp; j++) {
+         for (i = 0; i < idimp; i++) {
+            part[i+idimp*(j+npoff)] = ppart[i+idimp*(j+nppmx*k)];
+         }
+      }
+      npoff += nppp;
+   }
+   *npp = npoff;
+   if (ierr > 0)
+      *irc = ierr;
+   return;
+}
+
 /* Interfaces to Fortran */
 
 /*--------------------------------------------------------------------*/

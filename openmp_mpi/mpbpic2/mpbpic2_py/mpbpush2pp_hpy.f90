@@ -136,7 +136,8 @@
      &ntmax,irc)
          implicit none
          integer, intent(in) :: noff, nyp, idimp, nppmx, nx, ny, mx, my
-         integer, intent(in) :: nxv, nypmx, mx1, mxyp1, ntmax, irc
+         integer, intent(in) :: nxv, nypmx, mx1, mxyp1, ntmax
+         integer, intent(inout) :: irc
          real, intent(in) :: qbm, dt, dtc, ci
          real, intent(inout) :: ek
 !        real, dimension(idimp,nppmx,mxyp1), intent(inout) :: ppart
@@ -189,7 +190,8 @@
      &nppmx,idimp,nx,ny,mx,my,nxv,nypmx,mx1,mxyp1,ntmax,irc)
          implicit none
          integer, intent(in) :: noff, nyp, nppmx, idimp, nx, ny, mx, my
-         integer, intent(in) :: nxv, nypmx, mx1, mxyp1, ntmax, irc
+         integer, intent(in) :: nxv, nypmx, mx1, mxyp1, ntmax
+         integer, intent(inout) :: irc
          real, intent(in) :: qm, dt
 !        real, dimension(idimp,nppmx,mxyp1), intent(inout) :: ppart
          real, dimension(*), intent(inout) :: ppart
@@ -225,7 +227,8 @@
      &,ci,nppmx,idimp,nx,ny,mx,my,nxv,nypmx,mx1,mxyp1,ntmax,irc)
          implicit none
          integer, intent(in) :: noff, nyp, nppmx, idimp, nx, ny, mx, my
-         integer, intent(in) :: nxv, nypmx, mx1, mxyp1, ntmax, irc
+         integer, intent(in) :: nxv, nypmx, mx1, mxyp1, ntmax
+         integer, intent(inout) :: irc
          real, intent(in) :: qm, dt, ci
 !        real, dimension(idimp,nppmx,mxyp1), intent(inout) :: ppart
          real, dimension(*), intent(inout) :: ppart

@@ -76,8 +76,8 @@
       real, dimension(:,:), pointer :: sbufl, sbufr, rbufl, rbufr
 ! edges(1:2) = lower:upper y boundaries of particle partition
       real, dimension(:), pointer  :: edges
-! scs/scr = guard cell buffers received from nearby processors
-      real, dimension(:), pointer  :: scs, scr
+! scr = guard cell buffer received from nearby processors
+      real, dimension(:), pointer  :: scr
 !
 ! declare arrays for OpenMP code
 ! ppart = tiled particle array
@@ -170,7 +170,7 @@
 !
 ! allocate and initialize data for MPI code
       allocate(bs(ndim,kxp,kyp),br(ndim,kxp,kyp))
-      allocate(scs(nxe*ndim),scr(nxe*ndim))
+      allocate(scr(nxe*ndim))
 !
 ! prepare fft tables
       call WPFFT2RINIT(mixup,sct,indx,indy,nxhy,nxyh)

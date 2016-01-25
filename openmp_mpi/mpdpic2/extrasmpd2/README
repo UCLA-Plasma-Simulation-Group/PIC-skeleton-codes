@@ -1,7 +1,7 @@
 Skeleton 2-1/2D Darwin MPI/OpenMP Particle-in-Cell (PIC) codes field
 diagnostics
 by Viktor K. Decyk
-copyright 2007-2015, regents of the university of california
+copyright 2007-2016, regents of the university of california
 
 This directory contains procedures that are useful for performing wave
 diagnostics, such as measuring the wavenumber and frequency of plasma
@@ -18,9 +18,9 @@ potential in fourier space, in the Coulomb gauge.  These are calculated
 by the procedures MPPOTP2 and MPPAPOTP23, respectively.  Other
 diagnostics, such as the unsmoothed longitudinal electric field and
 magnetic field can be calculated from the potentials with the procedures
-MPPGRADF2 and MPPCURLF2, respectively.  The procedure MPPEPOISP23 can be
-called with isign=1 to obtain the unsmoothed transverse electric field.
-The fourier modes are normally stored to disk for later post-processing,
+MPPGRADF2 and MPPCURLF2, respectively.  The procedure MPPETFIELD332 can
+be called to obtain the unsmoothed transverse electric field.  The
+fourier modes are normally stored to disk for later post-processing,
 such as by performing a fourier transform in time to obtain the
 frequencies for different wavenumbers.  It is usually not necessary to
 store all the modes to disk, since the high wavenumber modes are usually

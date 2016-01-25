@@ -278,7 +278,7 @@ for ntime in xrange(0,nloop):
       if (relativity==1):
          print "ppgrjppostf2l error, irc=", irc[0]
       else:
-         print "ppgjppostf2ll error, irc=", irc[0]
+         print "ppgjppostf2l error, irc=", irc[0]
       ppabort()
       exit(0)
 

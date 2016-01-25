@@ -465,6 +465,136 @@ c mode numbers kx = 0, nx/2
       return
       end
 c-----------------------------------------------------------------------
+      subroutine MPPETFIELD23(dcu,exy,ffe,affp,ci,wf,nx,ny,kstrt,nyv,kxp
+     1,nyhd)
+c this subroutine solves 2-1/2d poisson's equation in fourier space for
+c unsmoothed transverse electric, with periodic boundary conditions.
+c for distributed data
+c using algorithm described in J. Busnardo-Neto, P. L. Pritchett,
+c A. T. Lin, and J. M. Dawson, J. Computational Phys. 23, 300 (1977).
+c input: dcu,ffe,affp,ci,nx,ny,kstrt,nyv,kxp,nyhd, output: exy,wf
+c approximate flop count is: 59*nxc*nyc + 32*(nxc + nyc)
+c where nxc = (nx/2-1)/nvp, nyc = ny/2 - 1, and nvp = number of procs
+c unsmoothed transverse electric field is calculated using the equation:
+c ex(kx,ky) = -ci*ci*g(kx,ky)*dcux(kx,ky)
+c ey(kx,ky) = -ci*ci*g(kx,ky)*dcuy(kx,ky)
+c ez(kx,ky) = -ci*ci*g(kx,ky)*dcuz(kx,ky)
+c where kx = 2pi*j/nx, ky = 2pi*k/ny, and j,k = fourier mode numbers,
+c g(kx,ky) = (affp/(kx**2+ky**2))*s(kx,ky),
+c s(kx,ky) = exp(-((kx*ax)**2+(ky*ay)**2)/2), except for
+c ex(kx=pi) = ey(kx=pi) = ez(kx=pi) = 0,
+c ex(ky=pi) = ey(ky=pi) = ez(ky=pi) = 0,
+c ex(kx=0,ky=0) = ey(kx=0,ky=0) = ez(kx=0,ky=0) = 0.
+c dcu(i,k,j) = i-th component of transverse part of complex derivative
+c of current,
+c exy(i,k,j) = i-th component of complex transverse electric field,
+c for fourier mode (jj-1,k-1), where jj = j + kxp*(kstrt - 1)
+c aimag(ffe(k,j)) = finite-size particle shape factor s
+c real(ffe(k,j)) = potential green's function g
+c for fourier mode (jj-1,k-1), where jj = j + kxp*(kstrt - 1)
+c affp = normalization constant = nx*ny/np, where np=number of particles
+c ci = reciprical of velocity of light
+c transverse electric field energy is also calculated, using
+c wf = nx*ny*sum((affp/((kx**2+ky**2)*ci*ci)**2)
+c    |dcu(kx,ky)*s(kx,ky)|**2)
+c this expression is valid only if the derivative of current is
+c divergence-free
+c nx/ny = system length in x/y direction
+c kstrt = starting data block number
+c nyv = second dimension of field arrays, must be >= ny
+c kxp = number of data values per block
+c nyhd = first dimension of form factor array, must be >= nyh
+      implicit none
+      integer nx, ny, kstrt, nyv, kxp, nyhd
+      real affp, ci, wf
+      complex dcu, exy, ffe
+      dimension dcu(3,nyv,kxp), exy(3,nyv,kxp)
+      dimension ffe(nyhd,kxp)
+c local data
+      integer nxh, nyh, ny2, ks, joff, kxps, j, k, k1
+      real ci2, at1, at2
+      complex zero
+      double precision wp, sum1
+      nxh = nx/2
+      nyh = max(1,ny/2)
+      ny2 = ny + 2
+      ks = kstrt - 1
+      joff = kxp*ks
+      kxps = min(kxp,max(0,nxh-joff))
+      joff = joff - 1
+      zero = cmplx(0.0,0.0)
+      ci2 = ci*ci
+c calculate unsmoothed transverse electric field and sum field energy
+      sum1 = 0.0d0
+      if (kstrt.gt.nxh) go to 40
+c mode numbers 0 < kx < nx/2 and 0 < ky < ny/2
+!$OMP PARALLEL DO PRIVATE(j,k,k1,at1,at2,wp)
+!$OMP& REDUCTION(+:sum1)
+      do 20 j = 1, kxps
+      wp = 0.0d0
+      if ((j+joff).gt.0) then
+         do 10 k = 2, nyh
+         k1 = ny2 - k
+         at2 = -ci2*real(ffe(k,j))
+         at1 = at2*at2
+         exy(1,k,j) = at2*dcu(1,k,j)
+         exy(2,k,j) = at2*dcu(2,k,j)
+         exy(3,k,j) = at2*dcu(3,k,j)
+         exy(1,k1,j) = at2*dcu(1,k1,j)
+         exy(2,k1,j) = at2*dcu(2,k1,j)
+         exy(3,k1,j) = at2*dcu(3,k1,j)
+         wp = wp + at1*(dcu(1,k,j)*conjg(dcu(1,k,j))
+     1   + dcu(2,k,j)*conjg(dcu(2,k,j)) + dcu(3,k,j)*conjg(dcu(3,k,j))
+     2   + dcu(1,k1,j)*conjg(dcu(1,k1,j))
+     3   + dcu(2,k1,j)*conjg(dcu(2,k1,j))
+     4   + dcu(3,k1,j)*conjg(dcu(3,k1,j)))
+   10    continue
+c mode numbers ky = 0, ny/2
+         k1 = nyh + 1
+         at2 = -ci2*real(ffe(1,j))
+         at1 = at2*at2
+         exy(1,1,j) = at2*dcu(1,1,j)
+         exy(2,1,j) = at2*dcu(2,1,j)
+         exy(3,1,j) = at2*dcu(3,1,j)
+         exy(1,k1,j) = zero
+         exy(2,k1,j) = zero
+         exy(3,k1,j) = zero
+         wp = wp + at1*(dcu(1,1,j)*conjg(dcu(1,1,j))
+     1   + dcu(2,1,j)*conjg(dcu(2,1,j)) + dcu(3,1,j)*conjg(dcu(3,1,j)))
+      endif
+      sum1 = sum1 + wp
+   20 continue
+!$OMP END PARALLEL DO
+      wp = 0.0d0
+c mode numbers kx = 0, nx/2
+      if (ks.eq.0) then
+         do 30 k = 2, nyh
+         k1 = ny2 - k
+         at2 = -ci2*real(ffe(k,1))
+         at1 = at2*at2
+         exy(1,k,1) = at2*dcu(1,k,1)
+         exy(2,k,1) = at2*dcu(2,k,1)
+         exy(3,k,1) = at2*dcu(3,k,1)
+         exy(1,k1,1) = zero
+         exy(2,k1,1) = zero
+         exy(3,k1,1) = zero
+         wp = wp + at1*(dcu(1,k,1)*conjg(dcu(1,k,1))
+     1   + dcu(2,k,1)*conjg(dcu(2,k,1)) + dcu(3,k,1)*conjg(dcu(3,k,1)))
+  30    continue
+         k1 = nyh + 1
+         exy(1,1,1) = zero
+         exy(2,1,1) = zero
+         exy(3,1,1) = zero
+         exy(1,k1,1) = zero
+         exy(2,k1,1) = zero
+         exy(3,k1,1) = zero
+      endif
+      sum1 = sum1 + wp
+   40 continue
+      wf = real(nx)*real(ny)*sum1/affp
+      return
+      end
+c-----------------------------------------------------------------------
       subroutine MPPSMOOTH2(q,qs,ffc,nx,ny,kstrt,nyv,kxp,nyhd)
 c this subroutine provides a 2d scalar smoothing function
 c in fourier space, with periodic boundary conditions

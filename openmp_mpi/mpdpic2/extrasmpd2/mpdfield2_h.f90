@@ -55,6 +55,19 @@
       end interface
 !
       interface
+         subroutine MPPETFIELD23(dcu,exy,ffe,affp,ci,wf,nx,ny,kstrt,nyv,&
+     &kxp,nyhd)
+         implicit none
+         integer, intent(in) :: nx, ny, kstrt, nyv, kxp, nyhd
+         real, intent(in) :: affp, ci
+         real, intent(inout) :: wf
+         complex, dimension(3,nyv,kxp), intent(in) :: dcu
+         complex, dimension(3,nyv,kxp), intent(inout) :: exy
+         complex, dimension(nyhd,kxp), intent(in) :: ffe
+         end subroutine
+      end interface
+!
+      interface
          subroutine MPPSMOOTH2(q,qs,ffc,nx,ny,kstrt,nyv,kxp,nyhd)
          implicit none
          integer, intent(in) :: nx, ny, kstrt, nyv, kxp, nyhd

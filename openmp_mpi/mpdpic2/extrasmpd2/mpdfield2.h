@@ -17,6 +17,11 @@ void cmppapotp23(float complex cu[], float complex axy[],
                  float complex ffc[], float ci, float *wm, int nx,
                  int ny, int kstrt, int nyv, int kxp, int nyhd);
 
+void cmppetfield23(float complex dcu[], float complex exy[],
+                   float complex ffe[], float affp, float ci, float *wf,
+                   int nx, int ny, int kstrt, int nyv, int kxp,
+                   int nyhd);
+
 void cmppsmooth2(float complex q[], float complex qs[],
                  float complex ffc[], int nx, int ny, int kstrt,
                  int nyv, int kxp, int nyhd);

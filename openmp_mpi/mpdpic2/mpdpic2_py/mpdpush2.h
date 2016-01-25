@@ -175,3 +175,6 @@ void cwppfft2rmn(float complex f[], float complex g[],
 
 void cmppswapc2n(float f[], float s[], int isign, int nxh, int kypi,
                  int kypt, int nxvh, int kypd, int ndim);
+
+void cpppcopyout(float part[], float ppart[], int kpic[], int *npp,
+                 int npmax, int nppmx, int idimp, int mxyp1, int *irc);

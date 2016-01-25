@@ -246,6 +246,10 @@ mpplib2_h.f90   Fortran90 MPI communications interface (header) library
 mpplib2.f90     Fortran90 MPI communications library
 mpplib2.c       C MPI communications library
 mpplib2.h       C MPI communications header library
+omplib.f        Fortran77 OpenMP utility library
+omplib_h.f90    Fortran90 OpenMP utility interface (header) library
+omplib.c        C OpenMP utility library
+omplib.h        C OpenMP utility header library
 mpbpush2.f      Fortran77 procedure library
 mpbpush2_h.f90  Fortran90 procedure interface (header) library
 mpbpush2.c      C procedure library
@@ -275,7 +279,7 @@ to create both programs.
 The command to execute a program with both MPI and OpenMP varies from
 one system to another.  One possible command is:
 
-mpirun -np nproc ./program_name
+mpiexec -np nproc -perhost n ./program_name
 
 where program_name is either fmbppic2 or cmpbpic2, and
 where nproc is the number of processors to be used, and

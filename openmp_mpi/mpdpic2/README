@@ -157,16 +157,16 @@ Deposit section:
                                local processor
    PPNAGUARD2L (cppnaguard2l): add charge density guard cells in y from
                                remote processor 
-   PPACGUARD2X (cppacguard2xl): add current density guard cells in x on
-                                local processor
+   PPACGUARD2XL (cppacguard2xl): add current density guard cells in x on
+                                 local processor
    PPNACGUARD2L (cppnacguard2l): add current density guard cells in y
                                  from remote processor
-   PPACGUARD2X (cppacguard2xl): add acceleration density guard cells in
-                                x on local processor
+   PPACGUARD2XL (cppacguard2xl): add acceleration density guard cells in
+                                 x on local processor
    PPNACGUARD2L (cppnacguard2l): add acceleration density guard cells in
                                  y from remote processor
-   PPACGUARD2X (cppacguard2xl): add momemtum flux guard cells in x on
-                                local processor
+   PPACGUARD2XL (cppacguard2xl): add momemtum flux guard cells in x on
+                                 local processor
    PPNACGUARD2L (cppnacguard2l): add momemtum flux guard cells in y from
                                  remote processor
 
@@ -208,8 +208,8 @@ Particle Push section:
    PPCGUARD2XL (cppcguard2xl): fill in guard cells for smoothed
                                transverse electric field in x on local
                                processor
-   PPADDVRFIELD2 (ccppaddvrfield2): add longitudinal and transverse
-                                    electric fields
+   PPADDVRFIELD2 (cppaddvrfield2): add longitudinal and transverse
+                                   electric fields
    PPGBPPUSHF23L (cppgbppushf23l): update particle co-ordinates with
                                    smoothed electric and magnetic
                                    fields:
@@ -237,11 +237,11 @@ npy = number of electrons distributed in y direction.
 tend = time at end of simulation, in units of plasma frequency.
 dt = time interval between successive calculations.
    The number of time steps the code runs is given by tend/dt.
-   dt should be less than .45*ci for the electromagnetic code.
+   typically, dt should be less than .2 for the Darwin code
 vtx/vty/vtz = thermal velocity of electrons in x/y/z direction.
    a typical value is 1.0.
 vx0/vy0/vz0 = drift velocity of electrons in x/y/z direction.
-ci = reciprocal of velocity of light
+ci = reciprical of velocity of light
 omx/omy/omz = magnetic field electron cyclotron frequency in x/y/z
 ndc = number of corrections in darwin iteration
    typical values are 1 or 2.
@@ -256,6 +256,10 @@ mpplib2_h.f90  Fortran90 MPI communications interface (header) library
 mpplib2.f90    Fortran90 MPI communications library
 mpplib2.c      C MPI communications library
 mpplib2.h      C MPI communications header library
+omplib.f       Fortran77 OpenMP utility library
+omplib_h.f90   Fortran90 OpenMP utility interface (header) library
+omplib.c       C OpenMP utility library
+omplib.h       C OpenMP utility header library
 mpdpush2.f     Fortran77 procedure library
 mpdpush2_h.f90 Fortran90 procedure interface (header) library
 mpdpush2.c     C procedure library
@@ -284,7 +288,7 @@ to create both programs.
 The command to execute a program with both MPI and OpenMP varies from
 one system to another.  One possible command is:
 
-mpirun -np nproc ./program_name
+mpiexec -np nproc -perhost n ./program_name
 
 where program_name is either fmpdpic2 or cmpdpic2, and
 where nproc is the number of processors to be used, and

@@ -72,7 +72,7 @@ int main(int argc, char *argv[]) {
    int *mixup = NULL;
 /* sct = sine/cosine table for FFT */
    float complex *sct = NULL;
-   float wtot[4], work[4];
+   double wtot[4], work[4];
 
 /* declare arrays for MPI code */
 /* bs/br = complex send/receive buffers for data transpose */
@@ -82,8 +82,8 @@ int main(int argc, char *argv[]) {
    float *sbufl = NULL, *sbufr = NULL, *rbufl = NULL, *rbufr = NULL;
 /* edges[0:1] = lower:upper y boundaries of particle partition */
    float *edges = NULL;
-/* scs/scr = guard cell buffers received from nearby processors */
-   float *scs = NULL, *scr = NULL;
+/* scr = guard cell buffer received from nearby processors */
+   float *scr = NULL;
 
 /* declare arrays for OpenMP code */
 /* ppart = tiled particle array */
@@ -181,7 +181,6 @@ int main(int argc, char *argv[]) {
 /* allocate and initialize data for MPI code */
    bs = (float complex *) malloc(ndim*kxp*kyp*sizeof(float complex));
    br = (float complex *) malloc(ndim*kxp*kyp*sizeof(float complex));
-   scs = (float *) malloc(nxe*ndim*sizeof(float));
    scr = (float *) malloc(nxe*ndim*sizeof(float));
 
 /* prepare fft tables */
@@ -376,7 +375,7 @@ L500: if (nloop <= ntime)
       wtot[1] = wke;
       wtot[2] = 0.0;
       wtot[3] = we + wke;
-      cppsum(wtot,work,4);
+      cppdsum(wtot,work,4);
       we = wtot[0];
       wke = wtot[1];
       if (ntime==0) {

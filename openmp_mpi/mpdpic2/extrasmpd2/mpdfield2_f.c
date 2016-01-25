@@ -21,6 +21,11 @@ void mppapotp23_(float complex *cu, float complex *axy,
                  float complex *ffc, float *ci, float *wm, int *nx,
                  int *ny, int *kstrt, int *nyv, int *kxp, int *nyhd);
 
+void mppetfield23_(float complex *dcu, float complex *exy,
+                   float complex *ffe, float *affp, float *ci,
+                   float *wf, int *nx, int *ny, int *kstrt, int *nyv,
+                   int *kxp, int *nyhd);
+
 void mppsmooth2_(float complex *q, float complex *qs,
                  float complex *ffc, int *nx, int *ny, int *kstrt, 
                  int *nyv, int *kxp, int *nyhd);
@@ -83,6 +88,16 @@ void cmppapotp23(float complex cu[], float complex axy[],
                  float complex ffc[], float ci, float *wm, int nx,
                  int ny, int kstrt, int nyv, int kxp, int nyhd) {
    mppapotp23_(cu,axy,ffc,&ci,wm,&nx,&ny,&kstrt,&nyv,&kxp,&nyhd);
+   return;
+}
+
+/*--------------------------------------------------------------------*/
+void cmppetfield23(float complex dcu[], float complex exy[],
+                   float complex ffe[], float affp, float ci, float *wf,
+                   int nx, int ny, int kstrt, int nyv, int kxp,
+                   int nyhd) {
+   mppetfield23_(dcu,exy,ffe,&affp,&ci,wf,&nx,&ny,&kstrt,&nyv,&kxp,
+                 &nyhd);
    return;
 }
 

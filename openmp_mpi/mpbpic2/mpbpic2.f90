@@ -76,7 +76,7 @@
       integer, dimension(:), pointer :: mixup
 ! sct = sine/cosine table for FFT
       complex, dimension(:), pointer :: sct
-      real, dimension(7) :: wtot, work
+      double precision, dimension(7) :: wtot, work
 !
 ! declare arrays for MPI code
 ! bs/br = complex send/receive buffers for data transpose
@@ -86,8 +86,8 @@
       real, dimension(:,:), pointer :: sbufl, sbufr, rbufl, rbufr
 ! edges(1:2) = lower:upper y boundaries of particle partition
       real, dimension(:), pointer  :: edges
-! scs/scr = guard cell buffers received from nearby processors
-      real, dimension(:), pointer  :: scs, scr
+! scr = guard cell buffer received from nearby processors
+      real, dimension(:), pointer  :: scr
 !
 ! declare arrays for OpenMP code
 ! ppart = tiled particle array
@@ -184,7 +184,7 @@
 !
 ! allocate and initialize data for MPI code
       allocate(bs(ndim,kxp,kyp),br(ndim,kxp,kyp))
-      allocate(scs(ndim*nxe),scr(ndim*nxe))
+      allocate(scr(ndim*nxe))
 !
 ! prepare fft tables
       call WPFFT2RINIT(mixup,sct,indx,indy,nxhy,nxyh)
@@ -451,7 +451,7 @@
 ! updates ppart and wke
 !        call PPGRBPPUSH23L(ppart,fxyze,bxyze,kpic,noff,nyp,qbme,dt,dth,&
 !    &ci,wke,idimp,nppmx0,nx,ny,mx,my,nxe,nypmx,mx1,mxyp1,ipbc)
-! updates ppart, ncl, iholep, ek, irc
+! updates ppart, ncl, iholep, wke, irc
          call PPGRBPPUSHF23L(ppart,fxyze,bxyze,kpic,ncl,iholep,noff,nyp,&
      &qbme,dt,dth,ci,wke,idimp,nppmx0,nx,ny,mx,my,nxe,nypmx,mx1,mxyp1,  &
      &ntmaxp,irc)
@@ -459,7 +459,7 @@
 ! updates ppart and wke
 !        call PPGBPPUSH23L(ppart,fxyze,bxyze,kpic,noff,nyp,qbme,dt,dth, &
 !    &wke,idimp,nppmx0,nx,ny,mx,my,nxe,nypmx,mx1,mxyp1,ipbc)
-! updates ppart, ncl, iholep, ek, irc
+! updates ppart, ncl, iholep, wke, irc
          call PPGBPPUSHF23L(ppart,fxyze,bxyze,kpic,ncl,iholep,noff,nyp, &
      &qbme,dt,dth,wke,idimp,nppmx0,nx,ny,mx,my,nxe,nypmx,mx1,mxyp1,     &
      &ntmaxp,irc)
@@ -526,7 +526,7 @@
       wtot(5) = we
       wtot(6) = wf
       wtot(7) = wm
-      call PPSUM(wtot,work,7)
+      call PPDSUM(wtot,work,7)
       wke = wtot(2)
       we = wtot(5)
       wf = wtot(6)

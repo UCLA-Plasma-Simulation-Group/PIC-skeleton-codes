@@ -82,7 +82,7 @@ int main(int argc, char *argv[]) {
    int *mixup = NULL;
 /* sct = sine/cosine table for FFT */
    float complex *sct = NULL;
-   float wtot[7], work[7];
+   double wtot[7], work[7];
 
 /* declare arrays for MPI code */
 /* bs/br = complex send/receive buffers for data transpose */
@@ -92,8 +92,8 @@ int main(int argc, char *argv[]) {
    float *sbufl = NULL, *sbufr = NULL, *rbufl = NULL, *rbufr = NULL;
 /* edges[0:1] = lower:upper y boundaries of particle partition */
    float *edges = NULL;
-/* scs/scr = guard cell buffers received from nearby processors */
-   float *scs = NULL, *scr = NULL;
+/* scr = guard cell buffer received from nearby processors */
+   float *scr = NULL;
 
 /* declare arrays for OpenMP code */
 /* ppart = tiled particle array */
@@ -198,7 +198,6 @@ int main(int argc, char *argv[]) {
 /* allocate and initialize data for MPI code */
    bs = (float complex *) malloc(ndim*kxp*kyp*sizeof(float complex));
    br = (float complex *) malloc(ndim*kxp*kyp*sizeof(float complex));
-   scs = (float *) malloc(ndim*nxe*sizeof(float));
    scr = (float *) malloc(ndim*nxe*sizeof(float));
 
 /* prepare fft tables */
@@ -490,7 +489,7 @@ L500: if (nloop <= ntime)
 /*       cppgrbppush23l(ppart,fxyze,bxyze,kpic,noff,nyp,qbme,dt,dth,ci, */
 /*                      &wke,idimp,nppmx0,nx,ny,mx,my,nxe,nypmx,mx1,    */
 /*                      mxyp1,ipbc);                                    */
-/* updates ppart, ncl, iholep, ek, irc */
+/* updates ppart, ncl, iholep, wke, irc */
          cppgrbppushf23l(ppart,fxyze,bxyze,kpic,ncl,iholep,noff,nyp,
                          qbme,dt,dth,ci,&wke,idimp,nppmx0,nx,ny,mx,my,
                          nxe,nypmx,mx1,mxyp1,ntmaxp,&irc);
@@ -500,7 +499,7 @@ L500: if (nloop <= ntime)
 /*       cppgbppush23l(ppart,fxyze,bxyze,kpic,noff,nyp,qbme,dt,dth,&wke, */
 /*                     idimp,nppmx0,nx,ny,mx,my,nxe,nypmx,mx1,mxyp1,     */
 /*                     ipbc);                                            */
-/* updates ppart, ncl, iholep, ek, irc */
+/* updates ppart, ncl, iholep, wke, irc */
          cppgbppushf23l(ppart,fxyze,bxyze,kpic,ncl,iholep,noff,nyp,qbme,
                         dt,dth,&wke,idimp,nppmx0,nx,ny,mx,my,nxe,nypmx,
                         mx1,mxyp1,ntmaxp,&irc);
@@ -570,7 +569,7 @@ L500: if (nloop <= ntime)
       wtot[4] = we;
       wtot[5] = wf;
       wtot[6] = wm;
-      cppsum(wtot,work,7);
+      cppdsum(wtot,work,7);
       wke = wtot[1];
       we = wtot[4];
       wf = wtot[5];

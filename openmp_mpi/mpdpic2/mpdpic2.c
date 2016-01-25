@@ -107,8 +107,8 @@ int main(int argc, char *argv[]) {
    float *sbufl = NULL, *sbufr = NULL, *rbufl = NULL, *rbufr = NULL;
 /* edges[0:1] = lower:upper y boundaries of particle partition */
    float *edges = NULL;
-/* scs/scr = guard cell buffers received from nearby processors */
-   float *scs = NULL, *scr = NULL;
+/* scr = guard cell buffer received from nearby processors */
+   float *scr = NULL;
 
 /* declare arrays for OpenMP code: */
 /* ppart = tiled particle array */
@@ -223,7 +223,6 @@ int main(int argc, char *argv[]) {
 /* allocate and initialize data for MPI code */
    bs = (float complex *) malloc(mdim*kxp*kyp*sizeof(float complex));
    br = (float complex *) malloc(mdim*kxp*kyp*sizeof(float complex));
-   scs = (float *) malloc(mdim*nxe*sizeof(float));
    scr = (float *) malloc(mdim*nxe*sizeof(float));
 
 /* prepare fft tables */

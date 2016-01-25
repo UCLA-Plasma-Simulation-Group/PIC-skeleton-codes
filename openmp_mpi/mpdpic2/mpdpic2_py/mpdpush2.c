@@ -5323,7 +5323,7 @@ void cwppfft2rmn(float complex f[], float complex g[],
 }
 
 /*--------------------------------------------------------------------*/
-void cpppcopyout(float part[], float ppart[], int kpic[], int npp,
+void cpppcopyout(float part[], float ppart[], int kpic[], int *npp,
                  int npmax, int nppmx, int idimp, int mxyp1, int *irc) {
 /* for 2d code, this subroutine copies segmented particle data ppart to
    the array part with original tiled layout
@@ -5358,7 +5358,7 @@ local data                                                            */
       }
       npoff += nppp;
    }
-   npp = npoff;
+   *npp = npoff;
    if (ierr > 0)
       *irc = ierr;
    return;
