@@ -28,11 +28,9 @@ def main():
 	tend =1000.0; dt = 0.1; qme = -1
 	#vtx/vty are thermal velocities
 	#vx0/vy0 are drift velocities
-	vtx = 4.0; vty = 4.0; vx0 = 0; vy0 = 0;
+	vtx = 1.0; vty = 1.0; vx0 = 0; vy0 = 0;
 	# ax/ay = smoothed particle size in x/y direction
 	ax = .912871; ay = .912871
-	ax = 0
-	ay = 0
 	# idimp = number of particle coordinates = 4
 	# ipbc = particle boundary condition: 1 = periodic, 2 = reflecting
 	# sortime = number of time steps between standard electron sorting

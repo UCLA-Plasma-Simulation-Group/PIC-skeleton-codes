@@ -1,4 +1,4 @@
-# Particle-In-Cell Skeleton Codes
+﻿# Particle-In-Cell Skeleton Codes
 Succinct PIC Implementation 
 
 __All source code in this repository is confidential.__
@@ -88,7 +88,7 @@ Here's a table showing the names of the codes and their parallelism (ES means el
 | -------- | --------------------- | ----------- | --------- | ----------- |
 |__Basic Serial__|
 ||pic1|ES|C,Fortran| None-Serial|
-||pic2|ES|C,Fortran| None-Serial|
+||pic2|ES|C,Fortran,Python| None-Serial|
 ||pic3|ES|C,Fortran| None-Serial|
 ||bpic1|EM|C,Fortran| None-Serial|
 ||bpic2|EM|C,Fortran| None-Serial|
