@@ -105,8 +105,6 @@ def main():
 	
 	#main loop
 	for ntime in xrange(0,nloop):
-		if ntime % 100 ==0 : 
-			print ntime 
 		#zero matrices
 		fxye.fill(0.0)
 		qe.fill(0.0)
@@ -198,7 +196,7 @@ def main():
 		print fx_st,fx_end
 		freq_start = (2*np.pi/(dt*nloop))*fx_st
 		freq_end = (2*np.pi/(dt*nloop))*fx_end
-		plt.imshow(np.abs(np.fft.fft(phi[:,:,ny/3],axis=0)[fx_st:fx_end,:]),origin ='lower',extent=[0,np.pi,freq_start,freq_end])
+		plt.imshow(np.abs(np.fft.fft(phi[:,:,1],axis=0)[fx_st:fx_end,:]),origin ='lower',extent=[0,np.pi,freq_start,freq_end])
 		#plt.axis([0,np.pi, freq_start,freq_end])
 		plt.colorbar()
 		plt.savefig('disp',dpi = 400,bbox_inches = 'tight')
