@@ -25,7 +25,7 @@ def main():
 	#tend = time at end of plasma simulation in units of plasma freq.
 	#dt = time interval
 	#qme = electron charge in units of |e|
-	tend =500.0; dt = 0.1; qme = -1
+	tend =1000.0; dt = 0.1; qme = -1
 	#vtx/vty are thermal velocities
 	#vx0/vy0 are drift velocities
 	vtx = 1.0; vty = 1.0; vx0 = 0; vy0 = 0;
@@ -55,7 +55,7 @@ def main():
 	nxh = int(nx/2); nyh = max(1,int(ny/2))
 
 	#guard cell definitions; do not change guard cells
-	nxe = nx + 2; nye = ny + 1; 
+	nxe = nx + 2; nye = ny + 2; 
 
 
 	# nloop = number of time steps in simulation
@@ -72,29 +72,29 @@ def main():
 
 	# allocate data for code
 	# part, part2 = particle arrays
-	part = np.empty((idimp,nptot),float_type,'F')
+	part = np.empty((idimp,nptot),float_type,'C')
 	if(sortime>0):
-		part2 = np.empty((idimp,nptot),float_type,'F')
+		part2 = np.empty((idimp,nptot),float_type,'C')
 
 	# electron charge density with guard cells
-	qe = np.empty((nxe,nye),float_type,'F')
-	qe2 = np.empty((nxe,nye),float_type,'F')
+	qe = np.empty((nxe,nye),float_type,'C')
+	qe2 = np.empty((nxe,nye),float_type,'C')
 
 	# wavenumbers (ndim,kx,ky) for fourier analysis
-	kvector = np.empty((ndim,nxe,nye),complex_type,'F')
+	kvector = np.empty((ndim,nxe,nye),complex_type,'C')
 	kvector.fill(0.0)
 
 	#fft electron charge density
-	qe_fft = np.empty((nxe,nye),complex_type,'F')
+	qe_fft = np.empty((nxe,nye),complex_type,'C')
 
 	# smoothed electric field with guard cells in fourier space
-	fxye = np.empty((ndim,nxe,nye),complex_type,'F')
+	fxye = np.empty((ndim,nxe,nye),complex_type,'C')
 
 	# smoothed electric field with guard cells in real space
-	fxyre = np.empty((ndim,nxe,nye),float_type,'F')
+	fxyre = np.empty((ndim,nxe,nye),float_type,'C')
 	
 	# form factor array for poisson solver
-	ffc = np.empty((nxe,nye),complex_type,'F')
+	ffc = np.empty((nxe,nye),complex_type,'C')
 	ffc.fill(0.0)
 
 	#form factor array do this once
@@ -105,8 +105,7 @@ def main():
 	
 	#main loop
 	for ntime in xrange(0,nloop):
-		if ntime % 100 ==0 : 
-			print ntime 
+		print ntime
 		#zero matrices
 		fxye.fill(0.0)
 		qe.fill(0.0)
@@ -191,14 +190,14 @@ def main():
 
 	if(print_diagnostics):
 		plt.figure(1,figsize=(12,6))
-		freq_start = 0.7
-		freq_end = 3
+		freq_start = 0.3
+		freq_end = 7
 		fx_st = int(freq_start*dt*nloop/(2*np.pi))
 		fx_end = int(freq_end*dt*nloop/(2*np.pi))
 		print fx_st,fx_end
 		freq_start = (2*np.pi/(dt*nloop))*fx_st
 		freq_end = (2*np.pi/(dt*nloop))*fx_end
-		plt.imshow(np.abs(np.fft.fft(phi[:,:,ny/3],axis=0)[fx_st:fx_end,:]),origin ='lower',extent=[0,np.pi,freq_start,freq_end])
+		plt.imshow(np.abs(np.fft.fft(phi[:,:,1],axis=0)[fx_st:fx_end,:]),origin ='lower',extent=[0,np.pi,freq_start,freq_end])
 		#plt.axis([0,np.pi, freq_start,freq_end])
 		plt.colorbar()
 		plt.savefig('disp',dpi = 400,bbox_inches = 'tight')

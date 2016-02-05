@@ -1,0 +1,135 @@
+!    -*- f90 -*-
+! Note: the context of this file is case sensitive.
+
+python module cpush2 ! in 
+    interface  ! in :cpush2
+        subroutine cdistr2(part,vtx,vty,vdx,vdy,npx,npy,idimp,nop,nx,ny,ipbc) ! in :cpush2:cpush2_hpy.f90
+            real dimension(*),intent(inout) :: part
+            real intent(in) :: vtx
+            real intent(in) :: vty
+            real intent(in) :: vdx
+            real intent(in) :: vdy
+            integer intent(in) :: npx
+            integer intent(in) :: npy
+            integer intent(in) :: idimp
+            integer intent(in) :: nop
+            integer intent(in) :: nx
+            integer intent(in) :: ny
+            integer intent(in) :: ipbc
+        end subroutine cdistr2
+    end interface 
+    interface  ! in :cpush2
+        subroutine cgpush2l(part,fxy,qbm,dt,ek,idimp,nop,nx,ny,nxv,nyv,ipbc) ! in :cpush2:cpush2_hpy.f90
+            real dimension(*),intent(inout) :: part
+            real dimension(*),intent(in) :: fxy
+            real intent(in) :: qbm
+            real intent(in) :: dt
+            real intent(inout) :: ek
+            integer intent(in) :: idimp
+            integer intent(in) :: nop
+            integer intent(in) :: nx
+            integer intent(in) :: ny
+            integer intent(in) :: nxv
+            integer intent(in) :: nyv
+            integer intent(in) :: ipbc
+        end subroutine cgpush2l
+    end interface 
+    interface  ! in :cpush2
+        subroutine cgpost2l(part,q,qm,nop,idimp,nxv,nyv) ! in :cpush2:cpush2_hpy.f90
+            real dimension(*),intent(in) :: part
+            real dimension(*),intent(inout) :: q
+            real intent(in) :: qm
+            integer intent(in) :: nop
+            integer intent(in) :: idimp
+            integer intent(in) :: nxv
+            integer intent(in) :: nyv
+        end subroutine cgpost2l
+    end interface 
+    interface  ! in :cpush2
+        subroutine cdsortp2yl(parta,partb,npic,idimp,nop,ny1) ! in :cpush2:cpush2_hpy.f90
+            real dimension(*),intent(in) :: parta
+            real dimension(*),intent(inout) :: partb
+            integer dimension(*),intent(inout) :: npic
+            integer intent(in) :: idimp
+            integer intent(in) :: nop
+            integer intent(in) :: ny1
+        end subroutine cdsortp2yl
+    end interface 
+    interface  ! in :cpush2
+        subroutine ccguard2l(fxy,nx,ny,nxe,nye) ! in :cpush2:cpush2_hpy.f90
+            real dimension(*),intent(inout) :: fxy
+            integer intent(in) :: nx
+            integer intent(in) :: ny
+            integer intent(in) :: nxe
+            integer intent(in) :: nye
+        end subroutine ccguard2l
+    end interface 
+    interface  ! in :cpush2
+        subroutine caguard2l(q,nx,ny,nxe,nye) ! in :cpush2:cpush2_hpy.f90
+            real dimension(*),intent(inout) :: q
+            integer intent(in) :: nx
+            integer intent(in) :: ny
+            integer intent(in) :: nxe
+            integer intent(in) :: nye
+        end subroutine caguard2l
+    end interface 
+    interface  ! in :cpush2
+        subroutine cpois22(q,fxy,isign,ffc,ax,ay,affp,we,nx,ny,nxvh,nyv,nxhd,nyhd) ! in :cpush2:cpush2_hpy.f90
+            real dimension(*),intent(in) :: q
+            real dimension(*),intent(inout) :: fxy
+            integer intent(in) :: isign
+            complex dimension(*),intent(inout) :: ffc
+            real intent(in) :: ax
+            real intent(in) :: ay
+            real intent(in) :: affp
+            real intent(inout) :: we
+            integer intent(in) :: nx
+            integer intent(in) :: ny
+            integer intent(in) :: nxvh
+            integer intent(in) :: nyv
+            integer intent(in) :: nxhd
+            integer intent(in) :: nyhd
+        end subroutine cpois22
+    end interface 
+    interface  ! in :cpush2
+        subroutine cwfft2rinit(mixup,sct,indx,indy,nxhyd,nxyhd) ! in :cpush2:cpush2_hpy.f90
+            integer dimension(*),intent(inout) :: mixup
+            complex dimension(*),intent(inout) :: sct
+            integer intent(in) :: indx
+            integer intent(in) :: indy
+            integer intent(in) :: nxhyd
+            integer intent(in) :: nxyhd
+        end subroutine cwfft2rinit
+    end interface 
+    interface  ! in :cpush2
+        subroutine cwfft2rx(f,isign,mixup,sct,indx,indy,nxhd,nyd,nxhyd,nxyhd) ! in :cpush2:cpush2_hpy.f90
+            real dimension(*),intent(inout) :: f
+            integer :: isign
+            integer dimension(*),intent(inout) :: mixup
+            complex dimension(*),intent(inout) :: sct
+            integer :: indx
+            integer :: indy
+            integer :: nxhd
+            integer :: nyd
+            integer :: nxhyd
+            integer :: nxyhd
+        end subroutine cwfft2rx
+    end interface 
+    interface  ! in :cpush2
+        subroutine cwfft2r2(f,isign,mixup,sct,indx,indy,nxhd,nyd,nxhyd,nxyhd) ! in :cpush2:cpush2_hpy.f90
+            real dimension(*),intent(inout) :: f
+            integer intent(in) :: isign
+            integer dimension(*),intent(inout) :: mixup
+            complex dimension(*),intent(inout) :: sct
+            integer intent(in) :: indx
+            integer intent(in) :: indy
+            integer intent(in) :: nxhd
+            integer intent(in) :: nyd
+            integer intent(in) :: nxhyd
+            integer intent(in) :: nxyhd
+        end subroutine cwfft2r2
+    end interface 
+end python module cpush2
+
+! This file was auto-generated with f2py (version:2).
+! See http://cens.ioc.ee/projects/f2py2e/

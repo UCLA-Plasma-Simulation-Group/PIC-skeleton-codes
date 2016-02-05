@@ -5,12 +5,10 @@ from numpy import vectorize
 pi2 = 2*np.pi
 float_type = np.float32
 double_type = np.float64
-from numba import jit
 
-			
-#Using Just-in-time compilation provided by Numba - @jit
+
+
 #form factor for poisson equation
-@jit
 def form_factor(ffc,nx,ny,nxh,nyh,affp,ax,ay,kvector):
 	dnx = pi2/float(nx)
 	dny = pi2/float(ny)
@@ -30,27 +28,30 @@ def form_factor(ffc,nx,ny,nxh,nyh,affp,ax,ay,kvector):
 			gauss_fact = math.exp(-0.5*(dky*dky*ay*ay+dkx*dkx*ax*ax))
 			#eliminate zero mode and nyquist mode (nxh,nyh)
 			if(j == nyh):
-				kvector[1,i,j] = 0
+				kvector.itemset((1,i,j),0)
 			else:
 				if(j>nyh):
-					kvector[1,i,j] = 1.0j*dky
+					kvector.itemset((1,i,j),1.0j*dky)
 				else:
-					kvector[1,i,j] = -1.0j*dky
+					kvector.itemset((1,i,j),-1.0j*dky)
 
 			if(i == nxh):
-				kvector[0,i,j] = 0
+				kvector.itemset((0,i,j),0)
 			else:
 				if(i>nxh):
-					kvector[0,i,j] = 1.0j*dkx
+					kvector.itemset((0,i,j),1.0j*dkx)
 				else:
-					kvector[0,i,j] = -1.0j*dkx
+					kvector.itemset((0,i,j),-1.0j*dkx)
 			
 			if(at==0):
-				ffc[i,j]= affp+1.0j
+				ffc.itemset((i,j),affp+1.0j)
+
 			else:
-				ffc[i,j] = affp*gauss_fact/at+1.0j*gauss_fact
+				ffc.itemset((i,j),affp*gauss_fact/at+1.0j*gauss_fact)
 
 				
+
+
 #initialize particles on grid
 def init_particles(part,vtx,vty,vx0,vy0,npx,npy,idimp,nptot,nx,ny,ipbc):
 	edgelx =0.0
@@ -86,21 +87,37 @@ def init_particles(part,vtx,vty,vx0,vy0,npx,npy,idimp,nptot,nx,ny,ipbc):
 
 
 #deposit particles
-@jit
 def deposit2(part,qe,qme,nptot,idimp,nxe,nye):
-	for j in xrange(nptot):
-		xx = part[0,j]
-		yy = part[1,j]
-		indx = int(xx)
-		indy = int(yy)
-		dx = xx - indx
-		dy = yy - indy
-		adx = 1.0-dx
-		ady = 1.0-dy
-		qe[indx,indy]+= qme*adx*ady
-		qe[indx+1,indy] += qme*dx*ady
-		qe[indx,indy+1] += qme*adx * dy
-		qe[indx+1,indy+1]+=qme*dx*dy
+	floor = np.int_(part)
+	floor_x = floor[0,:]
+	floor_y = floor[1,:]
+
+	#calculate distances from nearest grid points
+	dx = np.subtract(part[0,:],floor[0,:])
+	dy = np.subtract(part[1,:],floor[1,:])
+	adx = np.subtract(np.float(1.0),dx)
+	ady = np.subtract(np.float(1.0),dy)
+
+	#area weighting
+	a1 = np.multiply(adx,ady)
+	a2 = np.multiply(adx,dy)
+	a3 = np.multiply(dx,ady)
+	a4 = np.multiply(dx,dy)
+
+	#python sucks at individual element manipulation, time to vectorize!
+	ngrid = nxe*nye
+	a1f = np.bincount(floor_y*nxe+floor_x,a1,ngrid)
+	a2f = np.bincount((floor_y+1)*nxe+floor_x,a2,ngrid)
+	a3f = np.bincount((floor_y)*nxe+floor_x+1,a3,ngrid)
+	a4f = np.bincount((floor_y+1)*nxe+floor_x+1,a4,ngrid)
+	qf = np.add(a1f,a2f)
+	np.add(qf,a3f,qf)
+	np.add(qf,a4f,qf)
+	yy = np.arange(nye)
+	xx = np.arange(nxe)
+	for x in xrange(nxe):
+		qe[x,yy] = qf[yy*nxe+x]
+	np.multiply(qe,qme,qe)
 
  	
 #guard cells for charge interpolation
@@ -154,13 +171,19 @@ def real_force(fxyre,fxye,nx,ny,nxe,nye):
 
 #guard cells for force
 def guard_force(fxye,nx,ny):
-	fxye[:,nx,:ny] = fxye[:,0,:ny]
-	fxye[:,:nx,ny] = fxye[:,:nx,0]
-	fxye[:,nx,ny]=fxye[:,0,0]
+	for k in xrange(ny):
+		fxye.itemset((0,nx,k),fxye.item(0,0,k)) 
+		fxye.itemset((1,nx,k),fxye.item(1,0,k)) 
+
+	for j in xrange(nx):
+		fxye.itemset((0,j,ny),fxye.item(0,j,0)) 
+		fxye.itemset((1,j,ny),fxye.item(1,j,0)) 
+
+	fxye.itemset((0,nx,ny),fxye.item(0,0,0)) 
+	fxye.itemset((1,nx,ny),fxye.item(1,0,0)) 
 
 
 #push these particles 
-@jit
 def push_particles(part,fxye,qbme,nx,ny,dt,wke,ipbc,nptot,ndim):
 	qtm = qbme * dt
 	edgelx = 0.0
@@ -176,140 +199,67 @@ def push_particles(part,fxye,qbme,nx,ny,dt,wke,ipbc,nptot,ndim):
 		edgelx = 1.0
 		edgerx = float(nx-1)
 	
-	v_sum=  0.0
-	for j in xrange(nptot):
-		xx = part[0,j]
-		yy = part[1,j]
-		indx = int(xx)
-		indy = int(yy)
-		dx = xx - indx
-		dy = yy - indy
-		adx = 1.0-dx
-		ady = 1.0-dy
-		#area weighting
-		a1 = adx*ady
-		a2 = dx*ady
-		a3 = adx * dy
-		a4 = dx * dy
-		forcex = fxye[0,indx,indy]*a1 + fxye[0,indx+1,indy]*a2+fxye[0,indx,indy+1]*a3 +fxye[0,indx+1,indy+1]*a4
-		forcey = fxye[1,indx,indy]*a1 + fxye[1,indx+1,indy]*a2+fxye[1,indx,indy+1]*a3 +fxye[1,indx+1,indy+1]*a4
-		velx = part[2,j]
-		vely = part[3,j]
-		# # calcualte new velcities
-		vx_new = velx + qtm* forcex
-		vy_new = vely + qtm * forcey
-		#do averaging for kinetic energy
-		v_sum += (vx_new+velx)**2 + (vy_new+vely)**2
-		#update velocities
-		part[2,j] = vx_new
-		part[3,j] = vy_new
-		# calculate new positon
-		x_new = part[0,j]+vx_new * dt
-		y_new = part[1,j]+vy_new * dt
+	floor = part.astype(int)
+	floor_x = floor[0,:]
+	floor_y = floor[1,:]
 
-		# boundary conditions
-		#periodic
-		if(ipbc == 1):
-			if(x_new < edgelx):
-				x_new += edgerx
-			if(x_new >= edgerx):
-				x_new -= edgerx
-			if(y_new < edgely):
-				y_new += edgery
-			if(y_new >= edgery):
-				y_new -= edgery
-		elif(ipbc == 2):
-			if(x_new < edgelx or x_new >= edgerx):
-				x_new = part[0,j]
-				part[2,j] = -part[2,j]
-			if(y_new < edgely or y_new >= edgery):
-				y_new = part[1,j]
-				part[3,j] = -part[3,j]
+	#calculate distances from lower grid points
+	dx = np.subtract(part[0,:],floor[0,:])
+	dy = np.subtract(part[1,:],floor[1,:])
+	adx = np.subtract(np.float(1.0),dx)
+	ady = np.subtract(np.float(1.0),dy)
+
+	#area weighting
+	a1 = np.multiply(adx,ady)
+	a2 = np.multiply(adx,dy)
+	a3 = np.multiply(dx,ady)
+	a4 = np.multiply(dx,dy)
+
+	da = np.empty((ndim,nptot))
+	temp = np.empty((ndim,nptot))
 	
+	#weight the forces
+	np.multiply(fxye[:,floor_x,floor_y],a1,da)
+	np.multiply(fxye[:,floor_x,floor_y+1],a2,temp)
+	np.add(da,temp,da)
 
-		# #update positions
-		part[0,j] = x_new
-		part[1,j] = y_new
-	wke[0] = 0.125*v_sum
-
-
-
-# def push_particles(part,fxye,qbme,nx,ny,dt,wke,ipbc,nptot,ndim):
-# 	qtm = qbme * dt
-# 	edgelx = 0.0
-# 	edgely = 0.0
-# 	edgerx = float(nx)
-# 	edgery = float(ny)
-# 	if(ipbc == 2):
-# 		edgelx = 1.0
-# 		edgely = 1.0
-# 		edgerx = float(nx-1)
-# 		edgery = float(ny-1)
-# 	elif(ipbc == 3):
-# 		edgelx = 1.0
-# 		edgerx = float(nx-1)
+	np.multiply(fxye[:,floor_x+1,floor_y],a3,temp)
+	np.add(da,temp,da)
+	np.multiply(fxye[:,floor_x+1,floor_y+1],a4,temp)
+	np.add(da,temp,da)
+	#calculate velocity
+	vel = np.copy(part[2:4,:])
+	v_new = np.add(vel, qtm*da)
+	np.copyto(part[2:4,:],v_new)
+	v_sum = np.add(v_new,vel)
+	sum1 = np.sum(np.multiply(v_sum,v_sum))
 	
-# 	floor = part.astype(int)
-# 	floor_x = floor[0,:]
-# 	floor_y = floor[1,:]
-
-# 	#calculate distances from lower grid points
-# 	dx = np.subtract(part[0,:],floor[0,:])
-# 	dy = np.subtract(part[1,:],floor[1,:])
-# 	adx = np.subtract(np.float(1.0),dx)
-# 	ady = np.subtract(np.float(1.0),dy)
-
-# 	#area weighting
-# 	a1 = np.multiply(adx,ady)
-# 	a2 = np.multiply(adx,dy)
-# 	a3 = np.multiply(dx,ady)
-# 	a4 = np.multiply(dx,dy)
-
-# 	da = np.empty((ndim,nptot))
-# 	temp = np.empty((ndim,nptot))
+	#calculate position
+	pos_temp = np.add(part[0:2,:],v_new * dt)
 	
-# 	#weight the forces
-# 	np.multiply(fxye[:,floor_x,floor_y],a1,da)
-# 	np.multiply(fxye[:,floor_x,floor_y+1],a2,temp)
-# 	np.add(da,temp,da)
-
-# 	np.multiply(fxye[:,floor_x+1,floor_y],a3,temp)
-# 	np.add(da,temp,da)
-# 	np.multiply(fxye[:,floor_x+1,floor_y+1],a4,temp)
-# 	np.add(da,temp,da)
-# 	#calculate velocity
-# 	vel = np.copy(part[2:4,:])
-# 	v_new = np.add(vel, qtm*da)
-# 	np.copyto(part[2:4,:],v_new)
-# 	v_sum = np.add(v_new,vel)
-# 	sum1 = np.sum(np.multiply(v_sum,v_sum))
+	#boundary conditions
+	x_temp = pos_temp[0,:]
+	y_temp = pos_temp[1,:]
 	
-# 	#calculate position
-# 	pos_temp = np.add(part[0:2,:],v_new * dt)
-	
-# 	#boundary conditions
-# 	x_temp = pos_temp[0,:]
-# 	y_temp = pos_temp[1,:]
-	
-# 	#periodic
-# 	if(ipbc == 1):
-# 		x_temp = np.where(x_temp<edgelx,x_temp+edgerx,x_temp) 
-# 		x_temp = np.where(x_temp>=edgerx,x_temp-edgerx,x_temp) 
-# 		y_temp = np.where(y_temp<edgely,y_temp+edgery,y_temp) 
-# 		y_temp = np.where(y_temp>=edgery,y_temp-edgery,y_temp) 
-# 	#reflecting
-# 	elif(ipbc == 2):
-# 		indices = np.where(np.logical_or(x_temp<edgelx, x_temp>= edgerx))
-# 		x_temp[indices] = part[0,indices]
-# 		part[2,indices] = -part[2,indices] 
-# 		indices = np.where(np.logical_or(y_temp<edgely, y_temp>= edgery))
-# 		y_temp[indices] = part[1,indices]
-# 		part[3,indices] = -part[3,indices] 
-# 	else: 
-# 		print 'ipbc must be periodic or reflecting'
-# 	np.copyto(part[0,:],x_temp)
-# 	np.copyto(part[1,:],y_temp)
-# 	wke[0] = sum1*0.125
+	#periodic
+	if(ipbc == 1):
+		x_temp = np.where(x_temp<edgelx,x_temp+edgerx,x_temp) 
+		x_temp = np.where(x_temp>=edgerx,x_temp-edgerx,x_temp) 
+		y_temp = np.where(y_temp<edgely,y_temp+edgery,y_temp) 
+		y_temp = np.where(y_temp>=edgery,y_temp-edgery,y_temp) 
+	#reflecting
+	elif(ipbc == 2):
+		indices = np.where(np.logical_or(x_temp<edgelx, x_temp>= edgerx))
+		x_temp[indices] = part[0,indices]
+		part[2,indices] = -part[2,indices] 
+		indices = np.where(np.logical_or(y_temp<edgely, y_temp>= edgery))
+		y_temp[indices] = part[1,indices]
+		part[3,indices] = -part[3,indices] 
+	else: 
+		print 'ipbc must be periodic or reflecting'
+	np.copyto(part[0,:],x_temp)
+	np.copyto(part[1,:],y_temp)
+	wke[0] = sum1*0.125
 	
 
 
