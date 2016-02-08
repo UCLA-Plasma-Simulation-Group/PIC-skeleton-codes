@@ -94,6 +94,12 @@ vx0/vy0 = drift velocity of electrons in x/y direction.
 sortime = number of time steps between electron sorting.
    This is used to improve cache performance.  sortime=0 to suppress.
 
+Require Python libraries:
+
+numpy
+matplotlib
+numba
+
 The major program files contained here include:
 Pic2.py     Python main program 
 push.py     Python procedure Library

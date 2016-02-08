@@ -1,7 +1,6 @@
 import numpy as np
 import math
 import time
-from numpy import vectorize
 pi2 = 2*np.pi
 float_type = np.float32
 double_type = np.float64

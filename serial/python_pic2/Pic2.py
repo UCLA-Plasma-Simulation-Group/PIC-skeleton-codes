@@ -15,17 +15,17 @@ def main():
 	#----- Same format as other Skeleton Codes written by Viktor Decyk -----
 
 	#number of cells in each direction-- nx = 2^indx
-	indx = 8; indy=8
+	indx = 9; indy=9
 	#indx = 3; indy=3
 	#number of particles in each direction
 	#npx = 2024; npy = 2024
-	npx = 500;npy = 500
+	npx = 2048;npy = 2048
 	#ndim = number dimensions 
 	ndim =2
 	#tend = time at end of plasma simulation in units of plasma freq.
 	#dt = time interval
 	#qme = electron charge in units of |e|
-	tend =500.0; dt = 0.1; qme = -1
+	tend =10.0; dt = 0.1; qme = -1
 	#vtx/vty are thermal velocities
 	#vx0/vy0 are drift velocities
 	vtx = 1.0; vty = 1.0; vx0 = 0; vy0 = 0;
@@ -105,6 +105,8 @@ def main():
 	
 	#main loop
 	for ntime in xrange(0,nloop):
+		if ntime %100 == 0:
+			print ntime
 		#zero matrices
 		fxye.fill(0.0)
 		qe.fill(0.0)
@@ -135,7 +137,7 @@ def main():
 		tfield += time.time()-t
 		np.copyto(phi[ntime,:,:],fxye[0,:nxh,:nyh])	
 
-		#force to real space, updates fxye
+		#force to real space, updates fxyre
 		t = time.time()
 		real_force(fxyre,fxye,nx,ny,nxe,nye)
 		tfft += time.time() -t
