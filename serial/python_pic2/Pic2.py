@@ -19,7 +19,7 @@ def main():
 	#indx = 3; indy=3
 	#number of particles in each direction
 	#npx = 2024; npy = 2024
-	npx = 2048;npy = 2048
+	npx = 3072;npy = 3072
 	#ndim = number dimensions 
 	ndim =2
 	#tend = time at end of plasma simulation in units of plasma freq.
@@ -34,7 +34,7 @@ def main():
 	# idimp = number of particle coordinates = 4
 	# ipbc = particle boundary condition: 1 = periodic, 2 = reflecting
 	# sortime = number of time steps between standard electron sorting
-	idimp = 4; ipbc = 2; sortime = 50
+	idimp = 4; ipbc = 1; sortime = 50
 	# wke/we/wt = particle kinetic/electric field/total energy
 	wke = np.zeros((1),float_type)
 	we = np.zeros((1),float_type)
@@ -195,7 +195,6 @@ def main():
 		freq_end = 3
 		fx_st = int(freq_start*dt*nloop/(2*np.pi))
 		fx_end = int(freq_end*dt*nloop/(2*np.pi))
-		print fx_st,fx_end
 		freq_start = (2*np.pi/(dt*nloop))*fx_st
 		freq_end = (2*np.pi/(dt*nloop))*fx_end
 		plt.imshow(np.abs(np.fft.fft(phi[:,:,1],axis=0)[fx_st:fx_end,:]),origin ='lower',extent=[0,np.pi,freq_start,freq_end])

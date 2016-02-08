@@ -1,0 +1,209 @@
+!    -*- f90 -*-
+! Note: the context of this file is case sensitive.
+
+python module fpush2 ! in 
+    interface  ! in :fpush2
+        subroutine distr2(part,vtx,vty,vdx,vdy,npx,npy,idimp,nop,nx,ny,ipbc) ! in :fpush2:push2_hpy.f90
+            real dimension(*),intent(inout) :: part
+            real intent(in) :: vtx
+            real intent(in) :: vty
+            real intent(in) :: vdx
+            real intent(in) :: vdy
+            integer intent(in) :: npx
+            integer intent(in) :: npy
+            integer intent(in) :: idimp
+            integer intent(in) :: nop
+            integer intent(in) :: nx
+            integer intent(in) :: ny
+            integer intent(in) :: ipbc
+        end subroutine distr2
+    end interface 
+    interface  ! in :fpush2
+        subroutine gpush2l(part,fxy,qbm,dt,ek,idimp,nop,nx,ny,nxv,nyv,ipbc) ! in :fpush2:push2_hpy.f90
+            real dimension(*),intent(inout) :: part
+            real dimension(*),intent(in) :: fxy
+            real intent(in) :: qbm
+            real intent(in) :: dt
+            real intent(inout) :: ek
+            integer intent(in) :: idimp
+            integer intent(in) :: nop
+            integer intent(in) :: nx
+            integer intent(in) :: ny
+            integer intent(in) :: nxv
+            integer intent(in) :: nyv
+            integer intent(in) :: ipbc
+        end subroutine gpush2l
+    end interface 
+    interface  ! in :fpush2
+        subroutine gpost2l(part,q,qm,nop,idimp,nxv,nyv) ! in :fpush2:push2_hpy.f90
+            real dimension(*),intent(in) :: part
+            real dimension(*),intent(inout) :: q
+            real intent(in) :: qm
+            integer intent(in) :: nop
+            integer intent(in) :: idimp
+            integer intent(in) :: nxv
+            integer intent(in) :: nyv
+        end subroutine gpost2l
+    end interface 
+    interface  ! in :fpush2
+        subroutine dsortp2yl(parta,partb,npic,idimp,nop,ny1) ! in :fpush2:push2_hpy.f90
+            real dimension(*),intent(in) :: parta
+            real dimension(*),intent(inout) :: partb
+            integer dimension(*),intent(inout) :: npic
+            integer intent(in) :: idimp
+            integer intent(in) :: nop
+            integer intent(in) :: ny1
+        end subroutine dsortp2yl
+    end interface 
+    interface  ! in :fpush2
+        subroutine cguard2l(fxy,nx,ny,nxe,nye) ! in :fpush2:push2_hpy.f90
+            real dimension(*),intent(inout) :: fxy
+            integer intent(in) :: nx
+            integer intent(in) :: ny
+            integer intent(in) :: nxe
+            integer intent(in) :: nye
+        end subroutine cguard2l
+    end interface 
+    interface  ! in :fpush2
+        subroutine aguard2l(q,nx,ny,nxe,nye) ! in :fpush2:push2_hpy.f90
+            real dimension(*),intent(inout) :: q
+            integer intent(in) :: nx
+            integer intent(in) :: ny
+            integer intent(in) :: nxe
+            integer intent(in) :: nye
+        end subroutine aguard2l
+    end interface 
+    interface  ! in :fpush2
+        subroutine pois22(q,fxy,isign,ffc,ax,ay,affp,we,nx,ny,nxvh,nyv,nxhd,nyhd) ! in :fpush2:push2_hpy.f90
+            real dimension(*),intent(in) :: q
+            real dimension(*),intent(inout) :: fxy
+            integer intent(in) :: isign
+            complex dimension(*),intent(inout) :: ffc
+            real intent(in) :: ax
+            real intent(in) :: ay
+            real intent(in) :: affp
+            real intent(inout) :: we
+            integer intent(in) :: nx
+            integer intent(in) :: ny
+            integer intent(in) :: nxvh
+            integer intent(in) :: nyv
+            integer intent(in) :: nxhd
+            integer intent(in) :: nyhd
+        end subroutine pois22
+    end interface 
+    interface  ! in :fpush2
+        subroutine wfft2rinit(mixup,sct,indx,indy,nxhyd,nxyhd) ! in :fpush2:push2_hpy.f90
+            integer dimension(*),intent(inout) :: mixup
+            complex dimension(*),intent(inout) :: sct
+            integer intent(in) :: indx
+            integer intent(in) :: indy
+            integer intent(in) :: nxhyd
+            integer intent(in) :: nxyhd
+        end subroutine wfft2rinit
+    end interface 
+    interface  ! in :fpush2
+        subroutine wfft2rx(f,isign,mixup,sct,indx,indy,nxhd,nyd,nxhyd,nxyhd) ! in :fpush2:push2_hpy.f90
+            real dimension(*),intent(inout) :: f
+            integer :: isign
+            integer dimension(*),intent(inout) :: mixup
+            complex dimension(*),intent(inout) :: sct
+            integer :: indx
+            integer :: indy
+            integer :: nxhd
+            integer :: nyd
+            integer :: nxhyd
+            integer :: nxyhd
+        end subroutine wfft2rx
+    end interface 
+    interface  ! in :fpush2
+        subroutine wfft2r2(f,isign,mixup,sct,indx,indy,nxhd,nyd,nxhyd,nxyhd) ! in :fpush2:push2_hpy.f90
+            real dimension(*),intent(inout) :: f
+            integer intent(in) :: isign
+            integer dimension(*),intent(inout) :: mixup
+            complex dimension(*),intent(inout) :: sct
+            integer intent(in) :: indx
+            integer intent(in) :: indy
+            integer intent(in) :: nxhd
+            integer intent(in) :: nyd
+            integer intent(in) :: nxhyd
+            integer intent(in) :: nxyhd
+        end subroutine wfft2r2
+    end interface 
+    interface  ! in :fpush2
+        subroutine fft2rxx(f,isign,mixup,sct,indx,indy,nyi,nyp,nxhd,nyd,nxhyd,nxyhd) ! in :fpush2:push2_hpy.f90
+            real dimension(*),intent(inout) :: f
+            integer intent(in) :: isign
+            integer dimension(*),intent(inout) :: mixup
+            complex dimension(*),intent(inout) :: sct
+            integer intent(in) :: indx
+            integer intent(in) :: indy
+            integer intent(in) :: nyi
+            integer intent(in) :: nyp
+            integer intent(in) :: nxhd
+            integer intent(in) :: nyd
+            integer intent(in) :: nxhyd
+            integer intent(in) :: nxyhd
+        end subroutine fft2rxx
+    end interface 
+    interface  ! in :fpush2
+        subroutine fft2rxy(f,isign,mixup,sct,indx,indy,nxi,nxp,nxhd,nyd,nxhyd,nxyhd) ! in :fpush2:push2_hpy.f90
+            real dimension(*),intent(inout) :: f
+            integer intent(in) :: isign
+            integer dimension(*),intent(inout) :: mixup
+            complex dimension(*),intent(inout) :: sct
+            integer intent(in) :: indx
+            integer intent(in) :: indy
+            integer intent(in) :: nxi
+            integer intent(in) :: nxp
+            integer intent(in) :: nxhd
+            integer intent(in) :: nyd
+            integer intent(in) :: nxhyd
+            integer intent(in) :: nxyhd
+        end subroutine fft2rxy
+    end interface 
+    interface  ! in :fpush2
+        subroutine fft2r2x(f,isign,mixup,sct,indx,indy,nyi,nyp,nxhd,nyd,nxhyd,nxyhd) ! in :fpush2:push2_hpy.f90
+            real dimension(*),intent(inout) :: f
+            integer intent(in) :: isign
+            integer dimension(*),intent(inout) :: mixup
+            complex dimension(*),intent(inout) :: sct
+            integer intent(in) :: indx
+            integer intent(in) :: indy
+            integer intent(in) :: nyi
+            integer intent(in) :: nyp
+            integer intent(in) :: nxhd
+            integer intent(in) :: nyd
+            integer intent(in) :: nxhyd
+            integer intent(in) :: nxyhd
+        end subroutine fft2r2x
+    end interface 
+    interface  ! in :fpush2
+        subroutine fft2r2y(f,isign,mixup,sct,indx,indy,nxi,nxp,nxhd,nyd,nxhyd,nxyhd) ! in :fpush2:push2_hpy.f90
+            real dimension(*),intent(inout) :: f
+            integer intent(in) :: isign
+            integer dimension(*),intent(inout) :: mixup
+            complex dimension(*),intent(inout) :: sct
+            integer intent(in) :: indx
+            integer intent(in) :: indy
+            integer intent(in) :: nxi
+            integer intent(in) :: nxp
+            integer intent(in) :: nxhd
+            integer intent(in) :: nyd
+            integer intent(in) :: nxhyd
+            integer intent(in) :: nxyhd
+        end subroutine fft2r2y
+    end interface 
+    interface  ! in :fpush2
+        function ranorm() ! in :fpush2:push2_hpy.f90
+            double precision :: ranorm
+        end function ranorm
+    end interface 
+    interface  ! in :fpush2
+        function randum() ! in :fpush2:push2_hpy.f90
+            double precision :: randum
+        end function randum
+    end interface 
+end python module fpush2
+
+! This file was auto-generated with f2py (version:2).
+! See http://cens.ioc.ee/projects/f2py2e/
