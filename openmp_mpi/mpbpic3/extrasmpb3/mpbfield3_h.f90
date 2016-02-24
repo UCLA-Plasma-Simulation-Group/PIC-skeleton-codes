@@ -43,7 +43,7 @@
      &kyzp)
          implicit none
          integer, intent(in) :: nx, ny, nz, kstrt, nvpy, nvpz, nzv
-         integer, intent(in) :: kxyp,kyzp
+         integer, intent(in) :: kxyp, kyzp
          complex, dimension(3,nzv,kxyp,kyzp), intent(in) :: f
          complex, dimension(3,nzv,kxyp,kyzp), intent(inout) :: g
          end subroutine

@@ -2494,7 +2494,7 @@ c deposit momentum flux and acceleration density
       sdcu(2,nn+1,mm+1,ll+1) = sdcu(2,nn+1,mm+1,ll+1) + vy*dy
       sdcu(3,nn+1,mm+1,ll+1) = sdcu(3,nn+1,mm+1,ll+1) + vz*dy
   100 continue
-c deposit charge to interior points in global array
+c deposit currents to interior points in global array
       nn = min(mx,nxv-noffp)
       mm = min(my,nypmx-moffp)
       ll = min(mz,nzpmx-loffp)
@@ -2522,7 +2522,7 @@ c deposit charge to interior points in global array
   110 continue
   120 continue
   130 continue
-c deposit charge to edge points in global array
+c deposit currents to edge points in global array
       lm = min(mz+1,nzpmx-loffp)
       do 150 j = 2, mm
       do 140 i = 2, nn
@@ -3255,7 +3255,7 @@ c deposit momentum flux, acceleration density, and current density
       scu(2,nn+1,mm+1,ll+1) = scu(2,nn+1,mm+1,ll+1) + oy*dy
       scu(3,nn+1,mm+1,ll+1) = scu(3,nn+1,mm+1,ll+1) + oz*dy
   100 continue
-c deposit charge to interior points in global array
+c deposit currents to interior points in global array
       nn = min(mx,nxv-noffp)
       mm = min(my,nypmx-moffp)
       ll = min(mz,nzpmx-loffp)
@@ -3289,7 +3289,7 @@ c deposit charge to interior points in global array
   110 continue
   120 continue
   130 continue
-c deposit charge to edge points in global array
+c deposit currents to edge points in global array
       lm = min(mz+1,nzpmx-loffp)
       do 150 j = 2, mm
       do 140 i = 2, nn
@@ -9473,7 +9473,6 @@ c unscramble modes kx = 0, nx/2
             s = h(jj,nz2-n,1,k1)
             h(jj,nz2-n,1,k1) = 0.5*cmplx(aimag(h(jj,n,1,k1) + s),
      1                                   real(h(jj,n,1,k1) - s))
-
             h(jj,n,1,k1) = 0.5*cmplx(real(h(jj,n,1,k1) + s),
      1                               aimag(h(jj,n,1,k1) - s))
   100       continue

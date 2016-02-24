@@ -161,7 +161,7 @@
          real, dimension(idimp,npbmx,mx1*myp1*mzp1), intent(inout) ::   &
      &ppbuff
          real, dimension(idimp,nbmax,2), intent(inout) :: sbufl, sbufr
-         integer, dimension(36,mx1*myp1*mzp1), intent(inout) :: ncl
+         integer, dimension(26,mx1*myp1*mzp1), intent(inout) :: ncl
          integer, dimension(2,ntmax+1,mx1*myp1*mzp1), intent(in) ::     &
      &ihole
          integer, dimension(3,mxzyp1,3,2), intent(inout) :: ncll, nclr
@@ -178,7 +178,8 @@
          integer, intent(inout) :: irc
          real, dimension(idimp,nppmx,mx1*myp1*mzp1), intent(inout) ::   &
      &ppart
-         real, dimension(idimp,npbmx,mx1*myp1*mzp1), intent(in) :: ppbuff
+         real, dimension(idimp,npbmx,mx1*myp1*mzp1), intent(in) ::      &
+     &ppbuff
          real, dimension(idimp,nbmax,2), intent(in) :: rbufl, rbufr
          integer, dimension(mx1*myp1*mzp1), intent(inout) :: kpic
          integer, dimension(26,mx1*myp1*mzp1), intent(in) :: ncl

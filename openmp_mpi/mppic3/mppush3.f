@@ -2570,7 +2570,7 @@ c-----------------------------------------------------------------------
 c replicate extended periodic vector field in x direction
 c linear interpolation, for distributed data with 2D decomposition
 c nyzp(1:2) = number of primary (complete) gridpoints in y/z
-c nx = system length in xz direction
+c nx = system length in x direction
 c ndim = leading dimension of field array fxyz
 c nxe = first dimension of field array, must be >= nx+1
 c nypmx = maximum size of particle partition in y, including guard cells
@@ -2602,7 +2602,7 @@ c-----------------------------------------------------------------------
 c accumulate extended periodic scalar field in x direction
 c linear interpolation, for distributed data with 2D decomposition
 c nyzp(1:2) = number of primary (complete) gridpoints in y/z
-c nx = system length in xz direction
+c nx = system length in x direction
 c nxe = first dimension of field array, must be >= nx+1
 c nypmx = maximum size of particle partition in y, including guard cells
 c nzpmx = maximum size of particle partition in z, including guard cells

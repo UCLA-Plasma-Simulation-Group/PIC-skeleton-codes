@@ -1317,7 +1317,7 @@ c keep ky = 0
      2              + dcu(3,l,j,1)*conjg(dcu(3,l,j,1))
      3              + dcu(1,l1,j,1)*conjg(dcu(1,l1,j,1))
      4              + dcu(2,l1,j,1)*conjg(dcu(2,l1,j,1))
-     4              + dcu(3,l1,j,1)*conjg(dcu(3,l1,j,1)))
+     5              + dcu(3,l1,j,1)*conjg(dcu(3,l1,j,1)))
    60       continue
 c mode numbers kz = 0, nz/2
             l1 = nzh + 1

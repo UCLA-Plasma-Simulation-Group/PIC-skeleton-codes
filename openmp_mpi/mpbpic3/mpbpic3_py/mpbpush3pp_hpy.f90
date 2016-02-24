@@ -460,7 +460,8 @@
          integer, intent(in) :: nzv, kxyp, kyzp, nzhd
          real, intent(in) :: affp, ci, dt
          real, intent(inout) :: wf, wm
-!        complex, dimension(3,nzv,kxyp,kyzp), intent(inout) :: exyz, bxyz
+!        complex, dimension(3,nzv,kxyp,kyzp), intent(inout) :: exyz
+!        complex, dimension(3,nzv,kxyp,kyzp), intent(inout) :: bxyz
          complex, dimension(*), intent(inout) :: exyz, bxyz
 !        complex, dimension(3,nzv,kxyp,kyzp), intent(in) :: cu
          complex, dimension(*), intent(in) :: cu

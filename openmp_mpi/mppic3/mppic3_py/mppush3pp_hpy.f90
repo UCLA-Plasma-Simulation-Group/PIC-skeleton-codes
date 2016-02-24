@@ -221,7 +221,8 @@
 !        real, dimension(idimp,nppmx,mx1*myp1*mzp1), intent(inout) ::   &
 !    &ppart
          real, dimension(*), intent(inout) :: ppart
-!        real, dimension(idimp,npbmx,mx1*myp1*mzp1), intent(in) :: ppbuff
+!        real, dimension(idimp,npbmx,mx1*myp1*mzp1), intent(in) ::      &
+!    &ppbuff
          real, dimension(*), intent(in) :: ppbuff
 !        real, dimension(idimp,nbmax,2), intent(in) :: rbufl, rbufr
          real, dimension(*), intent(in) :: rbufl, rbufr

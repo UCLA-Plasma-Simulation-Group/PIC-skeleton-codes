@@ -2469,8 +2469,7 @@ c mode numbers kz = 0, nz/2
                vpott(i,1,j1,1) = cmplx(aimag(vpot(i,1,1,1)),0.0)
                if (modesz.gt.nzh) then
                   l1 = nzh + 1
-                  vpott(i,nz,j1,1) = cmplx(aimag(vpot(i,l1,1,1)),
-     10.)
+                  vpott(i,nz,j1,1) = cmplx(aimag(vpot(i,l1,1,1)),0.0)
                endif
   210          continue
             endif
@@ -2894,7 +2893,6 @@ c mode numbers kz = 0, nz/2
                   do 610 i = 1, ndim
                   vpot(i,1,1,k1) = cmplx(real(vpot(i,1,1,k1)),
      1                                   real(vpott(i,1,j1,k1)))
-
                   if (modesz.gt.nzh) then
                      l1 = nzh + 1
                      vpot(i,l1,1,k1) = cmplx(real(vpot(i,l1,1,k1)),

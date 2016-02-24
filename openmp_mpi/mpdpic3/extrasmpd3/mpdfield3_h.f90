@@ -73,7 +73,7 @@
          real, intent(inout) :: wf
          complex, dimension(3,nzv,kxyp,kyzp), intent(in) :: dcu
          complex, dimension(3,nzv,kxyp,kyzp), intent(inout) :: exyz
-         complex, dimension(nzhd,kxyp,kyzp), intent(inout) :: ffe
+         complex, dimension(nzhd,kxyp,kyzp), intent(in) :: ffe
          end subroutine
       end interface
 !

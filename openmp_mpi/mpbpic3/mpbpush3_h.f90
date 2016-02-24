@@ -266,7 +266,7 @@
          real, dimension(idimp,npbmx,mx1*myp1*mzp1), intent(inout) ::   &
      &ppbuff
          real, dimension(idimp,nbmax,2), intent(inout) :: sbufl, sbufr
-         integer, dimension(36,mx1*myp1*mzp1), intent(inout) :: ncl
+         integer, dimension(26,mx1*myp1*mzp1), intent(inout) :: ncl
          integer, dimension(2,ntmax+1,mx1*myp1*mzp1), intent(in) ::     &
      &ihole
          integer, dimension(3,mxzyp1,3,2), intent(inout) :: ncll, nclr
@@ -367,7 +367,8 @@
          integer, intent(in) :: nzv, kxyp, kyzp, nzhd
          real, intent(in) :: affp, ci, dt
          real, intent(inout) :: wf, wm
-         complex, dimension(3,nzv,kxyp,kyzp), intent(inout) :: exyz, bxyz
+         complex, dimension(3,nzv,kxyp,kyzp), intent(inout) :: exyz
+         complex, dimension(3,nzv,kxyp,kyzp), intent(inout) :: bxyz
          complex, dimension(3,nzv,kxyp,kyzp), intent(in) :: cu
          complex, dimension(nzhd,kxyp,kyzp), intent(in) :: ffc
          end subroutine

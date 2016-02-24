@@ -379,8 +379,8 @@
       if (irc /= 0) then
          if (kstrt==1) then
             write (*,*) kstrt,'PPPMOVE32 error: nbmaxp, irc=',nbmaxp,irc
-            go to 3000
          endif
+         go to 3000
       endif
 ! second part of particle reorder on x and y cell with mx, my, mz tiles:
 ! updates ppart, kpic
