@@ -74,8 +74,8 @@ version made use of compiler directives.  Two libraries, vpush3.f and
 vpush3.c, reimplemented the serial push3.f and push3.c files in such a
 way that the compiler could automatically vectorize the loops.  Details
 of about this process for this code are described in the file
-VectorPIC.pdf.  A parameter kvec in the main codes selects which version
-will run.
+VectorPIC3.pdf.  A parameter kvec in the main codes selects which
+version will run.
 
 Particles are initialized with a uniform distribution in space and a
 gaussian distribution in velocity space.  This describes a plasma in
@@ -110,10 +110,10 @@ Particle Push section:
    DSORTP3YZLT (cdsortp3yzlt) or ckncdsortp3yzlt : sort particles by
                                                    cell
 
-The inputs to the code are the grid parameters indx, indy, the particle
-number parameters npx, npy, the time parameters tend, dt, the velocity
-parameters vtx, vty, vx0, vy0, the sorting parameter sortime, and the
-version selector kvec.
+The inputs to the code are the grid parameters indx, indy, indz, the
+particle number parameters npx, npy, npz, the time parameters tend, dt,
+and the velocity paramters vtx, vty, vtz, vx0, vy0, vz0, the sorting
+parameter sortime, and the version selector kvec.
 
 In more detail:
 indx = exponent which determines length in x direction, nx=2**indx.
@@ -137,7 +137,7 @@ kvec = (1,2) = run (autovector,KNC) version
 
 The major program files contained here include:
 vpic3.f90         Fortran90 main program
-vpic3.f03         Fortran203 main program 
+vpic3.f03         Fortran2003 main program 
 vpic3.c           C main program
 vpush3.f          Fortran77 vectorized procedure library
 vpush3_h.f90      Fortran90 vectorized procedure interface header

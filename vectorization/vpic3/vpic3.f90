@@ -31,7 +31,7 @@
       real :: wke = 0.0, we = 0.0, wt = 0.0
 ! kvec = (1,2) = run (autovector,KNC) version
       integer :: kvec = 1
-
+!
 ! declare scalars for standard code
       integer :: np, nx, ny, nz, nxh, nyh, nzh, nxe, nye, nze, nxeh
       integer :: nxyzh, nxhyz, npe, ny1, nyz1, ntime, nloop, isign
@@ -315,7 +315,7 @@
       complex, dimension(:,:), pointer :: cref 
       cref => carray 
       end subroutine
-!!
+!
       subroutine getc3cptr(cref,carray,nx,ny,nz) 
 ! set reference to C data in 3d complex Fortran pointer object 
       implicit none 

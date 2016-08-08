@@ -246,6 +246,7 @@ void cgpush3lt(float part[], float fxyz[], float qbm, float dt,
    ek = .125*sum((vx(t+dt/2)+vx(t-dt/2))**2+(vy(t+dt/2)+vy(t-dt/2))**2+
    (vz(t+dt/2)+vz(t-dt/2))**2)
    idimp = size of phase space = 6
+   nop = number of particles
    npe = first dimension of particle array
    nx/ny/nz = system length in x/y/z direction
    nxv = second dimension of field array, must be >= nx+1
@@ -435,6 +436,7 @@ void cvgpush3lt(float part[], float fxyz[], float qbm, float dt,
    ek = .125*sum((vx(t+dt/2)+vx(t-dt/2))**2+(vy(t+dt/2)+vy(t-dt/2))**2+
    (vz(t+dt/2)+vz(t-dt/2))**2)
    idimp = size of phase space = 6
+   nop = number of particles
    npe = first dimension of particle array
    nx/ny/nz = system length in x/y/z direction
    nxv = second dimension of field array, must be >= nx+1
@@ -451,10 +453,18 @@ local data                                                            */
    float dxp, dyp, dzp, amx, amy, amz, dx1, x, y, z, dx, dy, dz;
    float vx, vy, vz;
 /* scratch arrays */
-   int n[NPBLK];
+   int n[NPBLK], m[LVECT];
    float s[NPBLK*LVECT], t[NPBLK*3];
    double sum1;
    nxyv = nxv*nyv;
+   m[0] = 0;
+   m[1] = N;
+   m[2] = N*nxv;
+   m[3] = N*(nxv + 1);
+   m[4] = N*nxyv;
+   m[5] = N*(nxyv + 1);
+   m[6] = N*(nxyv + nxv);
+   m[7] = N*(nxyv + nxv + 1);
    qtm = qbm*dt;
    sum1 = 0.0;
 /* set boundary values */
@@ -516,24 +526,14 @@ local data                                                            */
       }
 /* find acceleration */
       for (j = 0; j < NPBLK; j++) {
-         nn = n[j];
-         mm = nn + N*(nxv - 2);
-         ll = nn + N*(nxyv - 4);
-         l = ll + N*(nxv - 2);
          dx = 0.0f;
          dy = 0.0f;
          dz = 0.0f;
 #pragma ivdep
          for (i = 0; i < LVECT; i++) {
-            if (i > 5)
-               nn = l;
-            else if (i > 3)
-               nn = ll;
-            else if (i > 1)
-               nn = mm;
-            dx += fxyz[N*i+nn]*s[j+NPBLK*i];
-            dy += fxyz[1+N*i+nn]*s[j+NPBLK*i];
-            dz += fxyz[2+N*i+nn]*s[j+NPBLK*i];
+            dx += fxyz[n[j]+m[i]]*s[j+NPBLK*i];
+            dy += fxyz[1+n[j]+m[i]]*s[j+NPBLK*i];
+            dz += fxyz[2+n[j]+m[i]]*s[j+NPBLK*i];
          }
          s[j] = dx;
          s[j+NPBLK] = dy;
@@ -748,6 +748,7 @@ void cgpost3lt(float part[], float q[], float qm, int nop, int npe,
    part[2][n] = position z of particle n
    q[l][k][j] = charge density at grid point j,k,l
    qm = charge on particle, in units of e
+   nop = number of particles
    npe = first dimension of particle array
    idimp = size of phase space = 6
    nxv = first dimension of charge array, must be >= nx+1
@@ -821,6 +822,7 @@ void cvgpost3lt(float part[], float q[], float qm, int nop, int npe,
    part[2][n] = position z of particle n
    q[l][k][j] = charge density at grid point j,k,l
    qm = charge on particle, in units of e
+   nop = number of particles
    npe = first dimension of particle array
    idimp = size of phase space = 6
    nxv = first dimension of charge array, must be >= nx+1
@@ -832,9 +834,17 @@ local data                                                            */
    int i, j, k, l, ipp, joff, nps, nn, mm, ll, nxyv;
    float x, y, z, w, dx1, dxp, dyp, dzp, amx, amy, amz;
 /* scratch arrays */
-   int n[NPBLK];
+   int n[NPBLK], m[LVECT];
    float s[NPBLK*LVECT];
    nxyv = nxv*nyv;
+   m[0] = 0;
+   m[1] = 1;
+   m[2] = nxv;
+   m[3] = nxv + 1;
+   m[4] = nxyv;
+   m[5] = nxyv + 1;
+   m[6] = nxyv + nxv;
+   m[7] = nxyv + nxv + 1;
    ipp = nop/NPBLK;
 /* outer loop over number of full blocks */
    for (k = 0; k < ipp; k++) {
@@ -870,19 +880,9 @@ local data                                                            */
      }
 /* deposit charge */
       for (j = 0; j < NPBLK; j++) {
-         nn = n[j];
-         mm = nn + nxv - 2;
-         ll = nn + nxyv - 4;
-         l = ll + nxv - 2;
 #pragma ivdep
          for (i = 0; i < LVECT; i++) {
-            if (i > 5)
-               nn = l;
-            else if (i > 3)
-               nn = ll;
-            else if (i > 1)
-               nn = mm;
-            q[i+nn] += s[j+NPBLK*i];
+            q[n[j]+m[i]] += s[j+NPBLK*i];
          }
       }
    }

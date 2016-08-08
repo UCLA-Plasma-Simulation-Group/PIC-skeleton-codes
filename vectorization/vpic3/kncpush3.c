@@ -123,6 +123,7 @@ void ckncgpush3lt(float part[], float fxyz[], float qbm, float dt,
    (none,3d periodic,3d reflecting,mixed 2d reflecting/1d periodic)
    requires KNC, part needs to be 64 byte aligned
    npe needs to be a multiple of 16
+   fxyz needs to have 4 components, although one is not used
 local data                                                            */
    int j, nps, nn, mm, ll, nxyv;
    float qtm, edgelx, edgely, edgelz, edgerx, edgery, edgerz;
@@ -1080,14 +1081,18 @@ local data                                                            */
       v_dyp = _mm512_mul_ps(v_amx,v_dyp);
       v_amx = _mm512_mul_ps(v_amx,v_amy);
       v_amy = _mm512_mul_ps(v_dxp,v_amy);
-/*    x = amx*amz; */
-/*    y = amy*amz; */
-/*    z = dyp*amz; */
-/*    w = dx1*amz; */
+/*    a = amx*amz; */
+/*    b = amy*amz; */
+/*    d = dyp*amz; */
+/*    d = dx1*amz; */
       a = _mm512_mul_ps(v_amx,v_amz);
       b = _mm512_mul_ps(v_amy,v_amz);
       c = _mm512_mul_ps(v_dyp,v_amz);
       d = _mm512_mul_ps(v_dx1,v_amz);
+/*    e = amx*dzp; */
+/*    f = amy*dzp; */
+/*    g = dyp*dzp; */
+/*    h = dx1*dzp; */
       e = _mm512_mul_ps(v_amx,v_dzp);
       f = _mm512_mul_ps(v_amy,v_dzp);
       g = _mm512_mul_ps(v_dyp,v_dzp);
@@ -4381,7 +4386,6 @@ void ckncgpush3lt_(float *part, float *fxyz, float *qbm, float *dt,
                    float *ek, int *idimp, int *nop, int *npe, int *nx,
                    int *ny, int *nz, int *nxv, int *nyv, int *nzv,
                    int *ipbc) {
-/*--------------------------------------------------------------------*/
    ckncgpush3lt(part,fxyz,*qbm,*dt,ek,*idimp,*nop,*npe,*nx,*ny,*nz,*nxv,
                 *nyv,*nzv,*ipbc);
    return;

@@ -425,7 +425,6 @@ c find acceleration
       dx = 0.0
       dy = 0.0
       dz = 0.0
-!dir$ ivdep
       do 20 i = 1, lvect
       if (i.gt.6) then
          nn = l
@@ -437,6 +436,337 @@ c find acceleration
       dx = dx + fxyz(1,i+nn)*s(j,i)
       dy = dy + fxyz(2,i+nn)*s(j,i)
       dz = dz + fxyz(3,i+nn)*s(j,i)
+   20 continue
+      s(j,1) = dx
+      s(j,2) = dy
+      s(j,3) = dz
+   30 continue
+c new velocity
+      do 40 j = 1, npblk
+      x = t(j,1)
+      y = t(j,2)
+      z = t(j,3)
+      dxp = part(j+joff,4)
+      dyp = part(j+joff,5)
+      dzp = part(j+joff,6)
+      vx = dxp + qtm*s(j,1)
+      vy = dyp + qtm*s(j,2)
+      vz = dzp + qtm*s(j,3)
+c average kinetic energy
+      dxp = dxp + vx
+      dyp = dyp + vy
+      dzp = dzp + vz
+      sum1 = sum1 + (dxp*dxp + dyp*dyp + dzp*dzp)
+c new position
+      s(j,1) = x + vx*dt
+      s(j,2) = y + vy*dt
+      s(j,3) = z + vz*dt
+      s(j,4) = vx
+      s(j,5) = vy
+      s(j,6) = vz
+   40 continue
+c check boundary conditions
+      do 50 j = 1, npblk
+      dx = s(j,1)
+      dy = s(j,2)
+      dz = s(j,3)
+      vx = s(j,4)
+      vy = s(j,5)
+      vz = s(j,6)
+c periodic boundary conditions
+      if (ipbc.eq.1) then
+         if (dx.lt.edgelx) dx = dx + edgerx
+         if (dx.ge.edgerx) dx = dx - edgerx
+         if (dy.lt.edgely) dy = dy + edgery
+         if (dy.ge.edgery) dy = dy - edgery
+         if (dz.lt.edgelz) dz = dz + edgerz
+         if (dz.ge.edgerz) dz = dz - edgerz
+c reflecting boundary conditions
+      else if (ipbc.eq.2) then
+         if ((dx.lt.edgelx).or.(dx.ge.edgerx)) then
+            dx = t(j,1)
+            vx = -vx
+         endif
+         if ((dy.lt.edgely).or.(dy.ge.edgery)) then
+            dy = t(j,2)
+            vy = -vy
+         endif
+         if ((dz.lt.edgelz).or.(dz.ge.edgerz)) then
+            dz = t(j,3)
+            vz = -vz
+         endif
+c mixed reflecting/periodic boundary conditions
+      else if (ipbc.eq.3) then
+         if ((dx.lt.edgelx).or.(dx.ge.edgerx)) then
+            dx = t(j,1)
+            vx = -vx
+         endif
+         if ((dy.lt.edgely).or.(dy.ge.edgery)) then
+            dy = t(j,2)
+            vy = -vy
+         endif
+         if (dz.lt.edgelz) dz = dz + edgerz
+         if (dz.ge.edgerz) dz = dz - edgerz
+      endif
+c set new position
+      part(j+joff,1) = dx
+      part(j+joff,2) = dy
+      part(j+joff,3) = dz
+c set new velocity
+      part(j+joff,4) = vx
+      part(j+joff,5) = vy
+      part(j+joff,6) = vz
+   50 continue
+   60 continue
+      nps = npblk*ipp + 1
+c loop over remaining particles
+      do 70 j = nps, nop
+c find interpolation weights
+      x = part(j,1)
+      y = part(j,2)
+      z = part(j,3)
+      nn = x
+      mm = y
+      ll = z
+      dxp = x - real(nn)
+      dyp = y - real(mm)
+      dzp = z - real(ll)
+      nn = nn + nxv*mm + nxyv*ll + 1
+      amx = 1.0 - dxp
+      amy = 1.0 - dyp
+      dx1 = dxp*dyp
+      dyp = amx*dyp
+      amx = amx*amy
+      amz = 1.0 - dzp
+      amy = dxp*amy
+c find acceleration
+      dx = amx*fxyz(1,nn) + amy*fxyz(1,nn+1)
+      dy = amx*fxyz(2,nn) + amy*fxyz(2,nn+1)
+      dz = amx*fxyz(3,nn) + amy*fxyz(3,nn+1)
+      dx = amz*(dx + dyp*fxyz(1,nn+nxv) + dx1*fxyz(1,nn+1+nxv))
+      dy = amz*(dy + dyp*fxyz(2,nn+nxv) + dx1*fxyz(2,nn+1+nxv))
+      dz = amz*(dz + dyp*fxyz(3,nn+nxv) + dx1*fxyz(3,nn+1+nxv))
+      mm = nn + nxyv
+      vx = amx*fxyz(1,mm) + amy*fxyz(1,mm+1)
+      vy = amx*fxyz(2,mm) + amy*fxyz(2,mm+1)
+      vz = amx*fxyz(3,mm) + amy*fxyz(3,mm+1)
+      dx = dx + dzp*(vx + dyp*fxyz(1,mm+nxv) + dx1*fxyz(1,mm+1+nxv))
+      dy = dy + dzp*(vy + dyp*fxyz(2,mm+nxv) + dx1*fxyz(2,mm+1+nxv))
+      dz = dz + dzp*(vz + dyp*fxyz(3,mm+nxv) + dx1*fxyz(3,mm+1+nxv))
+c new velocity
+      dxp = part(j,4)
+      dyp = part(j,5)
+      dzp = part(j,6)
+      vx = dxp + qtm*dx
+      vy = dyp + qtm*dy
+      vz = dzp + qtm*dz
+c average kinetic energy
+      dxp = dxp + vx
+      dyp = dyp + vy
+      dzp = dzp + vz
+      sum1 = sum1 + (dxp*dxp + dyp*dyp + dzp*dzp)
+c new position
+      dx = x + vx*dt
+      dy = y + vy*dt
+      dz = z + vz*dt
+c periodic boundary conditions
+      if (ipbc.eq.1) then
+         if (dx.lt.edgelx) dx = dx + edgerx
+         if (dx.ge.edgerx) dx = dx - edgerx
+         if (dy.lt.edgely) dy = dy + edgery
+         if (dy.ge.edgery) dy = dy - edgery
+         if (dz.lt.edgelz) dz = dz + edgerz
+         if (dz.ge.edgerz) dz = dz - edgerz
+c reflecting boundary conditions
+      else if (ipbc.eq.2) then
+         if ((dx.lt.edgelx).or.(dx.ge.edgerx)) then
+            dx = x
+            vx = -vx
+         endif
+         if ((dy.lt.edgely).or.(dy.ge.edgery)) then
+            dy = y
+            vy = -vy
+         endif
+         if ((dz.lt.edgelz).or.(dz.ge.edgerz)) then
+            dz = z
+            vz = -vz
+         endif
+c mixed reflecting/periodic boundary conditions
+      else if (ipbc.eq.3) then
+         if ((dx.lt.edgelx).or.(dx.ge.edgerx)) then
+            dx = x
+            vx = -vx
+         endif
+         if ((dy.lt.edgely).or.(dy.ge.edgery)) then
+            dy = y
+            vy = -vy
+         endif
+         if (dz.lt.edgelz) dz = dz + edgerz
+         if (dz.ge.edgerz) dz = dz - edgerz
+      endif
+c set new position
+      part(j,1) = dx
+      part(j,2) = dy
+      part(j,3) = dz
+c set new velocity
+      part(j,4) = vx
+      part(j,5) = vy
+      part(j,6) = vz
+   70 continue
+c normalize kinetic energy
+      ek = ek + .125*sum1
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine V2GPUSH3LT(part,fxyz,qbm,dt,ek,idimp,nop,npe,nx,ny,nz, 
+     1nxv,nyv,nzv,ipbc)
+c for 3d code, this subroutine updates particle co-ordinates and
+c velocities using leap-frog scheme in time and first-order linear
+c interpolation in space
+c vectorizable version using guard cells
+c 94 flops/particle, 30 loads, 6 stores
+c input: all, output: part, ek
+c equations used are:
+c vx(t+dt/2) = vx(t-dt/2) + (q/m)*fx(x(t),y(t),z(t))*dt,
+c vy(t+dt/2) = vy(t-dt/2) + (q/m)*fy(x(t),y(t),z(t))*dt,
+c vz(t+dt/2) = vz(t-dt/2) + (q/m)*fz(x(t),y(t),z(t))*dt,
+c where q/m is charge/mass, and
+c x(t+dt) = x(t) + vx(t+dt/2)*dt, y(t+dt) = y(t) + vy(t+dt/2)*dt,
+c z(t+dt) = z(t) + vz(t+dt/2)*dt
+c fx(x(t),y(t),z(t)), fy(x(t),y(t),z(t)), and fz(x(t),y(t),z(t))
+c are approximated by interpolation from the nearest grid points:
+c fx(x,y,z) = (1-dz)*((1-dy)*((1-dx)*fx(n,m,l)+dx*fx(n+1,m,l))
+c                + dy*((1-dx)*fx(n,m+1,l) + dx*fx(n+1,m+1,l)))
+c           + dz*((1-dy)*((1-dx)*fx(n,m,l+1)+dx*fx(n+1,m,l+1))
+c                + dy*((1-dx)*fx(n,m+1,l+1) + dx*fx(n+1,m+1,l+1)))
+c fy(x,y,z) = (1-dz)*((1-dy)*((1-dx)*fy(n,m,l)+dx*fy(n+1,m,l))
+c                + dy*((1-dx)*fy(n,m+1,l) + dx*fy(n+1,m+1,l)))
+c           + dz*((1-dy)*((1-dx)*fy(n,m,l+1)+dx*fy(n+1,m,l+1))
+c                + dy*((1-dx)*fy(n,m+1,l+1) + dx*fy(n+1,m+1,l+1)))
+c fz(x,y,z) = (1-dz)*((1-dy)*((1-dx)*fz(n,m,l)+dx*fz(n+1,m,l))
+c                + dy*((1-dx)*fz(n,m+1,l) + dx*fz(n+1,m+1,l)))
+c           + dz*((1-dy)*((1-dx)*fz(n,m,l+1)+dx*fz(n+1,m,l+1))
+c                + dy*((1-dx)*fz(n,m+1,l+1) + dx*fz(n+1,m+1,l+1)))
+c where n,m,l = leftmost grid points and dx = x-n, dy = y-m, dz = z-l
+c part(n,1) = position x of particle n
+c part(n,2) = position y of particle n
+c part(n,3) = position z of particle n
+c part(n,4) = velocity vx of particle n
+c part(n,5) = velocity vy of particle n
+c part(n,6) = velocity vz of particle n
+c fxyz(1,j,k,l) = x component of force/charge at grid (j,k,l)
+c fxyz(2,j,k,l) = y component of force/charge at grid (j,k,l)
+c fxyz(3,j,k,l) = z component of force/charge at grid (j,k,l)
+c that is, convolution of electric field over particle shape
+c qbm = particle charge/mass ratio
+c dt = time interval between successive calculations
+c kinetic energy/mass at time t is also calculated, using
+c ek = .125*sum((vx(t+dt/2)+vx(t-dt/2))**2+(vy(t+dt/2)+vy(t-dt/2))**2+
+c (vz(t+dt/2)+vz(t-dt/2))**2)
+c idimp = size of phase space = 6
+c nop = number of particles
+c npe = first dimension of particle array
+c nx/ny/nz = system length in x/y/z direction
+c nxv = second dimension of field array, must be >= nx+1
+c nyv = third dimension of field array, must be >= ny+1
+c nzv = fourth dimension of field array, must be >= nz+1
+c ipbc = particle boundary condition = (0,1,2,3) =
+c (none,3d periodic,3d reflecting,mixed 2d reflecting/1d periodic)
+      implicit none
+      integer idimp, nop, npe, nx, ny, nz, nxv, nyv, nzv, ipbc
+      real qbm, dt, ek
+      real part, fxyz
+      dimension part(npe,idimp), fxyz(4,nxv*nyv*nzv)
+c local data
+      integer npblk, lvect
+      parameter(npblk=32,lvect=8)
+      integer i, j, k, l, ipp, joff, nps, nn, mm, ll, nxyv
+      real qtm, edgelx, edgely, edgelz, edgerx, edgery, edgerz
+      real dxp, dyp, dzp, amx, amy, amz, dx1, x, y, z, dx, dy, dz
+      real vx, vy, vz
+c scratch arrays
+      integer n, m
+      real s, t
+      dimension n(npblk), m(lvect), s(npblk,lvect), t(npblk,3)
+      double precision sum1
+      nxyv = nxv*nyv
+      m(1) = 0
+      m(2) = 1
+      m(3) = nxv
+      m(4) = nxv + 1
+      m(5) = nxyv
+      m(6) = nxyv + 1
+      m(7) = nxyv + nxv
+      m(8) = nxyv + nxv + 1
+      qtm = qbm*dt
+      sum1 = 0.0d0
+c set boundary values
+      edgelx = 0.0
+      edgely = 0.0
+      edgelz = 0.0
+      edgerx = real(nx)
+      edgery = real(ny)
+      edgerz = real(nz)
+      if (ipbc.eq.2) then
+         edgelx = 1.0
+         edgely = 1.0
+         edgelz = 1.0
+         edgerx = real(nx-1)
+         edgery = real(ny-1)
+         edgerz = real(nz-1)
+      else if (ipbc.eq.3) then
+         edgelx = 1.0
+         edgely = 1.0
+         edgerx = real(nx-1)
+         edgery = real(ny-1)
+      endif
+c loop over particles
+      ipp = nop/npblk
+c outer loop over number of full blocks
+      do 60 k = 1, ipp
+      joff = npblk*(k - 1)
+c inner loop over particles in block
+      do 10 j = 1, npblk
+c find interpolation weights
+      x = part(j+joff,1)
+      y = part(j+joff,2)
+      z = part(j+joff,3)
+      nn = x
+      mm = y
+      ll = z
+      dxp = x - real(nn)
+      dyp = y - real(mm)
+      dzp = z - real(ll)
+      n(j) = nn + nxv*mm + nxyv*ll + 1
+      amx = 1.0 - dxp
+      amy = 1.0 - dyp
+      dx1 = dxp*dyp
+      dyp = amx*dyp
+      amx = amx*amy
+      amz = 1.0 - dzp
+      amy = dxp*amy
+      s(j,1) = amx*amz
+      s(j,2) = amy*amz
+      s(j,3) = dyp*amz
+      s(j,4) = dx1*amz
+      s(j,5) = amx*dzp
+      s(j,6) = amy*dzp
+      s(j,7) = dyp*dzp
+      s(j,8) = dx1*dzp
+      t(j,1) = x
+      t(j,2) = y
+      t(j,3) = z
+   10 continue
+c find acceleration
+      do 30 j = 1, npblk
+      dx = 0.0
+      dy = 0.0
+      dz = 0.0
+!dir$ ivdep
+      do 20 i = 1, lvect
+      dx = dx + fxyz(1,n(j)+m(i))*s(j,i)
+      dy = dy + fxyz(2,n(j)+m(i))*s(j,i)
+      dz = dz + fxyz(3,n(j)+m(i))*s(j,i)
    20 continue
       s(j,1) = dx
       s(j,2) = dy
@@ -734,10 +1064,18 @@ c local data
       integer i, j, k, l, ipp, joff, nps, nn, mm, ll, nxyv
       real x, y, z, w, dx1, dxp, dyp, dzp, amx, amy, amz
 c scratch arrays
-      integer n
+      integer n, m
       real s
-      dimension n(npblk), s(npblk,lvect)
+      dimension n(npblk), m(lvect), s(npblk,lvect)
       nxyv = nxv*nyv
+      m(1) = 0
+      m(2) = 1
+      m(3) = nxv
+      m(4) = nxv + 1
+      m(5) = nxyv
+      m(6) = nxyv + 1
+      m(7) = nxyv + nxv
+      m(8) = nxyv + nxv + 1
 c loop over particles
       ipp = nop/npblk
 c outer loop over number of full blocks
@@ -755,7 +1093,7 @@ c find interpolation weights
       dxp = qm*(x - real(nn))
       dyp = y - real(mm)
       dzp = z - real(ll)
-      n(j) = nn + nxv*mm + nxyv*ll
+      n(j) = nn + nxv*mm + nxyv*ll + 1
       amx = qm - dxp
       amy = 1.0 - dyp
       dx1 = dxp*dyp
@@ -774,20 +1112,9 @@ c find interpolation weights
    10 continue
 c deposit charge
       do 30 j = 1, npblk
-      nn = n(j)
-      mm = nn + nxv - 2
-      ll = nn + nxyv - 4
-      l = ll + nxv - 2
 !dir$ ivdep
       do 20 i = 1, lvect
-      if (i.gt.6) then
-         nn = l
-      else if (i.gt.4) then
-         nn = ll
-      else if (i.gt.2) then
-         nn = mm
-      endif
-      q(i+nn) = q(i+nn) + s(j,i)
+      q(n(j)+m(i)) = q(n(j)+m(i)) + s(j,i)
    20 continue
    30 continue
    40 continue

@@ -2,25 +2,25 @@
 
 # Makefile gfortran compiler with MacOS X
 
-#FC90 = gfortran
-#FC03 = gfortran
-#CC = gcc
+FC90 = gfortran
+FC03 = gfortran
+CC = gcc
 
-#OPTS90 = -O3 -ftree-vectorize
+OPTS90 = -O3 -ftree-vectorize
 #OPTS90 = -O3 -ftree-vectorizer-verbose=6
 #OPTS90 = -O3 -fno-tree-vectorize
 #OPTS90 = -O3 -fdefault-real-8 -fdefault-double-8
 #OPTS90 = -O3 -fcheck=bounds -fdefault-real-8 -Wall -std=f95
 
-#OPTS03 = -O3 -ftree-vectorize
+OPTS03 = -O3 -ftree-vectorize
 #OPTS03 = -O3 -ftree-vectorizer-verbose=6
 #OPTS03 = -O3 -fno-tree-vectorize
 #OPTS03 = -O3 -fdefault-real-8 -fdefault-double-8
 #OPTS03 = -O3 -fcheck=bounds -fdefault-real-8 -fdefault-double-8 -Wall -std=f2003
 
-#CCOPTS = -O3 -Wall -std=c99
+CCOPTS = -O3 -Wall -std=c99
 #CCOPTS = -O3 -fno-tree-vectorize -Wall -std=c99
-#LEGACY =
+LEGACY =
 
 # Makefile Intel compiler with Mac OS X
 
@@ -48,32 +48,32 @@
 
 # Makefile Intel compiler with Linux
 
-FC90 = ifort
-FC03 = ifort
-CC = icc
+#FC90 = ifort
+#FC03 = ifort
+#CC = icc
 
 #OPTS90 = -O3
 #OPTS90 = -O3 -vec-report6
 #OPTS90 = -O3 -axAVX -vec-report6
-OPTS90 = -O3 -mmic -vec-report6
+#OPTS90 = -O3 -mmic -vec-report6
 #OPTS90 = -O3 -no-vec
 #OPTS90 = -O3 -no-vec -no-simd
 #OPTS90 = -O3 -r8
 #OPTS90 = -O3 -CB -r8 -warn all -std90
 
-FF03 = -Tf
+#FF03 = -Tf
 #OPTS03 = -O3 -free -std03
 #OPTS03 = -O3 -free -vec-report6 -std03
 #OPTS03 = -O3 -free -axAVX -vec-report6 -std03
-OPTS03 = -O3 -free -mmic -vec-report6 -std03
+#OPTS03 = -O3 -free -mmic -vec-report6 -std03
 #OPTS03 = -O3 -free -no-vec -std03
 #OPTS03 = -O3 -r8 -free -std03
 #OPTS03 = -O3 -CB -r8 -warn all -free -std03
 
 #CCOPTS = -O3 -std=c99
-CCOPTS = -O3 -mmic -std=c99
+#CCOPTS = -O3 -mmic -std=c99
 #CCOPTS = -O3 -no-vec -std=c99
-LEGACY = -nofor_main
+#LEGACY = -nofor_main
 
 # Makefile gfortran compiler with Linux
 
@@ -85,7 +85,7 @@ LEGACY = -nofor_main
 #OPTS90 = -O3 -ftree-vectorizer-verbose=6
 #OPTS90 = -O3 -fno-tree-vectorize
 #OPTS90 = -O3 -fdefault-real-8 -fdefault-double-8
-#OPTS90 = -O3 -fbounds-check -fdefault-real-8 -Wall -std=f95
+#OPTS90 = -O3 -fbounds-check -fdefault-real-8 -fdefault-double-8 -Wall -std=f95
 
 #OPTS03 = -O3 -ftree-vectorize
 #OPTS03 = -O3 -ftree-vectorizer-verbose=6
