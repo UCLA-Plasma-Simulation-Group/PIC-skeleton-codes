@@ -448,7 +448,7 @@ local data                                                            */
 #define NPBLK             32
 #define LVECT             8
 #define N 4
-   int i, j, k, l, ipp, joff, nps, nn, mm, ll, nxyv;
+   int i, j, k, ipp, joff, nps, nn, mm, ll, nxyv;
    float qtm, edgelx, edgely, edgelz, edgerx, edgery, edgerz;
    float dxp, dyp, dzp, amx, amy, amz, dx1, x, y, z, dx, dy, dz;
    float vx, vy, vz;
@@ -831,7 +831,7 @@ void cvgpost3lt(float part[], float q[], float qm, int nop, int npe,
 local data                                                            */
 #define NPBLK             32
 #define LVECT             8
-   int i, j, k, l, ipp, joff, nps, nn, mm, ll, nxyv;
+   int i, j, k, ipp, joff, nps, nn, mm, ll, nxyv;
    float x, y, z, w, dx1, dxp, dyp, dzp, amx, amy, amz;
 /* scratch arrays */
    int n[NPBLK], m[LVECT];

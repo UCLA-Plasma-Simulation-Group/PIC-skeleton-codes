@@ -1,0 +1,236 @@
+Skeleton 3D Electromagnetic Vector Particle-in-Cell (PIC) codes
+by Viktor K. Decyk
+copyright 1999-2014, regents of the university of california
+
+This program contains sample codes for illustrating the basic structure
+of a 3D Electromagnetic Vector Particle-in-Cell (PIC) code, in both
+Fortran and C.  The codes have no diagnosics except for initial and
+final energies.  Their primary purpose is to provide example codes for
+physical science students learning about Vector PIC codes.  They are
+also intended as benchmark reference codes to aid in developing new
+codes and in evaluating new computer architectures and compilers.
+
+PIC codes are widely used in plasma physics.  They model plasmas as
+particles which interact self-consistently via the electromagnetic
+fields they themselves produce.  PIC codes generally have three
+important procedures in the main iteration loop.  The first is the
+deposit, where some particle quantity, such as a charge, is accumulated
+on a grid via interpolation to produce a source density.  The second
+important procedure is the field solver, which solves Maxwell’s equation
+or a subset to obtain the electric and/or magnetic fields from the
+source densities.  Finally, once the fields are obtained, the particle
+forces are found by interpolation from the grid, and the particle
+co-ordinates are updated, using Newton’s second law and the Lorentz
+force.  The particle processing parts dominate over the field solving
+parts in a typical PIC application. 
+
+More details about PIC codes can be found in the texts by C. K. Birdsall
+and A. B. Langdon, Plasma Physics via Computer Simulation, 1985,
+R. W. Hockney and J. W. Eastwood, Computer Simulation Using Particles,
+1981, and John M. Dawson, "Particle simulation of plasmas", Rev. Mod.
+Phys. 55, 403 (1983).  Details about the mathematical equations and
+units used in this code is given in the companion article,
+"Description of Electromagnetic Spectral Code from the UPIC Framework"
+by Viktor K. Decyk, UCLA, in the file EMModels.pdf.
+
+No warranty for proper operation of this software is given or implied.
+Software or information may be copied, distributed, and used at own
+risk; it may not be distributed without this notice included verbatim
+with each file.  If use of these codes results in a publication, an
+acknowledgement is requested.
+
+The code here uses the complete electromagnetic interaction, obtained by
+solving Maxwell's equation.  A spectral method using Fast Fourier
+Transforms (FFTs) is used to solve the Maxwell and Poisson equations.  A
+real to complex FFT is used, and the data in Fourier space is stored in
+a packed format, where the input and output sizes are the same.  The
+boundary conditions are periodic, only electron species are included,
+and linear interpolation is used.
+
+Vectorization today is largely based on exploiting Single Instruction
+Multiple Data (SIMD) processors that can perform the same instruction
+on multiple data items.  The one we are focussing on here is the Intel
+PHI Coprocessor Knight's Corner (KNC) Many Integrated Core (MIC).  Two
+approaches are used for vectorization.  The simplest is to use
+vectorization tools that will analyze and compile Fortran and C/C++
+codes to run on the SIMD processors.  Alternatively, Intel also provides
+vector intrinsincs, which are assembly-coded functions that allow direct
+access to vector assembly language instructions in C/C++.  Compiler
+vectorization is normally implemented from loops.  Vector instrinics are
+implemented as a vector language. Further details about Intel compiler
+vectorization can be found at:
+https://software.intel.com/en-us/intel-vectorization-tools
+Further details about Intel vector intrinsics can be found at:
+https://software.intel.com/sites/products/documentation/doclib/iss/2013/
+compiler/cpp-lin/index.htm#GUID-28F49E4A-615D-4373-A36E-C8A92E913325.htm
+and at https://software.intel.com/sites/landingpage/IntrinsicsGuide/.
+
+Both vectorization approaches are illustrated in this Skeleton code.
+One version uses the KNC MIC vector instrinsics.  Two libraries,
+avx512lib3.c and kncbpush3.c, implement the functionality of the serial
+bpush3.c file in the bpic3 directory.  This is very low level
+programming and difficult to understand, but gives the best performance.
+The second version made use of compiler directives.  Two libraries,
+vbpush3.f and vbpush3.c, reimplemented the serial bpush3.f and bpush3.c
+files in such a way that the compiler could automatically vectorize the
+loops.  Details of about this process for this code are described in the
+file VectorPIC3.pdf.  A parameter kvec in the main codes selects which
+version will run.
+
+Particles are initialized with a uniform distribution in space and a
+gaussian distribution in velocity space.  This describes a plasma in
+thermal equilibrium.  The inner loop contains a current and charge
+deposit, add guard cell procedures, a vector and scalar FFT, a
+transverse current procedure, Maxwell and Poisson solvers, vector FFTs,
+copy guard cell procedures, a particle push, and a particle sorting
+procedure.  The final energy and timings are printed.  A sample output
+file for the default input parameters is included in the file output.
+
+In more detail, the inner loop of the code contains the following
+procedures in Fortran (C):
+
+Deposit section:
+   VGRJPOST3LT (cvgrjpost3lt) or ckncgrjpost3lt: relativistic current
+                                                 deposit, and update
+                                                 position:
+                                                 x(t+dt/2)->x(t+dt)
+   VGJPOST3LT (cvgjpost3lt) or ckncgjpost3lt: deposit current density.
+                                              and update position:
+                                              x(t+dt/2)->x(t+dt)
+   VGPOST3LT (cvgpost3lt) or cknc2gpost3lt: deposit charge density
+   ACGUARD3L (cacguard3l) or ckncacguard3l: add current density guard
+                                            cells
+   AGUARD3LL (caguard3l) or ckncaguard3l: add charge density guard cells
+
+Field solve section:
+   WFFT3RVX (cwfft3rvx) or ckncwfft3rvx: FFT charge density to fourier
+                                         space
+   WFFT3RV3 (cwfft3rv3) or ckncwfft3rv3: FFT current density to fourier
+                                         space
+   CUPERP3 (ccuperp3) or cknccuperp3: take transverse part of current
+   VIBPOIS33 (cvibpois33) or ckncibpois33: calculate initial magnetic
+                                           field in fourier space
+   VMAXWEL3 (cvmaxwel3) or ckncmaxwel3: update transverse
+                                        electromagnetic fields in
+                                        fourier space
+   VPOIS33 (cvpois33) or ckncpois33: calculate smoothed longitudinal
+                                     electric field in fourier space.
+   VEMFIELD3 (cvemfield3) or ckncemfield3: add smoothed longitudinal
+                                           and transverse electric
+                                           fields
+   VEMFIELD3 (cvemfield3) or ckncemfield3: copy smoothed magnetic field
+   WFFT3RV3 (cwfft3rv3) or ckncwfft3rv3: FFT smoothed electric field to
+                                         real space
+   WFFT3RV3 (cwfft3rv3) or ckncwfft3rv3: FFT smoothed magnetic field to
+                                         real space
+
+Particle Push section:
+   CGUARD3L (ccguard3l) or cknccguard3l: fill in guard cells for
+                                         smoothed electric field
+   CGUARD3L (ccguard3l) or cknccguard3l: fill in guard cells for
+                                         smoothed magnetic field
+   VGRBPUSH3LT (cvgrbpush3lt) or ckncgrbpush3lt: update relativistic
+                                                 particle co-ordinates
+                                                 with smoothed electric
+                                                 and magnetic fields
+                                                 x(t)->x(t+dt/2);
+                                                 v(t-dt/2)->v(t+dt/2)
+   VGBPUSH3LT (cvgbpush3lt) or ckncgbpush3lt: update particle
+                                              co-ordinates with
+                                              smoothed electric and
+                                              magnetic fields:
+                                              x(t)->x(t+dt/2);
+                                              v(t-dt/2)->v(t+dt/2)
+   DSORTP3YZLT (cdsortp3yzlt) or ckncdsortp3yzlt: sort particles by cell
+
+The inputs to the code are the grid parameters indx, indy, indz, the
+particle number parameters npx, npy, npz, the time parameters tend, dt,
+and the velocity paramters vtx, vty, vtz, vx0, vy0, vz0, the inverse
+speed of light ci, the flag relativity, the sorting parameter sortime,
+and the version selector kvec.
+
+In more detail:
+indx = exponent which determines length in x direction, nx=2**indx.
+indy = exponent which determines length in y direction, ny=2**indy.
+indz = exponent which determines length in z direction, nz=2**indz.
+   These ensure the system lengths are a power of 2.
+npx = number of electrons distributed in x direction.
+npy = number of electrons distributed in y direction.
+npz = number of electrons distributed in z direction.
+   The total number of particles in the simulation is npx*npy*npz.
+tend = time at end of simulation, in units of plasma frequency.
+dt = time interval between successive calculations.
+   The number of time steps the code runs is given by tend/dt.
+   dt should be less than .45*ci for the electromagnetic code.
+vtx/vty/vtz = thermal velocity of electrons in x/y/z direction.
+   a typical value is 1.0.
+vx0/vy0/vz0 = drift velocity of electrons in x/y/z direction.
+ci = reciprocal of velocity of light
+relativity = (no,yes) = (0,1) = relativity is used
+sortime = number of time steps between electron sorting.
+   This is used to improve cache performance.  sortime=0 to suppress.
+kvec = (1,2) = run (autovector,KNC) version
+
+The major program files contained here include:
+vbpic3.f90       Fortran90 main program
+vbpic3.f03       Fortran2003 main program 
+vbpic3.c         C main program
+vbpush3.f        Fortran77 vectorized procedure library
+vpbush3_h.f90    Fortran90 vectorized procedure interface header library
+vbpush3.c        C vectorized procedure library
+vbpush3.h        C vectorized procedure header library
+avx512lib3.c     C Vector intrinsics utility library
+avx512lib3.h     C Vector intrinsics utility header library
+avx512lib3_h.f90 Fortran90 Vector intrinsics utility header library
+avx512lib3_c.f03 Fortran2003 Vector intrinsics utility header library
+kncbpush3.c      C Vector intrinsics procedure library
+kncbpush3.h      C Vector intrinsics procedure header library
+kncbpush3_h.f90  Fortran90 Vector intrinsics procedure header library
+kncbpush3_c.f03  Fortran2003 Vector intrinsics procedure header library
+dtimer.c         C timer function, used by both C and Fortran
+
+Files with the suffix.f90 adhere to the Fortran 90 standard, files with
+the suffix .f adhere to the Fortran77 standard, files with the suffix
+.f03 adhere to the Fortran2003 standard, and files with the suffix .c
+and .h adhere to the C99 standard.
+
+The makefile is setup to use icc and ifort with Linux.  Definitions for
+other compilers are in the Makefile, but are commented out.  
+
+Three executables can be created, fvbpic3 for Fortran90, f03vbpic3 for
+Fortran2003, and cvbpic3 for C.  The only differences between the
+Fortran90 and Fortran2003 codes is how the interface to C is handled.
+Interoperability with C is part of Fortran2003, but is still unfamiliar
+to many programmers.
+
+To compile program for execution in native mode, execute:
+
+Make program_name
+
+where program_name is either: fvbpic3, f03vbpic3 or cvbpic3.
+
+To create all of them, execute:
+
+make
+
+To execute, first copy the executable to the Coprocessor:
+
+scp program_name your_userid_id@mic0:program_name
+
+then ssh to the Coprocessors and type the name of the executable:
+
+ssh mic0
+./program_name
+
+where program_name is either fvbpic3, f03vbpic3 or cvbpic3
+
+The file output contains the results produced for the default parameters
+The file output.knc contains result for the KNC version.
+
+The Fortran versions can be compiled to run with double precision by
+changing the Makefile (typically by setting the compiler options flags
+-r8), but only when the runtime parameter kvec = 1.
+
+The library vbpush3.c contains wrapper functions to allow the C library
+to be called from Fortran. The library vbpush3_f.c contains wrapper
+functions to allow the Fortran library to be called from C.

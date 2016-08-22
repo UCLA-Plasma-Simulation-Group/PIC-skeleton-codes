@@ -680,7 +680,7 @@ c (none,3d periodic,3d reflecting,mixed 2d reflecting/1d periodic)
 c local data
       integer npblk, lvect
       parameter(npblk=32,lvect=8)
-      integer i, j, k, l, ipp, joff, nps, nn, mm, ll, nxyv
+      integer i, j, k, ipp, joff, nps, nn, mm, ll, nxyv
       real qtm, edgelx, edgely, edgelz, edgerx, edgery, edgerz
       real dxp, dyp, dzp, amx, amy, amz, dx1, x, y, z, dx, dy, dz
       real vx, vy, vz
@@ -1061,7 +1061,7 @@ c nzv = third dimension of charge array, must be >= nz+1
 c local data
       integer npblk, lvect
       parameter(npblk=32,lvect=8)
-      integer i, j, k, l, ipp, joff, nps, nn, mm, ll, nxyv
+      integer i, j, k, ipp, joff, nps, nn, mm, ll, nxyv
       real x, y, z, w, dx1, dxp, dyp, dzp, amx, amy, amz
 c scratch arrays
       integer n, m
