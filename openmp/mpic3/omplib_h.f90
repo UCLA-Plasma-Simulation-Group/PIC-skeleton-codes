@@ -6,14 +6,14 @@
       interface
          subroutine INIT_OMP(nth)
          implicit none
-         integer :: nth
+         integer, intent(in) :: nth
          end subroutine
       end interface
 !
       interface
          subroutine SETNTHSIZE(nth)
          implicit none
-         integer :: nth
+         integer, intent(in) :: nth
          end subroutine
       end interface
 !

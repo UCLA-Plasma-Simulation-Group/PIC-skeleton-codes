@@ -1,9 +1,9 @@
 !-----------------------------------------------------------------------
-! Skeleton 3D Electrostatic OpenMP PIC code
+! Skeleton 3D Electrostatic OpenMP PIC code which uses C libraries
 ! written by Viktor K. Decyk, UCLA
       program mpic3
-      use mpush3_h
-      use omplib_h
+! #include "mpush3.h"
+! #include "omplib.h"
       implicit none
 ! indx/indy/indz = exponent which determines grid points in x/y/z
 ! direction: nx = 2**indx, ny = 2**indy, nz = 2**indz.
@@ -73,19 +73,22 @@
       real :: tpush = 0.0, tsort = 0.0
       double precision :: dtime
 !
+      integer :: i, j, k, l
+      real :: eps, epsmax
+!
       irc = 0
 ! nvp = number of shared memory nodes (0=default)
       nvp = 0
 !     write (*,*) 'enter number of nodes:'
 !     read (5,*) nvp
 ! initialize for shared memory parallel processing
-      call INIT_OMP(nvp)
+      call cinit_omp(nvp)
 !
 ! initialize scalars for standard code
 ! np = total number of particles in simulation
 ! nx/ny/nz = number of grid points in x/y/z direction
       np = npx*npy*npz; nx = 2**indx; ny = 2**indy; nz = 2**indz
-      nxh = nx/2; nyh = ny/2; nzh = nz/2
+      nxh = nx/2; nyh = max(1,ny/2); nzh = max(1,nz/2)
       nxe = nx + 2; nye = ny + 1; nze = nz + 1; nxeh = nxe/2
       nxyzh = max(nx,ny,nz)/2; nxhyz = max(nxh,ny,nz)
 ! mx1/my1/mz1 = number of tiles in x/y/z direction
@@ -104,20 +107,20 @@
       allocate(kpic(mxyz1))
 !
 ! prepare fft tables
-      call WFFT3RINIT(mixup,sct,indx,indy,indz,nxhyz,nxyzh)
+      call cwfft3rinit(mixup,sct,indx,indy,indz,nxhyz,nxyzh)
 ! calculate form factors
       isign = 0
-      call MPOIS33(qe,fxyze,isign,ffc,ax,ay,az,affp,we,nx,ny,nz,nxeh,nye&
-     &,nze,nxh,nyh,nzh)
+      call cmpois33(qe,fxyze,isign,ffc,ax,ay,az,affp,we,nx,ny,nz,nxeh,  &
+     &nye,nze,nxh,nyh,nzh)
 ! initialize electrons
-      call DISTR3(part,vtx,vty,vtz,vx0,vy0,vz0,npx,npy,npz,idimp,np,nx, &
+      call cdistr3(part,vtx,vty,vtz,vx0,vy0,vz0,npx,npy,npz,idimp,np,nx,&
      &ny,nz,ipbc)
 !
-! find number of particles in each of mx, my mz, tiles:
+! find number of particles in each of mx, my, mz, tiles:
 ! updates kpic, nppmx
-      call DBLKP3L(part,kpic,nppmx,idimp,np,mx,my,mz,mx1,my1,mxyz1,irc)
+      call cdblkp3l(part,kpic,nppmx,idimp,np,mx,my,mz,mx1,my1,mxyz1,irc)
       if (irc /= 0) then
-         write (*,*) 'DBLKP3L error, irc=', irc
+         write (*,*) 'cdblkp3l error, irc=', irc
          stop
       endif
 ! allocate vector particle data
@@ -129,21 +132,19 @@
       allocate(ncl(26,mxyz1))
       allocate(ihole(2,ntmax+1,mxyz1))
 ! copy ordered particle data for OpenMP: updates ppart and kpic
-      call PPMOVIN3L(part,ppart,kpic,nppmx0,idimp,np,mx,my,mz,mx1,my1,  &
+      call cppmovin3l(part,ppart,kpic,nppmx0,idimp,np,mx,my,mz,mx1,my1, &
      &mxyz1,irc)
       if (irc /= 0) then
-         write (*,*) 'PPMOVIN3L overflow error, irc=', irc
+         write (*,*) 'cppmovin3l overflow error, irc=', irc
          stop
       endif
 ! sanity check
-      call PPCHECK3L(ppart,kpic,idimp,nppmx0,nx,ny,nz,mx,my,mz,mx1,my1, &
+      call cppcheck3l(ppart,kpic,idimp,nppmx0,nx,ny,nz,mx,my,mz,mx1,my1,&
      &mz1,irc)
       if (irc /= 0) then
-         write (*,*) 'PPCHECK3L error: irc=', irc
+         write (*,*) 'cppcheck3l error: irc=', irc
          stop
       endif
-!
-      nloop = 2
 !
 ! * * * start main iteration loop * * *
 !
@@ -153,15 +154,15 @@
 ! deposit charge with OpenMP: updates qe
       call dtimer(dtime,itime,-1)
       qe = 0.0
-      call GPPOST3L(ppart,qe,kpic,qme,nppmx0,idimp,mx,my,mz,nxe,nye,nze,&
-     &mx1,my1,mxyz1)
+      call cgppost3l(ppart,qe,kpic,qme,nppmx0,idimp,mx,my,mz,nxe,nye,nze&
+     &,mx1,my1,mxyz1)
       call dtimer(dtime,itime,1)
       time = real(dtime)
       tdpost = tdpost + time
 !
 ! add guard cells with OpenMP: updates qe
       call dtimer(dtime,itime,-1)
-      call AGUARD3L(qe,nx,ny,nz,nxe,nye,nze)
+      call caguard3l(qe,nx,ny,nz,nxe,nye,nze)
       call dtimer(dtime,itime,1)
       time = real(dtime)
       tguard = tguard + time
@@ -169,8 +170,8 @@
 ! transform charge to fourier space with OpenMP: updates qe
       call dtimer(dtime,itime,-1)
       isign = -1
-      call WFFT3RMX(qe,isign,mixup,sct,indx,indy,indz,nxeh,nye,nze,nxhyz&
-     &,nxyzh)
+      call cwfft3rmx(qe,isign,mixup,sct,indx,indy,indz,nxeh,nye,nze,    &
+     &nxhyz,nxyzh)
       call dtimer(dtime,itime,1)
       time = real(dtime)
       tfft = tfft + time
@@ -178,8 +179,8 @@
 ! calculate force/charge in fourier space with OpenMP: updates fxyze, we
       call dtimer(dtime,itime,-1)
       isign = -1
-      call MPOIS33(qe,fxyze,isign,ffc,ax,ay,az,affp,we,nx,ny,nz,nxeh,nye&
-     &,nze,nxh,nyh,nzh)
+      call cmpois33(qe,fxyze,isign,ffc,ax,ay,az,affp,we,nx,ny,nz,nxeh,  &
+     &nye,nze,nxh,nyh,nzh)
       call dtimer(dtime,itime,1)
       time = real(dtime)
       tfield = tfield + time
@@ -187,7 +188,7 @@
 ! transform force to real space with OpenMP: updates fxyze
       call dtimer(dtime,itime,-1)
       isign = 1
-      call WFFT3RM3(fxyze,isign,mixup,sct,indx,indy,indz,nxeh,nye,nze,  &
+      call cwfft3rm3(fxyze,isign,mixup,sct,indx,indy,indz,nxeh,nye,nze, &
      &nxhyz,nxyzh)
       call dtimer(dtime,itime,1)
       time = real(dtime)
@@ -195,7 +196,7 @@
 !
 ! copy guard cells with OpenMP: updates fxyze
       call dtimer(dtime,itime,-1)
-      call CGUARD3L(fxyze,nx,ny,nz,nxe,nye,nze)
+      call ccguard3l(fxyze,nx,ny,nz,nxe,nye,nze)
       call dtimer(dtime,itime,1)
       time = real(dtime)
       tguard = tguard + time
@@ -204,32 +205,32 @@
       wke = 0.0
       call dtimer(dtime,itime,-1)
 ! updates ppart, wke
-!     call GPPUSH3L(ppart,fxyze,kpic,qbme,dt,wke,idimp,nppmx0,nx,ny,nz, &
+!     call cgppush3l(ppart,fxyze,kpic,qbme,dt,wke,idimp,nppmx0,nx,ny,nz,&
 !    &mx,my,mz,nxe,nye,nze,mx1,my1,mxyz1,ipbc)
 ! updates ppart, ncl, ihole, wke, irc
-      call GPPUSHF3L(ppart,fxyze,kpic,ncl,ihole,qbme,dt,wke,idimp,nppmx0&
-     &,nx,ny,nz,mx,my,mz,nxe,nye,nze,mx1,my1,mxyz1,ntmax,irc)
+      call cgppushf3l(ppart,fxyze,kpic,ncl,ihole,qbme,dt,wke,idimp,     &
+     &nppmx0,nx,ny,nz,mx,my,mz,nxe,nye,nze,mx1,my1,mxyz1,ntmax,irc)
       call dtimer(dtime,itime,1)
       time = real(dtime)
       tpush = tpush + time
       if (irc /= 0) then
-         write (*,*) 'GPPUSHF3L error: irc=', irc
+         write (*,*) 'cgppushf3l error: irc=', irc
          stop
       endif
 !
 ! reorder particles by tile with OpenMP:
       call dtimer(dtime,itime,-1)
 ! updates ppart, ppbuff, kpic, ncl, ihole, and irc
-!     call PPORDER3L(ppart,ppbuff,kpic,ncl,ihole,idimp,nppmx0,nx,ny,nz, &
+!     call cpporder3l(ppart,ppbuff,kpic,ncl,ihole,idimp,nppmx0,nx,ny,nz,&
 !    &mx,my,mz,mx1,my1,mz1,npbmx,ntmax,irc)
 ! updates ppart, ppbuff, kpic, ncl, and irc
-      call PPORDERF3L(ppart,ppbuff,kpic,ncl,ihole,idimp,nppmx0,mx1,my1, &
+      call cpporderf3l(ppart,ppbuff,kpic,ncl,ihole,idimp,nppmx0,mx1,my1,&
      &mz1,npbmx,ntmax,irc)
       call dtimer(dtime,itime,1)
       time = real(dtime)
       tsort = tsort + time
       if (irc /= 0) then
-         write (*,*) 'PPORDERF3L error: ntmax, irc=', ntmax, irc
+         write (*,*) 'cpporderf3l error: ntmax, irc=', ntmax, irc
          stop
       endif
 !

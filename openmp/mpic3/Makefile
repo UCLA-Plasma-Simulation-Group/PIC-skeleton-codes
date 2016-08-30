@@ -117,9 +117,9 @@ LEGACY =
 
 # Linkage rules
 
-all : fmpic3
+all : fmpic3 cmpic3
 
-special: cmpic3_f
+special: fmpic3_c cmpic3_f
 
 fmpic3 : fmpic3.o fmpush3.o fomplib.o dtimer.o
 	$(MPFC) $(OPTS90) -o fmpic3 fmpic3.o fmpush3.o fomplib.o mpush3_h.o \
@@ -129,7 +129,7 @@ cmpic3 : cmpic3.o cmpush3.o complib.o dtimer.o
 	$(MPCC) $(CCOPTS) -o cmpic3 cmpic3.o cmpush3.o complib.o dtimer.o -lm
 
 fmpic3_c : fmpic3_c.o cmpush3.o complib.o dtimer.o
-	$(MPFC) $(OPTS90) -o fmpic3_c fmpic3_c.o cmpush3.o complib.o dtimer.o
+	$(MPFC) $(OPTS90) -o fmpic3_c fmpic3_c.o cmpush3.o complib.o dtimer.o 
 
 cmpic3_f : cmpic3.o cmpush3_f.o complib_f.o fmpush3.o fomplib.o dtimer.o
 	$(MPFC) $(CCOPTS) $(LEGACY) -o cmpic3_f cmpic3.o cmpush3_f.o complib_f.o \
