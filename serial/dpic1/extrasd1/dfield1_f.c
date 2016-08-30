@@ -17,6 +17,10 @@ void curlf1_(float complex *f, float complex *g, int *nx, int *nxvh);
 void apotp13_(float complex *cu, float complex *ayz, float complex *ffc,
               float *ci, float *wm, int *nx, int *nxvh, int *nxhd);
 
+void etfield13_(float complex *dcu, float complex *eyz,
+                float complex *ffe, float *ci, float *wf, int *nx,
+                int *nxvh, int *nxhd);
+
 void smooth1_(float complex *q, float complex *qs, float complex *ffc,
               int *nx, int *nxvh, int *nxhd);
 
@@ -68,6 +72,14 @@ void capotp13(float complex cu[], float complex ayz[],
               float complex ffc[], float ci, float *wm, int nx,
               int nxvh, int nxhd) {
    apotp13_(cu,ayz,ffc,&ci,wm,&nx,&nxvh,&nxhd);
+   return;
+}
+
+/*--------------------------------------------------------------------*/
+void cetfield13(float complex dcu[], float complex eyz[], 
+                float complex ffe[], float ci, float *wf, int nx,
+                int nxvh, int nxhd) {
+   etfield13_(dcu,eyz,ffe,&ci,wf,&nx,&nxvh,&nxhd);
    return;
 }
 

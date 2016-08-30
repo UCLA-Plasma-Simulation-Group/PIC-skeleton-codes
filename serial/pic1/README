@@ -115,7 +115,7 @@ main program calling the Fortran procedure library
 
 To compile program, execute:
 
-make program_name
+Make program_name
 
 where program_name is either: fpic1 or cpic1_f.
 

@@ -17,12 +17,12 @@ potential in fourier space, in the Coulomb gauge.  These are calculated
 by the procedures POTP1 and APOTP13, respectively.  Other diagnostics,
 such as the unsmoothed longitudinal electric field and magnetic field
 can be calculated from the potentials with the procedures GRADF1 and
-CURLF1, respectively.  The procedure EPOIS13 can be called with isign=1
-to obtain the unsmoothed transverse electric field.  The fourier modes
-are normally stored to disk for later post-processing, such as by
-performing a fourier transform in time to obtain the frequencies for
-different wavenumbers.  It is usually not necessary to store all the
-modes to disk, since the high wavenumber modes are usually unimportant.
+CURLF1, respectively.  The procedure ETFIELD13 can be called to obtain
+the unsmoothed transverse electric field.  The fourier modes are
+normally stored to disk for later post-processing, such as by performing
+a fourier transform in time to obtain the frequencies for different
+wavenumbers.  It is usually not necessary to store all the modes to
+disk, since the high wavenumber modes are usually unimportant.
 Furthermore, the fourier modes are stored in a packed format which is
 difficult to work with.  Thus procedures RDMODES1 and RDVMODES1 are also
 provided to extract a subset of the fourier modes for the potential and

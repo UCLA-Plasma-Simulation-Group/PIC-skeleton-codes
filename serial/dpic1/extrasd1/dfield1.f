@@ -212,6 +212,72 @@ c mode numbers 0 < kx < nx/2
       return
       end
 c-----------------------------------------------------------------------
+      subroutine ETFIELD13(dcu,eyz,ffe,ci,wf,nx,nxvh,nxhd)
+c this subroutine solves 1-2/2d poisson's equation in fourier space for
+c unsmoothed transverse electric field, with periodic boundary
+c conditions.
+c using algorithm described in J. Busnardo-Neto, P. L. Pritchett,
+c A. T. Lin, and J. M. Dawson, J. Computational Phys. 23, 300 (1977).
+c input: dcu,ffe,isign,ci,nx,nxvh,nxhd, output: eyz,wf
+c approximate flop count is: 25*nxc
+c where nxc = nx/2 - 1
+c unsmoothed transverse electric field is calculated using the equation:
+c ey(kx) = -ci*ci*g(kx)*dcuy(kx)
+c ez(kx) = -ci*ci*g(kx)*dcuz(kx)
+c where kx = 2pi*j/nx, and j = fourier mode numbers,
+c g(kx) = (affp/(kx**2+wp0*ci2*s(kx)**2))*s(kx),
+c s(kx) = exp(-((kx*ax)**2+)/2), except for
+c ey(kx=pi) = ez(kx=pi) = 0, and ey(kx=0) = ez(kx=0,) = 0.
+c dcu(i,j) = transverse part of complex derivative of current for
+c fourier mode (j-1)
+c eyz(1,j) = y component of complex transverse electric field
+c eyz(2,j) = z component of complex transverse electric field
+c all for fourier mode (j-1)
+c aimag(ffe(j)) = finite-size particle shape factor s
+c for fourier mode (j-1)
+c real(ffe(j)) = potential green's function g
+c for fourier mode (j-1)
+c ci = reciprocal of velocity of light
+c transverse electric field energy is also calculated, using
+c wf = nx*sum((affp/(kx**2*ci*ci)**2)*|dcu(kx)*s(kx)|**2)
+c where affp = normalization constant = nx/np, and where
+c np=number of particles
+c this expression is valid only if the derivative of current is
+c divergence-free
+c nx = system length in x direction
+c nxvh = second dimension of field arrays, must be >= nxh
+c nxhd = second dimension of form factor array, must be >= nxh
+      implicit none
+      integer nx, nxvh, nxhd
+      real ci, wf
+      complex dcu, eyz, ffe
+      dimension dcu(2,nxvh), eyz(2,nxvh)
+      dimension ffe(nxhd)
+c local data
+      integer nxh, j
+      real ci2, at1, at2
+      complex zero
+      double precision wp
+      nxh = nx/2
+      zero = cmplx(0.0,0.0)
+      ci2 = ci*ci
+c calculate unsmoothed transverse electric field and sum field energy
+      wp = 0.0d0
+c mode numbers 0 < kx < nx/2
+      do 10 j = 2, nxh
+      at2 = -ci2*real(ffe(j))
+      at1 = at2*at2
+      eyz(1,j) = at2*dcu(1,j)
+      eyz(2,j) = at2*dcu(2,j)
+      wp = wp + at1*(dcu(1,j)*conjg(dcu(1,j)) + dcu(2,j)*conjg(dcu(2,j))
+     1)
+   10 continue
+      eyz(1,1) = zero
+      eyz(2,1) = zero
+      wf = real(nx)*wp/real(ffe(1))
+      return
+      end
+c-----------------------------------------------------------------------
       subroutine SMOOTH1(q,qs,ffc,nx,nxvh,nxhd)
 c this subroutine provides a 1d scalar smoothing function
 c in fourier space, with periodic boundary conditions.

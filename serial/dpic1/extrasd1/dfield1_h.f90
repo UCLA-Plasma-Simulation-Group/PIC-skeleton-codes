@@ -54,6 +54,18 @@
       end interface
 !
       interface
+         subroutine ETFIELD13(dcu,eyz,ffe,ci,wf,nx,nxvh,nxhd)
+         implicit none
+         integer, intent(in) :: nx, nxvh, nxhd
+         real, intent(in) :: ci
+         real, intent(inout) :: wf
+         real, dimension(3,2*nxvh), intent(in) :: dcu
+         complex, dimension(3,nxvh), intent(inout) :: eyz
+         complex, dimension(nxhd), intent(in) :: ffe
+         end subroutine
+      end interface
+!
+      interface
          subroutine SMOOTH1(q,qs,ffc,nx,nxvh,nxhd)
          implicit none
          integer, intent(in) :: nx, nxvh, nxhd
