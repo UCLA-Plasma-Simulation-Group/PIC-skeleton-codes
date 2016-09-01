@@ -422,6 +422,122 @@ c mode numbers ky = 0, ny/2
       return
       end
 c-----------------------------------------------------------------------
+      subroutine ETFIELD23(dcu,exy,ffe,ci,wf,nx,ny,nxvh,nyv,nxhd,nyhd)
+c this subroutine solves 2-1/2d poisson's equation in fourier space for
+c unsmoothed transverse electric field, with periodic boundary
+c conditions.
+c using algorithm described in J. Busnardo-Neto, P. L. Pritchett,
+c A. T. Lin, and J. M. Dawson, J. Computational Phys. 23, 300 (1977).
+c input: dcu,ffe,ci,nx,ny,nxvh,nyv,nxhd,nyhd, output: exy,wf
+c approximate flop count is: 68*nxc*nyc + 33*(nxc + nyc)
+c where nxc = nx/2 - 1, nyc = ny/2 - 1
+c unsmoothed transverse electric field is calculated using the equation:
+c ex(kx,ky) = -ci*ci*g(kx,ky)*dcux(kx,ky)
+c ey(kx,ky) = -ci*ci*g(kx,ky)*dcuy(kx,ky)
+c ez(kx,ky) = -ci*ci*g(kx,ky)*dcuz(kx,ky)
+c where kx = 2pi*j/nx, ky = 2pi*k/ny, and j,k = fourier mode numbers,
+c g(kx,ky) = (affp/(kx**2+ky**2+wp0*ci2*s(kx,ky)**2))*s(kx,ky),
+c s(kx,ky) = exp(-((kx*ax)**2+(ky*ay)**2)/2), except for
+c ex(kx=pi) = ey(kx=pi) = ez(kx=pi) = ex(ky=pi) = ey(ky=pi) = ez(ky=pi) 
+c = 0, and ex(kx=0,ky=0) = ey(kx=0,ky=0) = ez(kx=0,ky=0) = 0.
+c dcu(i,j,k) = transverse part of complex derivative of current for
+c fourier mode (j-1,k-1)
+c exy(1,j,k) = x component of complex transverse electric field
+c exy(2,j,k) = y component of complex transverse electric field
+c exy(3,j,k) = z component of complex transverse electric field
+c all for fourier mode (j-1,k-1)
+c aimag(ffe(j,k)) = finite-size particle shape factor s
+c for fourier mode (j-1,k-1)
+c real(ffe(j,k)) = potential green's function g
+c for fourier mode (j-1,k-1)
+c ci = reciprocal of velocity of light
+c transverse electric field energy is also calculated, using
+c wf = nx*ny*sum((affp/((kx**2+ky**2)*ci*ci)**2)
+c    |dcu(kx,ky)*s(kx,ky)|**2)
+c where affp = normalization constant = nx*ny/np, and where
+c np=number of particles
+c this expression is valid only if the derivative of current is
+c divergence-free
+c nx/ny = system length in x/y direction
+c nxvh = first dimension of field arrays, must be >= nxh
+c nyv = second dimension of field arrays, must be >= ny
+c nxhd = first dimension of form factor array, must be >= nxh
+c nyhd = second dimension of form factor array, must be >= nyh
+      implicit none
+      integer nx, ny, nxvh, nyv, nxhd, nyhd
+      real ci, wf
+      complex dcu, exy, ffe
+      dimension dcu(3,nxvh,nyv), exy(3,nxvh,nyv)
+      dimension ffe(nxhd,nyhd)
+c local data
+      integer nxh, nyh, ny2, j, k, k1
+      real ci2, at1, at2
+      complex zero
+      double precision wp
+      nxh = nx/2
+      nyh = max(1,ny/2)
+      ny2 = ny + 2
+      zero = cmplx(0.0,0.0)
+      ci2 = ci*ci
+c calculate unsmoothed transverse electric field and sum field energy
+      wp = 0.0d0
+c mode numbers 0 < kx < nx/2 and 0 < ky < ny/2
+      do 20 k = 2, nyh
+      k1 = ny2 - k
+      do 10 j = 2, nxh
+      at2 = -ci2*real(ffe(j,k))
+      at1 = at2*at2
+      exy(1,j,k) = at2*dcu(1,j,k)
+      exy(2,j,k) = at2*dcu(2,j,k)
+      exy(3,j,k) = at2*dcu(3,j,k)
+      exy(1,j,k1) = at2*dcu(1,j,k1)
+      exy(2,j,k1) = at2*dcu(2,j,k1)
+      exy(3,j,k1) = at2*dcu(3,j,k1)
+      wp = wp + at1*(dcu(1,j,k)*conjg(dcu(1,j,k))                       
+     1   + dcu(2,j,k)*conjg(dcu(2,j,k)) + dcu(3,j,k)*conjg(dcu(3,j,k))  
+     2   + dcu(1,j,k1)*conjg(dcu(1,j,k1))                               
+     3   + dcu(2,j,k1)*conjg(dcu(2,j,k1))                               
+     4   + dcu(3,j,k1)*conjg(dcu(3,j,k1)))
+   10 continue
+   20 continue
+c mode numbers kx = 0, nx/2
+      do 30 k = 2, nyh
+      k1 = ny2 - k
+      at2 = -ci2*real(ffe(1,k))
+      at1 = at2*at2
+      exy(1,1,k) = at2*dcu(1,1,k)
+      exy(2,1,k) = at2*dcu(2,1,k)
+      exy(3,1,k) = at2*dcu(3,1,k)
+      exy(1,1,k1) = zero
+      exy(2,1,k1) = zero
+      exy(3,1,k1) = zero
+      wp = wp + at1*(dcu(1,1,k)*conjg(dcu(1,1,k))                       
+     1   + dcu(2,1,k)*conjg(dcu(2,1,k)) + dcu(3,1,k)*conjg(dcu(3,1,k)))
+   30 continue
+c mode numbers ky = 0, ny/2
+      k1 = nyh + 1
+      do 40 j = 2, nxh
+      at2 = -ci2*real(ffe(j,1))
+      at1 = at2*at2
+      exy(1,j,1) = at2*dcu(1,j,1)
+      exy(2,j,1) = at2*dcu(2,j,1)
+      exy(3,j,1) = at2*dcu(3,j,1)
+      exy(1,j,k1) = zero
+      exy(2,j,k1) = zero
+      exy(3,j,k1) = zero
+      wp = wp + at1*(dcu(1,j,1)*conjg(dcu(1,j,1))                       
+     1   + dcu(2,j,1)*conjg(dcu(2,j,1)) + dcu(3,j,1)*conjg(dcu(3,j,1)))
+   40 continue
+      exy(1,1,1) = zero
+      exy(2,1,1) = zero
+      exy(3,1,1) = zero
+      exy(1,1,k1) = zero
+      exy(2,1,k1) = zero
+      exy(3,1,k1) = zero
+      wf = real(nx*ny)*wp/real(ffe(1,1))
+      return
+      end
+c-----------------------------------------------------------------------
       subroutine SMOOTH2(q,qs,ffc,nx,ny,nxvh,nyv,nxhd,nyhd)
 c this subroutine provides a 2d scalar smoothing function
 c in fourier space, with periodic boundary conditions.

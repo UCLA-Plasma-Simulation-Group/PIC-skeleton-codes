@@ -1622,7 +1622,6 @@ c normalize kinetic energy
    20 ek = ek + 0.125*sum1
       return
       end
-
 c-----------------------------------------------------------------------
       function ranorm()
 c this program calculates a random number y from a gaussian distribution

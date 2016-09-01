@@ -122,8 +122,8 @@
       call EPOIS23(dcu,cus,isign,ffe,ax,ay,affp,wpm,ci,wf,nx,ny,nxeh,nye&
      &,nxh,nyh)
 !
-! initialize transverse electric field
-      cus = 0.0
+! initialize electric fields
+      cus = 0.0; fxyze = 0.0
 !
 ! * * * start main iteration loop * * *
 !
@@ -373,7 +373,7 @@
       time = real(dtime)
       tfft = tfft + time
 !
-! add constant to magnetic field with standard procedure: updates bxzye
+! add constant to magnetic field with standard procedure: updates bxyze
       call dtimer(dtime,itime,-1)
       call BADDEXT2(bxyze,omx,omy,omz,nx,ny,nxe,nye)
       call dtimer(dtime,itime,1)

@@ -19,6 +19,10 @@ void curlf2_(float complex *f, float complex *g, int *nx, int *ny,
 void apotp23_(float complex *cu, float complex *axy,
               float complex *ffc, float *ci, float *wm, int *nx,
               int *ny, int *nxvh, int *nyv, int *nxhd, int *nyhd);
+              
+void etfield23_(float complex *dcu, float complex *exy,
+                float complex *ffe, float *ci, float *wf, int *nx,
+                int *ny, int *nxvh, int *nyv, int *nxhd, int *nyhd);
 
 void smooth2_(float complex *q, float complex *qs, float complex *ffc,
               int *nx, int *ny, int *nxvh, int *nyv, int *nxhd,
@@ -80,6 +84,14 @@ void capotp23(float complex cu[], float complex axyz[],
               float complex ffc[], float ci, float *wm, int nx, int ny,
               int nxvh, int nyv, int nxhd, int nyhd) {
    apotp23_(cu,axyz,ffc,&ci,wm,&nx,&ny,&nxvh,&nyv,&nxhd,&nyhd);
+   return;
+}
+
+/*--------------------------------------------------------------------*/
+void cetfield23(float complex dcu[], float complex exy[], 
+                float complex ffe[], float ci, float *wf, int nx,
+                int ny, int nxvh, int nyv, int nxhd, int nyhd) {
+   etfield23_(dcu,exy,ffe,&ci,wf,&nx,&ny,&nxvh,&nyv,&nxhd,&nyhd);
    return;
 }
 

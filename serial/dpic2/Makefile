@@ -11,6 +11,8 @@
 
 #CCOPTS = -O3 -Wall -std=c99
 
+#LEGACY =
+
 # Makefile Intel compiler with Mac OS X
 
 #FC90 = ifort
@@ -21,6 +23,8 @@
 #OPTS90 = -O3 -CB -r8 -warn all -std90
 
 #CCOPTS = -O3 -std=c99
+
+#LEGACY = -nofor_main
 
 # Makefile Intel compiler with Linux
 
@@ -33,6 +37,8 @@
 
 #CCOPTS = -O3 -std=c99
 
+#LEGACY = -nofor_main
+
 # Makefile gfortran compiler with Linux
 
 FC90 = gfortran
@@ -44,6 +50,8 @@ OPTS90 = -O3
 
 CCOPTS = -O3 -Wall -std=c99
 
+LEGACY =
+
 # Makefile PGI compiler with Linux
 
 #FC90 = pgf90
@@ -54,6 +62,20 @@ CCOPTS = -O3 -Wall -std=c99
 #OPTS90 = -O3 -Mbounds -r8 -Mstandard
 
 #CCOPTS = -O3 -Wall -std=c99
+
+#LEGACY = -Mnomain
+
+# Makefile Nag compiler with Linux
+
+#FC90 = nagfor
+#CC = gcc
+
+#OPTS90 = -O3 -dusty
+#OPTS90 = -O3 -default_kinds:r=64 -dusty
+#OPTS90 = -O3 -default_kinds:r=64 -C=array -nan -w=all -f95 -dusty
+
+#CCOPTS = -O3 -Wall -std=c99
+
 #LEGACY =
 
 # Makefile Cray compiler with Linux
@@ -66,6 +88,7 @@ CCOPTS = -O3 -Wall -std=c99
 #OPTS90 = -O 3 -R b -s real64 -en
 
 #CCOPTS = -O 3 -h c99 -h conform
+
 #LEGACY =
 
 #
@@ -87,7 +110,7 @@ fdpic2_c : fdpic2_c.o cdpush2.o dtimer.o
 	$(FC90) $(OPTS90) -o fdpic2_c fdpic2_c.o cdpush2.o dtimer.o
 
 cdpic2_f : cdpic2.o cdpush2_f.o fdpush2.o dtimer.o
-	$(FC90) $(CCOPTS) -o cdpic2_f cdpic2.o cdpush2_f.o fdpush2.o \
+	$(FC90) $(OPTS90) $(LEGACY) -o cdpic2_f cdpic2.o cdpush2_f.o fdpush2.o \
         dtimer.o -lm
 
 # Compilation rules
@@ -96,7 +119,7 @@ dtimer.o : dtimer.c
 	$(CC) $(CCOPTS) -c dtimer.c
 
 fdpush2.o : dpush2.f
-	$(FC90) $(OPTS90) -o fdpush2.o -c dpush2.f
+	$(FC90) $(OPTS90) $(LEGACY) -o fdpush2.o -c dpush2.f
 
 dpush2_h.o : dpush2_h.f90
 	$(FC90) $(OPTS90) -o dpush2_h.o -c dpush2_h.f90

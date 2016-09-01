@@ -17,6 +17,10 @@ void capotp23(float complex cu[], float complex axy[],
               float complex ffc[], float ci, float *wm, int nx, int ny,
               int nxvh, int nyv, int nxhd, int nyhd);
 
+void cetfield23(float complex dcu[], float complex exy[],
+                float complex ffe[], float ci, float *wf, int nx,
+                int ny, int nxvh, int nyv, int nxhd, int nyhd);
+
 void csmooth2(float complex q[], float complex qs[],
               float complex ffc[], int nx, int ny, int nxvh, int nyv,
               int nxhd, int nyhd);
