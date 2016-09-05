@@ -843,7 +843,7 @@ c perform xy fft
 c-----------------------------------------------------------------------
       subroutine WFFT3R3(f,isign,mixup,sct,indx,indy,indz,nxhd,nyd,nzd, 
      1nxhyzd,nxyzhd)
-c wrapper function for 3 2d real to complex ffts
+c wrapper function for 3 3d real to complex ffts
       implicit none
       complex f, sct
       integer mixup

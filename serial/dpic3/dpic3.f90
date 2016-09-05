@@ -124,8 +124,8 @@
       call EPOIS33(dcu,cus,isign,ffe,ax,ay,az,affp,wpm,ci,wf,nx,ny,nz,  &
      &nxeh,nye,nze,nxh,nyh,nzh)
 !
-! initialize transverse electric field
-      cus = 0.0
+! initialize electric fields
+      cus = 0.0; fxyze = 0.0
 !
 ! * * * start main iteration loop * * *
 !

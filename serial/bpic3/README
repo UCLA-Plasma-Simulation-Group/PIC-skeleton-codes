@@ -113,7 +113,7 @@ npz = number of electrons distributed in z direction.
 tend = time at end of simulation, in units of plasma frequency.
 dt = time interval between successive calculations.
    The number of time steps the code runs is given by tend/dt.
-   dt should be less than .45*ci for the electromagnetic code.
+   dt should be less than .37*ci for the electromagnetic code.
 vtx/vty/vtz = thermal velocity of electrons in x/y/z direction.
    a typical value is 1.0.
 vx0/vy0/vz0 = drift velocity of electrons in x/y/z direction.
