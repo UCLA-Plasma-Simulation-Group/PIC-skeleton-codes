@@ -1,9 +1,9 @@
 # Particle-In-Cell Skeleton Codes
 Succinct PIC Implementation 
 
-__All source code in this repository is confidential.__
+If you clone this repository, we ask that you please contact Ben Winjum (bwinjum@ucla.edu). The development of our codes relies on grant funding for which we are required to report code usage, and we would greatly appreciate being able to maintain accurate user-number tallies.
 
-If you're viewing this and don't have explicit permission from the UCLA Plasma Physics Simulation Group to access this repository please contact Warren Mori (mori@physics.ucla.edu).
+Please also feel free to send an email to this address if you would like assistance or if you have any questions related to the code base.
 
 ## Quick Start
 
