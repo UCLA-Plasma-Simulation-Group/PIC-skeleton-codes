@@ -102,12 +102,11 @@
       interface
          subroutine GMJPPOST1L(ppart,amu,kpic,qm,nppmx,idimp,mx,nxv,mx1)
          implicit none
-         integer, intent(in) :: nppmx, idimp, mx, my, nxv, nyv
-         integer, intent(in) :: mx1, mxy1
+         integer, intent(in) :: nppmx, idimp, mx, nxv, mx1
          real, intent(in) :: qm
-         real, dimension(idimp,nppmx,mxy1), intent(in) :: ppart
-         real, dimension(4,nxv,nyv), intent(inout) :: amu
-         integer, dimension(mxy1), intent(in) :: kpic
+         real, dimension(idimp,nppmx,mx1), intent(in) :: ppart
+         real, dimension(2,nxv), intent(inout) :: amu
+         integer, dimension(mx1), intent(in) :: kpic
          end subroutine
       end interface
 !
