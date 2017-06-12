@@ -1,4 +1,5 @@
-c Fortran library for Skeleton 3D Darwin PIC Code field diagnostics
+c Fortran library for Skeleton 3D Darwin OpenMP PIC Code field
+c diagnostics
 c written by viktor k. decyk, ucla
 c copyright 1994, regents of the university of california
 c-----------------------------------------------------------------------

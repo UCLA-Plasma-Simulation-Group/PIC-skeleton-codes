@@ -1,4 +1,4 @@
-c Fortran library for Skeleton 3D Electromagnetic PIC Code field
+c Fortran library for Skeleton 3D Electromagnetic OpenMP PIC Code field
 c diagnostics
 c written by viktor k. decyk, ucla
 c copyright 1994, regents of the university of california

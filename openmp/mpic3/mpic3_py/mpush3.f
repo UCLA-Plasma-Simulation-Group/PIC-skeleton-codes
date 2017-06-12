@@ -181,12 +181,12 @@ c ppart(4,n,m) = velocity vx of particle n in tile m
 c ppart(5,n,m) = velocity vy of particle n in tile m
 c ppart(6,n,m) = velocity vz of particle n in tile m
 c kpic = output number of particles per tile
-c nppmx = rmaximum number of particles in tile
+c nppmx = maximum number of particles in tile
 c idimp = size of phase space = 6
 c nop = number of particles
 c mx/my/mz = number of grids in sorting cell in x, y and z
 c mx1 = (system length in x direction - 1)/mx + 1
-c mxy1 = mx1*my1, where my1 = (system length in y direction - 1)/my + 1c my1 = (system length in y direction - 1)/my + 1
+c my1 = (system length in y direction - 1)/my + 1
 c mxyz1 = mx1*my1*mz1,
 c where mz1 = (system length in z direction - 1)/mz + 1
 c irc = maximum overflow, returned only if error occurs, when irc > 0
@@ -728,7 +728,7 @@ c find particles going out of bounds
 c count how many particles are going in each direction in ncl
 c save their address and destination in ihole
 c use periodic boundary conditions and check for roundoff error
-c ist = direction particle is going
+c mm = direction particle is going
       if (dx.ge.edgerx) then
          if (dx.ge.anx) dx = dx - anx
          mm = 2
@@ -1573,6 +1573,7 @@ c nze = third dimension of field arrays, must be >= nz+1
       real q
       integer nx, ny, nz, nxe, nye, nze
       dimension q(nxe,nye,nze)
+c local data
       integer j, k, l
 c accumulate edges of extended field
 !$OMP PARALLEL
@@ -1589,7 +1590,7 @@ c accumulate edges of extended field
       q(1,1,l) = q(1,1,l) + q(nx+1,ny+1,l)
       q(nx+1,ny+1,l) = 0.0
    30 continue
-!$OMP END DO NOWAIT
+!$OMP END DO
 !$OMP DO PRIVATE(j,k)
       do 50 k = 1, ny
       do 40 j = 1, nx
@@ -2065,7 +2066,7 @@ c written by viktor k. decyk, ucla
       dimension f(nxhd,nyd,nzd), mixup(nxhyzd), sct(nxyzhd)
 c local data
       integer indx1, ndx1yz, nx, nxh, nxhh, nxh2, ny, nyh, ny2
-      integer nz, nzh, nz2, nxyz, nxhyz, nzt, nrx, nry, nrxb, nryb
+      integer nz, nxyz, nxhyz, nzt, nrx, nry, nrxb, nryb
       integer i, j, k, l, n, j1, j2, k1, k2, ns, ns2, km, kmr
       real ani
       complex t1, t2, t3
@@ -2080,8 +2081,6 @@ c local data
       nyh = ny/2
       ny2 = ny + 2
       nz = 2**indz
-      nzh = nz/2
-      nz2 = nz + 2
       nxyz = max0(nx,ny,nz)
       nxhyz = 2**ndx1yz
       nzt = nzi + nzp - 1
@@ -2312,7 +2311,7 @@ c nxyzhd = maximum of (nx,ny,nz)/2
 c fourier coefficients are stored as follows:
 c f(j,k,l) = real, imaginary part of mode j-1,k-1,l-1
 c where 1 <= j <= nx/2, 1 <= k <= ny, 1 <= l <= nz, except for
-c f(1,k,l), = real, imaginary part of mode nx/2,k-1,l-1,
+c f(1,k,l) = real, imaginary part of mode nx/2,k-1,l-1,
 c where ny/2+2 <= k <= ny and 1 <= l <= nz, and
 c f(1,1,l) = real, imaginary part of mode nx/2,0,l-1,
 c f(1,ny/2+1,l) = real, imaginary part mode nx/2,ny/2,l-1,
@@ -2334,7 +2333,7 @@ c written by viktor k. decyk, ucla
       integer mixup
       dimension f(nxhd,nyd,nzd), mixup(nxhyzd), sct(nxyzhd)
 c local data
-      integer indx1, ndx1yz, nx, nxh, nxhh, nxh2, ny, nyh, ny2
+      integer indx1, ndx1yz, nx, nxh, ny, nyh
       integer nz, nzh, nz2, nxyz, nxhyz, nyt, nrz, nrzb
       integer i, j, k, l, n, j1, j2, k1, k2, l1, ns, ns2, km, kmr
       complex t1, t2
@@ -2343,11 +2342,8 @@ c local data
       ndx1yz = max0(indx1,indy,indz)
       nx = 2**indx
       nxh = nx/2
-      nxhh = nx/4
-      nxh2 = nxh + 2
       ny = 2**indy
       nyh = ny/2
-      ny2 = ny + 2
       nz = 2**indz
       nzh = nz/2
       nz2 = nz + 2
@@ -2521,7 +2517,7 @@ c written by viktor k. decyk, ucla
       dimension f(3,nxhd,nyd,nzd), mixup(nxhyzd), sct(nxyzhd)
 c local data
       integer indx1, ndx1yz, nx, nxh, nxhh, nxh2, ny, nyh, ny2
-      integer nz, nzh, nz2, nxyz, nxhyz, nzt, nrx, nry, nrxb, nryb
+      integer nz, nxyz, nxhyz, nzt, nrx, nry, nrxb, nryb
       integer i, j, k, l, n, jj, j1, j2, k1, k2, ns, ns2, km, kmr
       real at1, at2, ani
       complex t1, t2, t3, t4
@@ -2536,8 +2532,6 @@ c local data
       nyh = ny/2
       ny2 = ny + 2
       nz = 2**indz
-      nzh = nz/2
-      nz2 = nz + 2
       nxyz = max0(nx,ny,nz)
       nxhyz = 2**ndx1yz
       nzt = nzi + nzp - 1
@@ -2850,7 +2844,7 @@ c nyd,nzd = third and fourth dimensions of f
 c nxhyzd = maximum of (nx/2,ny,nz)
 c nxyzhd = maximum of (nx,ny,nz)/2
 c fourier coefficients are stored as follows:
-c f(1:3,2*j-1,k,l),f(2*j,k,l) = real, imaginary part of mode j-1,k-1,l-1
+c f(1:3,j,k,l) = real, imaginary part of mode j-1,k-1,l-1
 c where 1 <= j <= nx/2, 1 <= k <= ny, 1 <= l <= nz, except for
 c f(1:3,1,k,l) = real, imaginary part of mode nx/2,k-1,l-1,
 c where ny/2+2 <= k <= ny and 1 <= l <= nz, and
@@ -2874,7 +2868,7 @@ c written by viktor k. decyk, ucla
       integer mixup
       dimension f(3,nxhd,nyd,nzd), mixup(nxhyzd), sct(nxyzhd)
 c local data
-      integer indx1, ndx1yz, nx, nxh, nxhh, nxh2, ny, nyh, ny2
+      integer indx1, ndx1yz, nx, nxh, ny, nyh
       integer nz, nzh, nz2, nxyz, nxhyz, nyt, nrz, nrzb
       integer i, j, k, l, n, jj, j1, j2, k1, k2, l1, ns, ns2, km, kmr
       complex t1, t2, t3, t4
@@ -2883,11 +2877,8 @@ c local data
       ndx1yz = max0(indx1,indy,indz)
       nx = 2**indx
       nxh = nx/2
-      nxhh = nx/4
-      nxh2 = nxh + 2
       ny = 2**indy
       nyh = ny/2
-      ny2 = ny + 2
       nz = 2**indz
       nzh = nz/2
       nz2 = nz + 2

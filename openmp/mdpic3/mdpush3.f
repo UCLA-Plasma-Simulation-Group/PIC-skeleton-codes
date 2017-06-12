@@ -1516,7 +1516,7 @@ c ppart(3,n,m) = position z of particle n in tile m at t
 c ppart(4,n,m) = velocity vx of particle n in tile m at t - dt/2
 c ppart(5,n,m) = velocity vy of particle n in tile m at t - dt/2
 c ppart(6,n,m) = velocity vz of particle n in tile m at t - dt/2
-c cu(i,j,k,l) = ith component of current density at grid point j,k,l
+c amu(i,j,k,l) = ith component of momentum flux at grid point j,k,l
 c kpic = number of particles per tile
 c qm = charge on particle, in units of e
 c nppmx = maximum number of particles in tile
@@ -1596,7 +1596,7 @@ c find interpolation weights
       amx = amx*amy
       amz = 1.0 - dzp
       amy = dxp*amy
-c deposit current
+c deposit momentum flux within tile to local accumulator
       dx = amx*amz
       dy = amy*amz
       vx = ppart(4,j,l)
@@ -1663,7 +1663,7 @@ c deposit current
       samu(5,nn+1,mm+1,ll+1) = samu(5,nn+1,mm+1,ll+1) + v5*dy
       samu(6,nn+1,mm+1,ll+1) = samu(6,nn+1,mm+1,ll+1) + v6*dy
    40 continue
-c deposit charge to interior points in global array
+c deposit momentum flux to interior points in global array
       nn = min(mx,nxv-noff)
       mm = min(my,nyv-moff)
       ll = min(mz,nzv-loff)
@@ -1685,7 +1685,7 @@ c deposit charge to interior points in global array
    50 continue
    60 continue
    70 continue
-c deposit charge to edge points in global array
+c deposit momentum flux to edge points in global array
       lm = min(mz+1,nzv-loff)
       do 90 j = 2, mm
       do 80 i = 2, nn
@@ -2272,7 +2272,7 @@ c deposit momentum flux and acceleration density
       sdcu(2,nn+1,mm+1,ll+1) = sdcu(2,nn+1,mm+1,ll+1) + vy*dy
       sdcu(3,nn+1,mm+1,ll+1) = sdcu(3,nn+1,mm+1,ll+1) + vz*dy
   100 continue
-c deposit charge to interior points in global array
+c deposit current to interior points in global array
       nn = min(mx,nxv-noff)
       mm = min(my,nyv-moff)
       ll = min(mz,nzv-loff)
@@ -2300,7 +2300,7 @@ c deposit charge to interior points in global array
   110 continue
   120 continue
   130 continue
-c deposit charge to edge points in global array
+c deposit current to edge points in global array
       lm = min(mz+1,nzv-loff)
       do 150 j = 2, mm
       do 140 i = 2, nn
@@ -3021,7 +3021,7 @@ c deposit momentum flux, acceleration density, and current density
       scu(2,nn+1,mm+1,ll+1) = scu(2,nn+1,mm+1,ll+1) + oy*dy
       scu(3,nn+1,mm+1,ll+1) = scu(3,nn+1,mm+1,ll+1) + oz*dy
   100 continue
-c deposit charge to interior points in global array
+c deposit current to interior points in global array
       nn = min(mx,nxv-noff)
       mm = min(my,nyv-moff)
       ll = min(mz,nzv-loff)
@@ -3055,7 +3055,7 @@ c deposit charge to interior points in global array
   110 continue
   120 continue
   130 continue
-c deposit charge to edge points in global array
+c deposit current to edge points in global array
       lm = min(mz+1,nzv-loff)
       do 150 j = 2, mm
       do 140 i = 2, nn
@@ -4055,7 +4055,7 @@ c accumulate edges of extended field
       cu(i,nx+1,ny+1,l) = 0.0
    50 continue
    60 continue
-!$OMP END DO NOWAIT
+!$OMP END DO
 !$OMP DO PRIVATE(i,j,k)
       do 100 k = 1, ny
       do 80 j = 1, nx
@@ -4111,7 +4111,7 @@ c accumulate edges of extended field
       q(1,1,l) = q(1,1,l) + q(nx+1,ny+1,l)
       q(nx+1,ny+1,l) = 0.0
    30 continue
-!$OMP END DO NOWAIT
+!$OMP END DO
 !$OMP DO PRIVATE(j,k)
       do 50 k = 1, ny
       do 40 j = 1, nx
@@ -4167,7 +4167,7 @@ c accumulate edges of extended field
       amu(i,nx+1,ny+1,l) = 0.0
    50 continue
    60 continue
-!$OMP END DO NOWAIT
+!$OMP END DO
 !$OMP DO PRIVATE(i,j,k)
       do 100 k = 1, ny
       do 80 j = 1, nx
@@ -5326,7 +5326,6 @@ c mode numbers kz = 0, nz/2
       dcu(3,j,k1,l1) = zero
    60 continue
 c mode numbers kx = 0, nx/2
-      dky = dny*real(k - 1)
       zt2 = cmplx(aimag(amu(2,1,k,1)),-real(amu(2,1,k,1)))
       zt1 = dky*zt2
       zt5 = cmplx(aimag(amu(5,1,k,1)),-real(amu(5,1,k,1)))
@@ -5650,7 +5649,6 @@ c mode numbers kz = 0, nz/2
       dcu(3,j,k1,l1) = zero
    60 continue
 c mode numbers kx = 0, nx/2
-      dky = dny*real(k - 1)
       zt2 = cmplx(aimag(amu(2,1,k,1)),-real(amu(2,1,k,1)))
       zt1 = dcu(1,1,k,1) + dky*zt2
       zt5 = cmplx(aimag(amu(5,1,k,1)),-real(amu(5,1,k,1)))
@@ -6446,7 +6444,7 @@ c written by viktor k. decyk, ucla
       dimension f(nxhd,nyd,nzd), mixup(nxhyzd), sct(nxyzhd)
 c local data
       integer indx1, ndx1yz, nx, nxh, nxhh, nxh2, ny, nyh, ny2
-      integer nz, nzh, nz2, nxyz, nxhyz, nzt, nrx, nry, nrxb, nryb
+      integer nz, nxyz, nxhyz, nzt, nrx, nry, nrxb, nryb
       integer i, j, k, l, n, j1, j2, k1, k2, ns, ns2, km, kmr
       real ani
       complex t1, t2, t3
@@ -6461,8 +6459,6 @@ c local data
       nyh = ny/2
       ny2 = ny + 2
       nz = 2**indz
-      nzh = nz/2
-      nz2 = nz + 2
       nxyz = max0(nx,ny,nz)
       nxhyz = 2**ndx1yz
       nzt = nzi + nzp - 1
@@ -6715,7 +6711,7 @@ c written by viktor k. decyk, ucla
       integer mixup
       dimension f(nxhd,nyd,nzd), mixup(nxhyzd), sct(nxyzhd)
 c local data
-      integer indx1, ndx1yz, nx, nxh, nxhh, nxh2, ny, nyh, ny2
+      integer indx1, ndx1yz, nx, nxh, ny, nyh
       integer nz, nzh, nz2, nxyz, nxhyz, nyt, nrz, nrzb
       integer i, j, k, l, n, j1, j2, k1, k2, l1, ns, ns2, km, kmr
       complex t1, t2
@@ -6724,11 +6720,8 @@ c local data
       ndx1yz = max0(indx1,indy,indz)
       nx = 2**indx
       nxh = nx/2
-      nxhh = nx/4
-      nxh2 = nxh + 2
       ny = 2**indy
       nyh = ny/2
-      ny2 = ny + 2
       nz = 2**indz
       nzh = nz/2
       nz2 = nz + 2
@@ -6902,7 +6895,7 @@ c written by viktor k. decyk, ucla
       dimension f(3,nxhd,nyd,nzd), mixup(nxhyzd), sct(nxyzhd)
 c local data
       integer indx1, ndx1yz, nx, nxh, nxhh, nxh2, ny, nyh, ny2
-      integer nz, nzh, nz2, nxyz, nxhyz, nzt, nrx, nry, nrxb, nryb
+      integer nz, nxyz, nxhyz, nzt, nrx, nry, nrxb, nryb
       integer i, j, k, l, n, jj, j1, j2, k1, k2, ns, ns2, km, kmr
       real at1, at2, ani
       complex t1, t2, t3, t4
@@ -6917,8 +6910,6 @@ c local data
       nyh = ny/2
       ny2 = ny + 2
       nz = 2**indz
-      nzh = nz/2
-      nz2 = nz + 2
       nxyz = max0(nx,ny,nz)
       nxhyz = 2**ndx1yz
       nzt = nzi + nzp - 1
@@ -7255,7 +7246,7 @@ c written by viktor k. decyk, ucla
       integer mixup
       dimension f(3,nxhd,nyd,nzd), mixup(nxhyzd), sct(nxyzhd)
 c local data
-      integer indx1, ndx1yz, nx, nxh, nxhh, nxh2, ny, nyh, ny2
+      integer indx1, ndx1yz, nx, nxh, ny, nyh
       integer nz, nzh, nz2, nxyz, nxhyz, nyt, nrz, nrzb
       integer i, j, k, l, n, jj, j1, j2, k1, k2, l1, ns, ns2, km, kmr
       complex t1, t2, t3, t4
@@ -7264,11 +7255,8 @@ c local data
       ndx1yz = max0(indx1,indy,indz)
       nx = 2**indx
       nxh = nx/2
-      nxhh = nx/4
-      nxh2 = nxh + 2
       ny = 2**indy
       nyh = ny/2
-      ny2 = ny + 2
       nz = 2**indz
       nzh = nz/2
       nz2 = nz + 2
@@ -7462,7 +7450,11 @@ c imag(f(1:N,1,1,1)) = real part of mode nx/2,0,0
 c imag(f(1:N,1,ny/2+1,1)) = real part of mode nx/2,ny/2,0
 c imag(f(1:N,1,1,nz/2+1)) = real part of mode nx/2,0,nz/2
 c imag(f(1:N,1,ny/2+1,nz/2+1)) = real part of mode nx/2,ny/2,nz/2
-c using jpl storage convention
+c using jpl storage convention, as described in:
+c E. Huang, P. C. Liewer, V. K. Decyk, and R. D. Ferraro, "Concurrent
+c Three-Dimensional Fast Fourier Transform Algorithms for Coarse-Grained
+c Distributed Memory Parallel Computers," Caltech CRPC Report 217-50,
+c December 1993.
 c written by viktor k. decyk, ucla
       implicit none
       integer isign, mixup, indx, indy, indz, nzi, nzp, nxhd, nyd, nzd
@@ -7472,7 +7464,7 @@ c written by viktor k. decyk, ucla
       dimension f(ndim,nxhd,nyd,nzd), mixup(nxhyzd), sct(nxyzhd)
 c local data
       integer indx1, ndx1yz, nx, nxh, nxhh, nxh2, ny, nyh, ny2
-      integer nz, nzh, nz2, nxyz, nxhyz, nzt, nrx, nry, ns, ns2, km, kmr
+      integer nz, nxyz, nxhyz, nzt, nrx, nry, ns, ns2, km, kmr
       integer i, j, k, l, n, k1, k2, j1, j2, jj, nrxb, nryb
       real ani
       complex t1, t2, t3
@@ -7487,8 +7479,6 @@ c local data
       nyh = ny/2
       ny2 = ny + 2
       nz = 2**indz
-      nzh = nz/2
-      nz2 = nz + 2
       nxyz = max0(nx,ny,nz)
       nxhyz = 2**ndx1yz
       nzt = nzi + nzp - 1
@@ -7763,7 +7753,11 @@ c imag(f(1:N,1,1,1)) = real part of mode nx/2,0,0
 c imag(f(1:N,1,ny/2+1,1)) = real part of mode nx/2,ny/2,0
 c imag(f(1:N,1,1,nz/2+1)) = real part of mode nx/2,0,nz/2
 c imag(f(1:N,1,ny/2+1,nz/2+1)) = real part of mode nx/2,ny/2,nz/2
-c using jpl storage convention
+c using jpl storage convention, as described in:
+c E. Huang, P. C. Liewer, V. K. Decyk, and R. D. Ferraro, "Concurrent
+c Three-Dimensional Fast Fourier Transform Algorithms for Coarse-Grained
+c Distributed Memory Parallel Computers," Caltech CRPC Report 217-50,
+c December 1993.
 c written by viktor k. decyk, ucla
       implicit none
       integer isign, mixup, indx, indy, indz, nyi, nyp, nxhd, nyd
@@ -7771,7 +7765,7 @@ c written by viktor k. decyk, ucla
       complex f, sct
       dimension f(ndim,nxhd,nyd,nzd), mixup(nxhyzd), sct(nxyzhd)
 c local data
-      integer indx1, ndx1yz, nx, nxh, nxhh, nxh2, ny, nyh, ny2
+      integer indx1, ndx1yz, nx, nxh, ny, nyh
       integer nz, nzh, nz2, nxyz, nxhyz, nyt, nrz, ns, ns2, km, kmr
       integer i, j, k, l, n, k1, k2, j1, j2, l1, jj, nrzb
       complex t1, t2
@@ -7780,11 +7774,8 @@ c local data
       ndx1yz = max0(indx1,indy,indz)
       nx = 2**indx
       nxh = nx/2
-      nxhh = nx/4
-      nxh2 = nxh + 2
       ny = 2**indy
       nyh = ny/2
-      ny2 = ny + 2
       nz = 2**indz
       nzh = nz/2
       nz2 = nz + 2
@@ -7796,7 +7787,7 @@ c inverse fourier transform
       nrzb = nxhyz/nz
       nrz = nxyz/nz
 !$OMP PARALLEL DO
-!$OMP& PRIVATE(i,j,k,l,n,ns,ns2,km,kmr,k1,k2,j1,j2,l1,t1,t2)
+!$OMP& PRIVATE(i,j,k,l,n,ns,ns2,km,kmr,k1,k2,jj,j1,j2,l1,t1,t2)
       do 90 n = nyi, nyt
 c bit-reverse array elements in z
       do 30 l = 1, nz
@@ -7881,7 +7872,7 @@ c scramble modes kx = 0, nx/2
   160 continue
 c bit-reverse array elements in z
 !$OMP PARALLEL DO
-!$OMP& PRIVATE(i,j,k,l,n,ns,ns2,km,kmr,k1,k2,j1,j2,l1,t1,t2)
+!$OMP& PRIVATE(i,j,k,l,n,ns,ns2,km,kmr,k1,k2,jj,j1,j2,l1,t1,t2)
       do 250 n = nyi, nyt
       do 190 l = 1, nz
       l1 = (mixup(l) - 1)/nrzb + 1

@@ -1,9 +1,9 @@
 !-----------------------------------------------------------------------
-! Skeleton 3D Darwin OpenMP PIC code
+! Skeleton 3D Darwin OpenMP PIC code which uses C libraries
 ! written by Viktor K. Decyk, UCLA
       program mdpic3
-      use mdpush3_h
-      use omplib_h
+! #include "mdpush3.h"
+! #include "omplib.h"
       implicit none
 ! indx/indy/indz = exponent which determines grid points in x/y/z
 ! direction: nx = 2**indx, ny = 2**indy, nz = 2**indz.
@@ -96,7 +96,7 @@
 !     write (*,*) 'enter number of nodes:'
 !     read (5,*) nvp
 ! initialize for shared memory parallel processing
-      call INIT_OMP(nvp)
+      call cinit_omp(nvp)
 !
 ! initialize scalars for standard code
 ! np = total number of particles in simulation
@@ -128,20 +128,20 @@
       allocate(kpic(mxyz1))
 !
 ! prepare fft tables
-      call WFFT3RINIT(mixup,sct,indx,indy,indz,nxhyz,nxyzh)
+      call cwfft3rinit(mixup,sct,indx,indy,indz,nxhyz,nxyzh)
 ! calculate form factor: ffc
       isign = 0
-      call MPOIS33(qe,fxyze,isign,ffc,ax,ay,az,affp,we,nx,ny,nz,nxeh,nye&
-     &,nze,nxh,nyh,nzh)
+      call cmpois33(qe,fxyze,isign,ffc,ax,ay,az,affp,we,nx,ny,nz,nxeh,  &
+     &nye,nze,nxh,nyh,nzh)
 ! initialize electrons
-      call DISTR3(part,vtx,vty,vtz,vx0,vy0,vz0,npx,npy,npz,idimp,np,nx, &
+      call cdistr3(part,vtx,vty,vtz,vx0,vy0,vz0,npx,npy,npz,idimp,np,nx,&
      &ny,nz,ipbc)
 !
 ! find number of particles in each of mx, my, mz, tiles:
 ! updates kpic, nppmx
-      call DBLKP3L(part,kpic,nppmx,idimp,np,mx,my,mz,mx1,my1,mxyz1,irc)
+      call cdblkp3l(part,kpic,nppmx,idimp,np,mx,my,mz,mx1,my1,mxyz1,irc)
       if (irc /= 0) then
-         write (*,*) 'DBLKP3L error, irc=', irc
+         write (*,*) 'cdblkp3l error, irc=', irc
          stop
       endif
 ! allocate vector particle data
@@ -153,26 +153,27 @@
       allocate(ncl(26,mxyz1))
       allocate(ihole(2,ntmax+1,mxyz1))
 ! copy ordered particle data for OpenMP: updates ppart and kpic
-      call PPMOVIN3L(part,ppart,kpic,nppmx0,idimp,np,mx,my,mz,mx1,my1,  &
+      call cppmovin3l(part,ppart,kpic,nppmx0,idimp,np,mx,my,mz,mx1,my1, &
      &mxyz1,irc)
       if (irc /= 0) then
-         write (*,*) 'PPMOVIN3L overflow error, irc=', irc
+         write (*,*) 'cppmovin3l overflow error, irc=', irc
          stop
       endif
 ! sanity check
-      call PPCHECK3L(ppart,kpic,idimp,nppmx0,nx,ny,nz,mx,my,mz,mx1,my1, &
+      call cppcheck3l(ppart,kpic,idimp,nppmx0,nx,ny,nz,mx,my,mz,mx1,my1,&
      &mz1,irc)
       if (irc /= 0) then
-         write (*,*) 'PPCHECK3L error: irc=', irc
+         write (*,*) 'cppcheck3l error: irc=', irc
          stop
       endif
 !
 ! find maximum and minimum initial electron density
       qe = 0.0
-      call GPPOST3L(ppart,qe,kpic,qme,nppmx0,idimp,mx,my,mz,nxe,nye,nze,&
-     &mx1,my1,mxyz1)
-      call AGUARD3L(qe,nx,ny,nz,nxe,nye,nze)
-      call FWPMINMX3(qe,qbme,wpmax,wpmin,nx,ny,nz,nxe,nye,nze)
+      call cgppost3l(ppart,qe,kpic,qme,nppmx0,idimp,mx,my,mz,nxe,nye,nze&
+     &,mx1,my1,mxyz1)
+      call caguard3l(qe,nx,ny,nz,nxe,nye,nze)
+      call cfwpminmx3(qe,qbme,wpmax,wpmin,nx,ny,nz,nxe,nye,nze)
+!
       wpm = 0.5*(wpmax + wpmin)*affp
 ! accelerate convergence: update wpm
       if (wpm <= 10.0) wpm = 0.75*wpm
@@ -180,7 +181,7 @@
       q2m0 = wpm/affp
 ! calculate form factor: ffe
       isign = 0
-      call MEPOIS33(dcu,cus,isign,ffe,ax,ay,az,affp,wpm,ci,wf,nx,ny,nz, &
+      call cmepois33(dcu,cus,isign,ffe,ax,ay,az,affp,wpm,ci,wf,nx,ny,nz,&
      &nxeh,nye,nze,nxh,nyh,nzh)
 !
 ! initialize transverse electric field
@@ -194,8 +195,8 @@
 ! deposit current with OpenMP: updates cue
       call dtimer(dtime,itime,-1)
       cue = 0.0
-      call GJPPOST3L(ppart,cue,kpic,qme,zero,nppmx0,idimp,nx,ny,nz,mx,my&
-     &,mz,nxe,nye,nze,mx1,my1,mxyz1,ipbc)
+      call cgjppost3l(ppart,cue,kpic,qme,zero,nppmx0,idimp,nx,ny,nz,mx, &
+     &my,mz,nxe,nye,nze,mx1,my1,mxyz1,ipbc)
       call dtimer(dtime,itime,1)
       time = real(dtime)
       tdjpost = tdjpost + time
@@ -203,16 +204,16 @@
 ! deposit charge with OpenMP: updates qe
       call dtimer(dtime,itime,-1)
       qe = 0.0
-      call GPPOST3L(ppart,qe,kpic,qme,nppmx0,idimp,mx,my,mz,nxe,nye,nze,&
-     &mx1,my1,mxyz1)
+      call cgppost3l(ppart,qe,kpic,qme,nppmx0,idimp,mx,my,mz,nxe,nye,nze&
+     &,mx1,my1,mxyz1)
       call dtimer(dtime,itime,1)
       time = real(dtime)
       tdpost = tdpost + time
 !
 ! add guard cells with OpenMP: updates qe, cue
       call dtimer(dtime,itime,-1)
-      call AGUARD3L(qe,nx,ny,nz,nxe,nye,nze)
-      call ACGUARD3L(cue,nx,ny,nz,nxe,nye,nze)
+      call caguard3l(qe,nx,ny,nz,nxe,nye,nze)
+      call cacguard3l(cue,nx,ny,nz,nxe,nye,nze)
       call dtimer(dtime,itime,1)
       time = real(dtime)
       tguard = tguard + time
@@ -220,8 +221,8 @@
 ! transform charge to fourier space with OpenMP: updates qe
       call dtimer(dtime,itime,-1)
       isign = -1
-      call WFFT3RMX(qe,isign,mixup,sct,indx,indy,indz,nxeh,nye,nze,nxhyz&
-     &,nxyzh)
+      call cwfft3rmx(qe,isign,mixup,sct,indx,indy,indz,nxeh,nye,nze,    &
+     &nxhyz,nxyzh)
       call dtimer(dtime,itime,1)
       time = real(dtime)
       tfft = tfft + time
@@ -230,8 +231,8 @@
 ! updates fxyze, we
       call dtimer(dtime,itime,-1)
       isign = -1
-      call MPOIS33(qe,fxyze,isign,ffc,ax,ay,az,affp,we,nx,ny,nz,nxeh,nye&
-     &,nze,nxh,nyh,nzh)
+      call cmpois33(qe,fxyze,isign,ffc,ax,ay,az,affp,we,nx,ny,nz,nxeh,  &
+     &nye,nze,nxh,nyh,nzh)
       call dtimer(dtime,itime,1)
       time = real(dtime)
       tfield = tfield + time
@@ -240,7 +241,7 @@
 ! updates fxyze
       call dtimer(dtime,itime,-1)
       isign = 1
-      call WFFT3RM3(fxyze,isign,mixup,sct,indx,indy,indz,nxeh,nye,nze,  &
+      call cwfft3rm3(fxyze,isign,mixup,sct,indx,indy,indz,nxeh,nye,nze, &
      &nxhyz,nxyzh)
       call dtimer(dtime,itime,1)
       time = real(dtime)
@@ -249,7 +250,7 @@
 ! transform current to fourier space with OpenMP: update cue
       call dtimer(dtime,itime,-1)
       isign = -1
-      call WFFT3RM3(cue,isign,mixup,sct,indx,indy,indz,nxeh,nye,nze,    &
+      call cwfft3rm3(cue,isign,mixup,sct,indx,indy,indz,nxeh,nye,nze,   &
      &nxhyz,nxyzh)
       call dtimer(dtime,itime,1)
       time = real(dtime)
@@ -257,7 +258,7 @@
 !
 ! take transverse part of current with OpenMP: updates cue
       call dtimer(dtime,itime,-1)
-      call MCUPERP3(cue,nx,ny,nz,nxeh,nye,nze)
+      call cmcuperp3(cue,nx,ny,nz,nxeh,nye,nze)
       call dtimer(dtime,itime,1)
       time = real(dtime)
       tfield = tfield + time
@@ -265,7 +266,7 @@
 ! calculate magnetic field in fourier space with OpenMP:
 ! updates bxyze, wm
       call dtimer(dtime,itime,-1)
-      call MBBPOIS33(cue,bxyze,ffc,ci,wf,nx,ny,nz,nxeh,nye,nze,nxh,nyh, &
+      call cmbbpois33(cue,bxyze,ffc,ci,wf,nx,ny,nz,nxeh,nye,nze,nxh,nyh,&
      &nzh)
       call dtimer(dtime,itime,1)
       time = real(dtime)
@@ -274,7 +275,7 @@
 ! transform magnetic force to real space with OpenMP: updates bxyze
       call dtimer(dtime,itime,-1)
       isign = 1
-      call WFFT3RM3(bxyze,isign,mixup,sct,indx,indy,indz,nxeh,nye,nze,  &
+      call cwfft3rm3(bxyze,isign,mixup,sct,indx,indy,indz,nxeh,nye,nze, &
      &nxhyz,nxyzh)
       call dtimer(dtime,itime,1)
       time = real(dtime)
@@ -282,15 +283,15 @@
 !
 ! add constant to magnetic field with OpenMP: updates bxyze
       call dtimer(dtime,itime,-1)
-      call BADDEXT3(bxyze,omx,omy,omz,nx,ny,nz,nxe,nye,nze)
+      call cbaddext3(bxyze,omx,omy,omz,nx,ny,nz,nxe,nye,nze)
       call dtimer(dtime,itime,1)
       time = real(dtime)
       tfield = tfield + time
 !
 ! copy guard cells with OpenMP: updates fxyze, bxyze
       call dtimer(dtime,itime,-1)
-      call CGUARD3L(fxyze,nx,ny,nz,nxe,nye,nze)
-      call CGUARD3L(bxyze,nx,ny,nz,nxe,nye,nze)
+      call ccguard3l(fxyze,nx,ny,nz,nxe,nye,nze)
+      call ccguard3l(bxyze,nx,ny,nz,nxe,nye,nze)
       call dtimer(dtime,itime,1)
       time = real(dtime)
       tguard = tguard + time
@@ -298,7 +299,7 @@
 ! add longitudinal and old transverse electric fields with OpenMP:
 ! updates exyze
       call dtimer(dtime,itime,-1)
-      call ADDVRFIELD3(exyze,cus,fxyze,ndim,nxe,nye,nze)
+      call caddvrfield3(exyze,cus,fxyze,ndim,nxe,nye,nze)
       call dtimer(dtime,itime,1)
       time = real(dtime)
       tfield = tfield + time
@@ -307,18 +308,18 @@
 ! updates dcu, amu
       call dtimer(dtime,itime,-1)
       dcu = 0.0; amu = 0.0
-      call GDJPPOST3L(ppart,exyze,bxyze,kpic,dcu,amu,qme,qbme,dt,idimp, &
+      call cgdjppost3l(ppart,exyze,bxyze,kpic,dcu,amu,qme,qbme,dt,idimp,&
      &nppmx0,nx,ny,nz,mx,my,mz,nxe,nye,nze,mx1,my1,mxyz1)
 ! add old scaled electric field with OpenMP: updates dcu
-      call ASCFGUARD3L(dcu,cus,q2m0,nx,ny,nz,nxe,nye,nze)
+      call cascfguard3l(dcu,cus,q2m0,nx,ny,nz,nxe,nye,nze)
       call dtimer(dtime,itime,1)
       time = real(dtime)
       tdcjpost = tdcjpost + time
 !
 ! add guard cells with OpenMP: updates dcu, amu
       call dtimer(dtime,itime,-1)
-      call ACGUARD3L(dcu,nx,ny,nz,nxe,nye,nze)
-      call AMCGUARD3L(amu,nx,ny,nz,nxe,nye,nze,mdim)
+      call cacguard3l(dcu,nx,ny,nz,nxe,nye,nze)
+      call camcguard3l(amu,nx,ny,nz,nxe,nye,nze,mdim)
       call dtimer(dtime,itime,1)
       time = real(dtime)
       tguard = tguard + time
@@ -327,9 +328,9 @@
 ! with OpenMP: updates dcu, amu
       call dtimer(dtime,itime,-1)
       isign = -1
-      call WFFT3RM3(dcu,isign,mixup,sct,indx,indy,indz,nxeh,nye,nze,    &
+      call cwfft3rm3(dcu,isign,mixup,sct,indx,indy,indz,nxeh,nye,nze,   &
      &nxhyz,nxyzh)
-      call WFFT3RMN(amu,ss,isign,mixup,sct,indx,indy,indz,nxeh,nye,nze, &
+      call cwfft3rmn(amu,ss,isign,mixup,sct,indx,indy,indz,nxeh,nye,nze,&
      &mdim,nxhyz,nxyzh)
       call dtimer(dtime,itime,1)
       time = real(dtime)
@@ -338,7 +339,7 @@
 ! take transverse part of time derivative of current with OpenMP:
 ! updates dcu
       call dtimer(dtime,itime,-1)
-      call MADCUPERP3(dcu,amu,nx,ny,nz,nxeh,nye,nze)
+      call cmadcuperp3(dcu,amu,nx,ny,nz,nxeh,nye,nze)
       call dtimer(dtime,itime,1)
       time = real(dtime)
       tfield = tfield + time
@@ -346,7 +347,7 @@
 ! calculate transverse electric field with OpenMP: updates cus, wf
       call dtimer(dtime,itime,-1)
       isign = -1
-      call MEPOIS33(dcu,cus,isign,ffe,ax,ay,az,affp,wpm,ci,wf,nx,ny,nz, &
+      call cmepois33(dcu,cus,isign,ffe,ax,ay,az,affp,wpm,ci,wf,nx,ny,nz,&
      &nxeh,nye,nze,nxh,nyh,nzh)
       call dtimer(dtime,itime,1)
       time = real(dtime)
@@ -356,7 +357,7 @@
 ! updates cus
       call dtimer(dtime,itime,-1)
       isign = 1
-      call WFFT3RM3(cus,isign,mixup,sct,indx,indy,indz,nxeh,nye,nze,    &
+      call cwfft3rm3(cus,isign,mixup,sct,indx,indy,indz,nxeh,nye,nze,   &
      &nxhyz,nxyzh)
       call dtimer(dtime,itime,1)
       time = real(dtime)
@@ -364,7 +365,7 @@
 !
 ! copy guard cells with OpenMP: updates cus
       call dtimer(dtime,itime,-1)
-      call CGUARD3L(cus,nx,ny,nz,nxe,nye,nze)
+      call ccguard3l(cus,nx,ny,nz,nxe,nye,nze)
       call dtimer(dtime,itime,1)
       time = real(dtime)
       tguard = tguard + time
@@ -373,7 +374,7 @@
 ! exyze = cus + fxyze, updates exyze
 ! cus needs to be retained for next time step
       call dtimer(dtime,itime,-1)
-      call ADDVRFIELD3(exyze,cus,fxyze,ndim,nxe,nye,nze)
+      call caddvrfield3(exyze,cus,fxyze,ndim,nxe,nye,nze)
       call dtimer(dtime,itime,1)
       time = real(dtime)
       tfield = tfield + time
@@ -385,10 +386,10 @@
 ! with OpenMP: updates cue, dcu, amu
       call dtimer(dtime,itime,-1)
       cue = 0.0; dcu = 0.0; amu = 0.0
-      call GDCJPPOST3L(ppart,exyze,bxyze,kpic,cue,dcu,amu,qme,qbme,dt,  &
+      call cgdcjppost3l(ppart,exyze,bxyze,kpic,cue,dcu,amu,qme,qbme,dt, &
      &idimp,nppmx0,nx,ny,nz,mx,my,mz,nxe,nye,nze,mx1,my1,mxyz1)
 ! add scaled electric field with OpenMP: updates dcu
-      call ASCFGUARD3L(dcu,cus,q2m0,nx,ny,nz,nxe,nye,nze)
+      call cascfguard3l(dcu,cus,q2m0,nx,ny,nz,nxe,nye,nze)
       call dtimer(dtime,itime,1)
       time = real(dtime)
       tdcjpost = tdcjpost + time
@@ -396,9 +397,9 @@
 ! add guard cells for current, acceleration density, and momentum flux
 ! with OpenMP: updates cue, dcu, amu
       call dtimer(dtime,itime,-1)
-      call ACGUARD3L(cue,nx,ny,nz,nxe,nye,nze)
-      call ACGUARD3L(dcu,nx,ny,nz,nxe,nye,nze)
-      call AMCGUARD3L(amu,nx,ny,nz,nxe,nye,nze,mdim)
+      call cacguard3l(cue,nx,ny,nz,nxe,nye,nze)
+      call cacguard3l(dcu,nx,ny,nz,nxe,nye,nze)
+      call camcguard3l(amu,nx,ny,nz,nxe,nye,nze,mdim)
       call dtimer(dtime,itime,1)
       time = real(dtime)
       tguard = tguard + time
@@ -406,7 +407,7 @@
 ! transform current to fourier space with OpenMP: update cue
       call dtimer(dtime,itime,-1)
       isign = -1
-      call WFFT3RM3(cue,isign,mixup,sct,indx,indy,indz,nxeh,nye,nze,    &
+      call cwfft3rm3(cue,isign,mixup,sct,indx,indy,indz,nxeh,nye,nze,   &
      &nxhyz,nxyzh)
       call dtimer(dtime,itime,1)
       time = real(dtime)
@@ -414,7 +415,7 @@
 !
 ! take transverse part of current with OpenMP: updates cue
       call dtimer(dtime,itime,-1)
-      call MCUPERP3(cue,nx,ny,nz,nxeh,nye,nze)
+      call cmcuperp3(cue,nx,ny,nz,nxeh,nye,nze)
       call dtimer(dtime,itime,1)
       time = real(dtime)
       tfield = tfield + time
@@ -422,7 +423,7 @@
 ! calculate magnetic field in fourier space with OpenMP:
 ! updates bxyze, wm
       call dtimer(dtime,itime,-1)
-      call MBBPOIS33(cue,bxyze,ffc,ci,wm,nx,ny,nz,nxeh,nye,nze,nxh,nyh, &
+      call cmbbpois33(cue,bxyze,ffc,ci,wm,nx,ny,nz,nxeh,nye,nze,nxh,nyh,&
      &nzh)
       call dtimer(dtime,itime,1)
       time = real(dtime)
@@ -431,7 +432,7 @@
 ! transform magnetic force to real space with OpenMP: updates bxyze
       call dtimer(dtime,itime,-1)
       isign = 1
-      call WFFT3RM3(bxyze,isign,mixup,sct,indx,indy,indz,nxeh,nye,nze,  &
+      call cwfft3rm3(bxyze,isign,mixup,sct,indx,indy,indz,nxeh,nye,nze, &
      &nxhyz,nxyzh)
       call dtimer(dtime,itime,1)
       time = real(dtime)
@@ -439,7 +440,7 @@
 !
 ! add constant to magnetic field with OpenMP: updates bxyze
       call dtimer(dtime,itime,-1)
-      call BADDEXT3(bxyze,omx,omy,omz,nx,ny,nz,nxe,nye,nze)
+      call cbaddext3(bxyze,omx,omy,omz,nx,ny,nz,nxe,nye,nze)
       call dtimer(dtime,itime,1)
       time = real(dtime)
       tfield = tfield + time
@@ -448,9 +449,9 @@
 ! with OpenMP: updates dcu, amu
       call dtimer(dtime,itime,-1)
       isign = -1
-      call WFFT3RM3(dcu,isign,mixup,sct,indx,indy,indz,nxeh,nye,nze,    &
+      call cwfft3rm3(dcu,isign,mixup,sct,indx,indy,indz,nxeh,nye,nze,   &
      &nxhyz,nxyzh)
-      call WFFT3RMN(amu,ss,isign,mixup,sct,indx,indy,indz,nxeh,nye,nze, &
+      call cwfft3rmn(amu,ss,isign,mixup,sct,indx,indy,indz,nxeh,nye,nze,&
      &mdim,nxhyz,nxyzh)
       call dtimer(dtime,itime,1)
       time = real(dtime)
@@ -459,7 +460,7 @@
 ! take transverse part of time derivative of current with OpenMP:
 ! updates dcu
       call dtimer(dtime,itime,-1)
-      call MADCUPERP3(dcu,amu,nx,ny,nz,nxeh,nye,nze)
+      call cmadcuperp3(dcu,amu,nx,ny,nz,nxeh,nye,nze)
       call dtimer(dtime,itime,1)
       time = real(dtime)
       tfield = tfield + time
@@ -467,7 +468,7 @@
 ! calculate transverse electric field with OpenMP: updates cus, wf
       call dtimer(dtime,itime,-1)
       isign = -1
-      call MEPOIS33(dcu,cus,isign,ffe,ax,ay,az,affp,wpm,ci,wf,nx,ny,nz, &
+      call cmepois33(dcu,cus,isign,ffe,ax,ay,az,affp,wpm,ci,wf,nx,ny,nz,&
      &nxeh,nye,nze,nxh,nyh,nzh)
       call dtimer(dtime,itime,1)
       time = real(dtime)
@@ -477,7 +478,7 @@
 ! updates cus
       call dtimer(dtime,itime,-1)
       isign = 1
-      call WFFT3RM3(cus,isign,mixup,sct,indx,indy,indz,nxeh,nye,nze,    &
+      call cwfft3rm3(cus,isign,mixup,sct,indx,indy,indz,nxeh,nye,nze,   &
      &nxhyz,nxyzh)
       call dtimer(dtime,itime,1)
       time = real(dtime)
@@ -485,8 +486,8 @@
 !
 ! copy guard cells with OpenMP: updates bxyze, cus
       call dtimer(dtime,itime,-1)
-      call CGUARD3L(bxyze,nx,ny,nz,nxe,nye,nze)
-      call CGUARD3L(cus,nx,ny,nz,nxe,nye,nze)
+      call ccguard3l(bxyze,nx,ny,nz,nxe,nye,nze)
+      call ccguard3l(cus,nx,ny,nz,nxe,nye,nze)
       call dtimer(dtime,itime,1)
       time = real(dtime)
       tguard = tguard + time
@@ -495,7 +496,7 @@
 ! exyze = cus + fxyze, updates exyze
 ! cus needs to be retained for next time step
       call dtimer(dtime,itime,-1)
-      call ADDVRFIELD3(exyze,cus,fxyze,ndim,nxe,nye,nze)
+      call caddvrfield3(exyze,cus,fxyze,ndim,nxe,nye,nze)
       call dtimer(dtime,itime,1)
       time = real(dtime)
       tfield = tfield + time
@@ -506,33 +507,33 @@
       wke = 0.0
       call dtimer(dtime,itime,-1)
 ! updates ppart, wke
-!     call GBPPUSH3L(ppart,exyze,bxyze,kpic,qbme,dt,dt,wke,idimp,nppmx0,&
-!    &nx,ny,nz,mx,my,mz,nxe,nye,nze,mx1,my1,mxyz1,ipbc)
+!     call cgbppush3l(ppart,exyze,bxyze,kpic,qbme,dt,dt,wke,idimp,nppmx0&
+!    &,nx,ny,nz,mx,my,mz,nxe,nye,nze,mx1,my1,mxyz1,ipbc)
 ! updates ppart, ncl, ihole, wke, irc
-      call GBPPUSHF3L(ppart,exyze,bxyze,kpic,ncl,ihole,qbme,dt,dt,wke,  &
+      call cgbppushf3l(ppart,exyze,bxyze,kpic,ncl,ihole,qbme,dt,dt,wke, &
      &idimp,nppmx0,nx,ny,nz,mx,my,mz,nxe,nye,nze,mx1,my1,mxyz1,ntmax,irc&
      &)
       call dtimer(dtime,itime,1)
       time = real(dtime)
       tpush = tpush + time
       if (irc /= 0) then
-         write (*,*) 'GBPPUSHF3L error: irc=', irc
+         write (*,*) 'cgbppushf3l error: irc=', irc
          stop
       endif
 !
 ! reorder particles by tile with OpenMP:
       call dtimer(dtime,itime,-1)
 ! updates ppart, ppbuff, kpic, ncl, ihole, and irc
-!     call PPORDER3L(ppart,ppbuff,kpic,ncl,ihole,idimp,nppmx0,nx,ny,nz, &
+!     call cpporder3l(ppart,ppbuff,kpic,ncl,ihole,idimp,nppmx0,nx,ny,nz &
 !    &mx,my,mz,mx1,my1,mz1,npbmx,ntmax,irc)
 ! updates ppart, ppbuff, kpic, ncl, and irc
-      call PPORDERF3L(ppart,ppbuff,kpic,ncl,ihole,idimp,nppmx0,mx1,my1, &
+      call cpporderf3l(ppart,ppbuff,kpic,ncl,ihole,idimp,nppmx0,mx1,my1,&
      &mz1,npbmx,ntmax,irc)
       call dtimer(dtime,itime,1)
       time = real(dtime)
       tsort = tsort + time
       if (irc /= 0) then
-         write (*,*) 'PPORDERF3L error: ntmax, irc=', ntmax, irc
+         write (*,*) 'cpporderf3l error: ntmax, irc=', ntmax, irc
          stop
       endif
 !

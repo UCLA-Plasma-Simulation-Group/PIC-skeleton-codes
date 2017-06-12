@@ -117,18 +117,18 @@ LEGACY =
 
 # Linkage rules
 
-all : fmdpic3
+all : fmdpic3 cmdpic3
 
-special : cmdpic3_f
+special : fmdpic3_c cmdpic3_f
 
 fmdpic3 : fmdpic3.o fmdpush3.o fomplib.o dtimer.o
 	$(MPFC) $(OPTS90) -o fmdpic3 fmdpic3.o fmdpush3.o fomplib.o mdpush3_h.o \
         dtimer.o
 
 cmdpic3 : cmdpic3.o cmdpush3.o complib.o dtimer.o
-	$(MPCC) $(CCOPTS) -o cmdpic3 cmbdpic3.o mdpush3.o complib.o dtimer.o -lm
+	$(MPCC) $(CCOPTS) -o cmdpic3 cmdpic3.o cmdpush3.o complib.o dtimer.o -lm
 
-fmdpic3_c : fmdpic3_c.o cmdpush3.o complib.o dtimer.o
+fmdpic3_c : fmdpic3_c.o cmdpush3.o complib.o dtimer.o 
 	$(MPFC) $(OPTS90) -o fmdpic3_c fmdpic3_c.o cmdpush3.o complib.o dtimer.o
 
 cmdpic3_f : cmdpic3.o cmdpush3_f.o complib_f.o fmdpush3.o fomplib.o dtimer.o
@@ -171,7 +171,7 @@ cmdpush3_f.o : mdpush3_f.c
 cmdpic3.o : mdpic3.c
 	$(CC) $(CCOPTS) -o cmdpic3.o -c mdpic3.c
 
-fmbpic3_c.o : mbpic3_c.f90
+fmdpic3_c.o : mdpic3_c.f90
 	$(FC90) $(OPTS90) -o fmdpic3_c.o -c mdpic3_c.f90
 
 clean :

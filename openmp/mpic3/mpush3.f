@@ -1590,7 +1590,7 @@ c accumulate edges of extended field
       q(1,1,l) = q(1,1,l) + q(nx+1,ny+1,l)
       q(nx+1,ny+1,l) = 0.0
    30 continue
-!$OMP END DO NOWAIT
+!$OMP END DO
 !$OMP DO PRIVATE(j,k)
       do 50 k = 1, ny
       do 40 j = 1, nx

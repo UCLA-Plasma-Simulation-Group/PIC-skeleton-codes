@@ -1973,7 +1973,7 @@ c find interpolation weights
       amx = amx*amy
       amz = 1.0 - dzp
       amy = dxp*amy
-c deposit current
+c deposit current within tile to local accumulator
       dx = amx*amz
       dy = amy*amz
       vx = ppart(4,j,l)
@@ -2043,7 +2043,7 @@ c set new position
       ppart(2,j,l) = dy
       ppart(3,j,l) = dz
    40 continue
-c deposit charge to interior points in global array
+c deposit current to interior points in global array
       nn = min(mx,nxv-noff)
       mm = min(my,nyv-moff)
       ll = min(mz,nzv-loff)
@@ -2059,7 +2059,7 @@ c deposit charge to interior points in global array
    50 continue
    60 continue
    70 continue
-c deposit charge to edge points in global array
+c deposit current to edge points in global array
       lm = min(mz+1,nzv-loff)
       do 90 j = 2, mm
       do 80 i = 2, nn
@@ -2323,7 +2323,7 @@ c find interpolation weights
       amx = amx*amy
       amz = 1.0 - dzp
       amy = dxp*amy
-c deposit current
+c deposit current within tile to local accumulator
       dx = amx*amz
       dy = amy*amz
       vx = ppart(4,j,l)
@@ -2430,7 +2430,7 @@ c increment counters
          endif
       endif
    50 continue
-c deposit charge to interior points in global array
+c deposit current to interior points in global array
       nn = min(mx,nxv-noff)
       mm = min(my,nyv-moff)
       ll = min(mz,nzv-loff)
@@ -2446,7 +2446,7 @@ c deposit charge to interior points in global array
    60 continue
    70 continue
    80 continue
-c deposit charge to edge points in global array
+c deposit current to edge points in global array
       lm = min(mz+1,nzv-loff)
       do 100 j = 2, mm
       do 90 i = 2, nn
@@ -2717,7 +2717,7 @@ c calculate weights
       amx = amx*amy
       amz = 1.0 - dzp
       amy = dxp*amy
-c deposit current
+c deposit current within tile to local accumulator
       dx = amx*amz
       dy = amy*amz
       vx = vx*gami
@@ -2787,7 +2787,7 @@ c set new position
       ppart(2,j,l) = dy
       ppart(3,j,l) = dz
    40 continue
-c deposit charge to interior points in global array
+c deposit current to interior points in global array
       nn = min(mx,nxv-noff)
       mm = min(my,nyv-moff)
       ll = min(mz,nzv-loff)
@@ -2803,7 +2803,7 @@ c deposit charge to interior points in global array
    50 continue
    60 continue
    70 continue
-c deposit charge to edge points in global array
+c deposit current to edge points in global array
       lm = min(mz+1,nzv-loff)
       do 90 j = 2, mm
       do 80 i = 2, nn
@@ -3078,7 +3078,7 @@ c calculate weights
       amx = amx*amy
       amz = 1.0 - dzp
       amy = dxp*amy
-c deposit current
+c deposit current within tile to local accumulator
       dx = amx*amz
       dy = amy*amz
       vx = vx*gami
@@ -3185,7 +3185,7 @@ c increment counters
          endif
       endif
    50 continue
-c deposit charge to interior points in global array
+c deposit current to interior points in global array
       nn = min(mx,nxv-noff)
       mm = min(my,nyv-moff)
       ll = min(mz,nzv-loff)
@@ -3201,7 +3201,7 @@ c deposit charge to interior points in global array
    60 continue
    70 continue
    80 continue
-c deposit charge to edge points in global array
+c deposit current to edge points in global array
       lm = min(mz+1,nzv-loff)
       do 100 j = 2, mm
       do 90 i = 2, nn
@@ -3937,7 +3937,7 @@ c accumulate edges of extended field
       cu(i,nx+1,ny+1,l) = 0.0
    50 continue
    60 continue
-!$OMP END DO NOWAIT
+!$OMP END DO
 !$OMP DO PRIVATE(i,j,k)
       do 100 k = 1, ny
       do 80 j = 1, nx
@@ -3993,7 +3993,7 @@ c accumulate edges of extended field
       q(1,1,l) = q(1,1,l) + q(nx+1,ny+1,l)
       q(nx+1,ny+1,l) = 0.0
    30 continue
-!$OMP END DO NOWAIT
+!$OMP END DO
 !$OMP DO PRIVATE(j,k)
       do 50 k = 1, ny
       do 40 j = 1, nx
@@ -4315,6 +4315,7 @@ c cux(kx=pi) = cuy(kx=pi) = cuz(kx=pi) = 0,
 c cux(ky=pi) = cuy(ky=pi) = cux(ky=pi) = 0,
 c cux(kz=pi) = cuy(kz=pi) = cuz(kz=pi) = 0,
 c cux(kx=0,ky=0,kz=0) = cuy(kx=0,ky=0,kz=0) = cuz(kx=0,ky=0,kz=0) = 0.
+c cu(i,j,k,l) = complex current density for fourier mode (j-1,k-1,l-1)
 c nx/ny/nz = system length in x/y/z direction
 c nxvh = second dimension of field arrays, must be >= nxh
 c nyv = third dimension of field arrays, must be >= ny
@@ -5355,7 +5356,6 @@ c update magnetic field half time step and store electric field
       exyz(1,1,k1,l1) = zero
       exyz(2,1,k1,l1) = zero
       exyz(3,1,k1,l1) = zero
-
       sum3 = sum3 + ws
       sum4 = sum4 + wp
    70 continue
@@ -5448,6 +5448,7 @@ c includes additional smoothing
       complex fxyz, exyz, ffc
       dimension fxyz(3,nxvh,nyv,nzv), exyz(3,nxvh,nyv,nzv)
       dimension ffc(nxhd,nyhd,nzhd)
+c local data
       integer i, j, k, l, nxh, nyh, nzh, ny2, nz2, k1, l1
       real at1
       nxh = nx/2

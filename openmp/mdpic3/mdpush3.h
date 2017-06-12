@@ -137,6 +137,9 @@ void cfft3rm3z(float complex f[], int isign, int mixup[],
                int nyi, int nyp, int nxhd, int nyd, int nzd, int nxhyzd,
                int nxyzhd);
 
+void cmswap3cn(float f[], float s[], int isign, int nxh, int ny,
+               int nzi, int nzt, int nxhd, int nyd, int nzd, int ndim);
+
 void cfft3rmnxy(float complex f[], float complex ss[], int isign,
                 int mixup[], float complex sct[], int indx, int indy,
                 int indz, int nzi, int nzp, int nxhd, int nyd, int nzd,
@@ -159,6 +162,3 @@ void cwfft3rmn(float complex f[], float complex ss[], int isign,
                int mixup[], float complex sct[], int indx, int indy,
                int indz, int nxhd, int nyd, int nzd, int ndim, 
                int nxhyzd, int nxyzhd);
-
-void cmswap3cn(float f[], float s[], int isign, int nxh, int ny,
-               int nzi, int nzt, int nxhd, int nyd, int nzd, int ndim);

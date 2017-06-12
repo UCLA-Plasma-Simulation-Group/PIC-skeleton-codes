@@ -117,16 +117,16 @@ LEGACY =
 
 # Linkage rules
 
-all : fmbpic3
+all : fmbpic3 cmbpic3
 
-special : cmbpic3_f
+special : fmbpic3_c cmbpic3_f
 
 fmbpic3 : fmbpic3.o fmbpush3.o fomplib.o dtimer.o
 	$(MPFC) $(OPTS90) -o fmbpic3 fmbpic3.o fmbpush3.o fomplib.o mbpush3_h.o \
         dtimer.o
 
 cmbpic3 : cmbpic3.o cmbpush3.o complib.o dtimer.o
-	$(MPCC) $(CCOPTS) -o cmbpic3 cmbpic3.o mcbpush3.o complib.o dtimer.o -lm
+	$(MPCC) $(CCOPTS) -o cmbpic3 cmbpic3.o cmbpush3.o complib.o dtimer.o -lm
 
 fmbpic3_c : fmbpic3_c.o cmbpush3.o complib.o dtimer.o
 	$(MPFC) $(OPTS90) -o fmbpic3_c fmbpic3_c.o cmbpush3.o complib.o dtimer.o

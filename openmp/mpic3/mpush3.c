@@ -1074,7 +1074,6 @@ dzp,amx,amy,amz,dx1,sq)
                q[i+noff+nxv*(mm+moff-1)+nxyv*(lm+loff-1)]
                += sq[i+mxv*(mm-1)+mxyv*(lm-1)];
             }
-
          }
          for (j = 0; j < mm; j++) {
 #pragma omp atomic
@@ -1085,7 +1084,6 @@ dzp,amx,amy,amz,dx1,sq)
                q[nm+noff-1+nxv*(j+moff)+nxyv*(lm+loff-1)]
                += sq[nm-1+mxv*j+mxyv*(lm-1)];
             }
-
          }
       }
    }
@@ -1704,7 +1702,7 @@ local data                                                            */
 /* accumulate edges of extended field */
 #pragma omp parallel
    {
-#pragma omp for nowait \
+#pragma omp for \
 private(j,k,l,ll)
       for (l = 0; l < nz; l++) {
          ll = nxye*l;
@@ -1768,12 +1766,12 @@ void cmpois33(float complex q[], float complex fxyz[], int isign,
    fx(ky=pi) = fy(ky=pi) = fx(ky=pi) = 0,
    fx(kz=pi) = fy(kz=pi) = fz(kz=pi) = 0,
    fx(kx=0,ky=0,kz=0) = fy(kx=0,ky=0,kz=0) = fz(kx=0,ky=0,kz=0) = 0.
-   q[l][k][j] = complex charge density for fourier mode (j-1,k-1,l-1)
+   q[l][k][j] = complex charge density for fourier mode (j,k,l)
    fxyz[l][k][j][0] = x component of complex force/charge
    fxyz[l][k][j][1] = y component of complex force/charge
    fxyz[l][k][j][2] = z component of complex force/charge
    all for fourier mode (j,k,l)
-   caimag(ffc[l][k][j]) = finite-size particle shape factor s
+   cimag(ffc[l][k][j]) = finite-size particle shape factor s
    for fourier mode (j,k,l)
    creal(ffc[l][k][j]) = potential green's function g
    for fourier mode (j,k,l)
@@ -1782,7 +1780,7 @@ void cmpois33(float complex q[], float complex fxyz[], int isign,
    where np=number of particles
    electric field energy is also calculated, using
    we = nx*ny*nz*sum((affp/(kx**2+ky**2+kz**2))*
-      |[kz][ky][kx]*s[kz][ky][kx]|**2)
+      |q[kz][ky][kx]*s[kz][ky][kx]|**2)
    nx/ny/nz = system length in x/y/z direction
    nxvh = first dimension of field arrays, must be >= nxh
    nyv = second dimension of field arrays, must be >= ny
@@ -1833,12 +1831,12 @@ local data                                                            */
    return;
 /* calculate force/charge and sum field energy */
 L40: sum1 = 0.0;
+/* mode numbers 0 < kx < nx/2, 0 < ky < ny/2, and 0 < kz < nz/2 */
 #pragma omp parallel
    {
 #pragma omp for nowait \
 private(j,k,l,k1,l1,ll,lj,kk,kj,dky,dkz,at1,at2,at3,at4,zt1,zt2,wp) \
 reduction(+:sum1)
-/* mode numbers 0 < kx < nx/2, 0 < ky < ny/2, and 0 < kz < nz/2 */
       for (l = 1; l < nzh; l++) {
          dkz = dnz*(float) l;
          ll = nxyhd*l;
@@ -1977,14 +1975,7 @@ reduction(+:sum2)
          fxyz[2+3*(j+k1+l1)] = zero;
          wp += at1*(q[j+kj]*conjf(q[j+kj]) + q[j+k1]*conjf(q[j+k1]));
       }
-      sum2 += wp;
-   }
-   wp = 0.0;
 /* mode numbers kx = 0, nx/2 */
-   for (k = 1; k < nyh; k++) {
-      kk = nxhd*k;
-      kj = nxvh*k;
-      k1 = nxvh*ny - kj;
       at1 = crealf(ffc[kk])*cimagf(ffc[kk]);
       at3 = at1*dny*(float) k;
       zt1 = cimagf(q[kj]) - crealf(q[kj])*_Complex_I;
@@ -2001,7 +1992,9 @@ reduction(+:sum2)
       fxyz[1+3*(k1+l1)] = zero;
       fxyz[2+3*(k1+l1)] = zero;
       wp += at1*(q[kj]*conjf(q[kj]));
+      sum2 += wp;
    }
+   wp = 0.0;
 /* mode numbers ky = 0, ny/2 */
    k1 = nxvh*nyh;
    for (j = 1; j < nxh; j++) {
