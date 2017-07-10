@@ -123,7 +123,7 @@ c irc = maximum overflow, returned only if error occurs, when irc > 0
       integer kpic, nppmx, idimp, nop, mx, my, mz, mx1, my1, mxyz1, irc
       real part
       dimension part(idimp,nop), kpic(mxyz1)
-c local datal, 
+c local data
       integer j, k, n, m, l, mxy1, isum, ist, npx, ierr
       ierr = 0
       mxy1 = mx1*my1
@@ -586,7 +586,6 @@ c mx/my/mz = number of grids in sorting cell in x/y/z
 c nxv = second dimension of field array, must be >= nx+1
 c nyv = third dimension of field array, must be >= ny+1
 c nzv = fourth dimension of field array, must be >= nz+1
-c ipbc = particle boundary condition = (0,1,2,3) =
 c mx1 = (system length in x direction - 1)/mx + 1
 c my1 = (system length in y direction - 1)/my + 1
 c mxyz1 = mx1*my1*mz1,

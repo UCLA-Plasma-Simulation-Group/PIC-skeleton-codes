@@ -7,9 +7,10 @@
          subroutine DISTR3(part,vtx,vty,vtz,vdx,vdy,vdz,npx,npy,npz,    &
      &idimp,nop,nx,ny,nz,ipbc)
          implicit none
-         integer :: npx, npy, npz, idimp, nop, nx, ny, nz, ipbc
-         real :: vtx, vty, vtz, vdx, vdy, vdz
-         real, dimension(idimp,nop) :: part
+         integer, intent(in) :: npx, npy, npz, idimp, nop, nx, ny, nz
+         integer, intent(in) :: ipbc
+         real, intent(in) :: vtx, vty, vtz, vdx, vdy, vdz
+         real, dimension(idimp,nop), intent(inout) :: part
          end subroutine
       end interface
 !
@@ -17,9 +18,10 @@
          subroutine DBLKP3L(part,kpic,nppmx,idimp,nop,mx,my,mz,mx1,my1, &
      &mxyz1,irc)
          implicit none
-         integer :: nppmx, idimp, nop, mx, my, mz, mx1, my1, mxyz1, irc
-         real, dimension(idimp,nop) :: part
-         integer, dimension(mxyz1) :: kpic
+         integer, intent(in) :: idimp, nop, mx, my, mz, mx1, my1, mxyz1
+         integer, intent(inout) :: nppmx, irc
+         real, dimension(idimp,nop), intent(in) :: part
+         integer, dimension(mxyz1), intent(inout) :: kpic
          end subroutine
       end interface
 !
@@ -27,10 +29,12 @@
          subroutine PPMOVIN3L(part,ppart,kpic,nppmx,idimp,nop,mx,my,mz, &
      &mx1,my1,mxyz1,irc)
          implicit none
-         integer :: nppmx, idimp, nop, mx, my, mz, mx1, my1, mxyz1, irc
-         real, dimension(idimp,nop) :: part
-         real, dimension(idimp,nppmx,mxyz1) :: ppart
-         integer, dimension(mxyz1) :: kpic
+         integer, intent(in) :: nppmx, idimp, nop, mx, my, mz
+         integer, intent(in) :: mx1, my1, mxyz1
+         integer, intent(inout) :: irc
+         real, dimension(idimp,nop), intent(in) :: part
+         real, dimension(idimp,nppmx,mxyz1), intent(inout) :: ppart
+         integer, dimension(mxyz1), intent(inout) :: kpic
          end subroutine
       end interface
 !
@@ -38,10 +42,11 @@
          subroutine PPCHECK3L(ppart,kpic,idimp,nppmx,nx,ny,nz,mx,my,mz, &
      &mx1,my1,mz1,irc)
          implicit none
-         integer :: idimp, nppmx, nx, ny, nz, mx, my, mz, mx1, my1, mz1
-         integer :: irc
-         real, dimension(idimp,nppmx,mx1*my1*mz1) :: ppart
-         integer, dimension(mx1*my1*mz1) :: kpic
+         integer, intent(in) :: idimp, nppmx, nx, ny, nz, mx, my, mz
+         integer, intent(in) :: mx1, my1, mz1
+         integer, intent(inout) :: irc
+         real, dimension(idimp,nppmx,mx1*my1*mz1), intent(in) :: ppart
+         integer, dimension(mx1*my1*mz1), intent(in) :: kpic
          end subroutine
       end interface
 !
@@ -49,12 +54,13 @@
          subroutine GPPUSH3L(ppart,fxyz,kpic,qbm,dt,ek,idimp,nppmx,nx,ny&
      &,nz,mx,my,mz,nxv,nyv,nzv,mx1,my1,mxyz1,ipbc)
          implicit none
-         integer :: idimp, nppmx, nx, ny, nz, mx, my, mz, nxv, nyv, nzv
-         integer :: mx1, my1, mxyz1, ipbc
-         real :: qbm, dt, ek
-         real, dimension(idimp,nppmx,mxyz1) :: ppart
-         real, dimension(3,nxv,nyv,nzv) :: fxyz
-         integer, dimension(mxyz1) :: kpic
+         integer, intent(in) :: idimp, nppmx, nx, ny, nz, mx, my, mz
+         integer, intent(in) :: nxv, nyv, nzv, mx1, my1, mxyz1, ipbc
+         real, intent(in) :: qbm, dt
+         real, intent(inout) :: ek
+         real, dimension(idimp,nppmx,mxyz1), intent(inout) :: ppart
+         real, dimension(3,nxv,nyv,nzv), intent(in) :: fxyz
+         integer, dimension(mxyz1), intent(in) :: kpic
          end subroutine
       end interface
 !
@@ -62,14 +68,16 @@
          subroutine GPPUSHF3L(ppart,fxyz,kpic,ncl,ihole,qbm,dt,ek,idimp,&
      &nppmx,nx,ny,nz,mx,my,mz,nxv,nyv,nzv,mx1,my1,mxyz1,ntmax,irc)
          implicit none
-         integer :: idimp, nppmx, nx, ny, nz, mx, my, mz, nxv, nyv, nzv
-         integer :: mx1, my1, mxyz1, ntmax, irc
-         real :: qbm, dt, ek
-         real, dimension(idimp,nppmx,mxyz1) :: ppart
-         real, dimension(3,nxv,nyv,nzv) :: fxyz
-         integer, dimension(mxyz1) :: kpic
-         integer, dimension(26,mxyz1) :: ncl
-         integer, dimension(2,ntmax+1,mxyz1) :: ihole
+         integer, intent(in) :: idimp, nppmx, nx, ny, nz, mx, my, mz
+         integer, intent(in) :: nxv, nyv, nzv, mx1, my1, mxyz1, ntmax
+         integer, intent(inout) :: irc
+         real, intent(in) :: qbm, dt
+         real, intent(inout) :: ek
+         real, dimension(idimp,nppmx,mxyz1), intent(inout) :: ppart
+         real, dimension(3,nxv,nyv,nzv), intent(in) :: fxyz
+         integer, dimension(mxyz1), intent(in) :: kpic
+         integer, dimension(26,mxyz1), intent(inout) :: ncl
+         integer, dimension(2,ntmax+1,mxyz1), intent(inout) :: ihole
          end subroutine
       end interface
 !
@@ -77,12 +85,12 @@
          subroutine GPPOST3L(ppart,q,kpic,qm,nppmx,idimp,mx,my,mz,nxv,  &
      &nyv,nzv,mx1,my1,mxyz1)
          implicit none
-         integer :: nppmx, idimp, mx, my, mz, nxv, nyv, nzv, mx1, my1
-         integer :: mxyz1
-         real :: qm
-         real, dimension(idimp,nppmx,mxyz1) :: ppart
-         real, dimension(nxv,nyv,nzv) :: q
-         integer, dimension(mxyz1) :: kpic
+         integer, intent(in) :: nppmx, idimp, mx, my, mz, nxv, nyv, nzv
+         integer, intent(in) :: mx1, my1, mxyz1
+         real, intent(in) :: qm
+         real, dimension(idimp,nppmx,mxyz1), intent(in) :: ppart
+         real, dimension(nxv,nyv,nzv), intent(inout) :: q
+         integer, dimension(mxyz1), intent(in) :: kpic
          end subroutine
       end interface
 !
@@ -90,13 +98,17 @@
          subroutine PPORDER3L(ppart,ppbuff,kpic,ncl,ihole,idimp,nppmx,nx&
      &,ny,nz,mx,my,mz,mx1,my1,mz1,npbmx,ntmax,irc)
          implicit none
-         integer :: idimp, nppmx, nx, ny, nz, mx, my, mz, mx1, my1, mz1
-         integer :: npbmx, ntmax, irc
-         real, dimension(idimp,nppmx,mx1*my1*mz1) :: ppart
-         real, dimension(idimp,npbmx,mx1*my1*mz1) :: ppbuff
-         integer, dimension(mx1*my1*mz1) :: kpic
-         integer, dimension(26,mx1*my1*mz1) :: ncl
-         integer, dimension(2,ntmax+1,mx1*my1*mz1) :: ihole
+         integer, intent(in) :: idimp, nppmx, nx, ny, nz, mx, my, mz
+         integer, intent(in) :: mx1, my1, mz1, npbmx, ntmax
+         integer, intent(inout) :: irc
+         real, dimension(idimp,nppmx,mx1*my1*mz1), intent(inout) ::     &
+     &ppart
+         real, dimension(idimp,npbmx,mx1*my1*mz1), intent(inout) ::     &
+     &ppbuff
+         integer, dimension(mx1*my1*mz1), intent(inout) :: kpic
+         integer, dimension(26,mx1*my1*mz1), intent(inout) :: ncl
+         integer, dimension(2,ntmax+1,mx1*my1*mz1), intent(inout) ::    &
+     &ihole
          end subroutine
       end interface
 !
@@ -104,28 +116,31 @@
          subroutine PPORDERF3L(ppart,ppbuff,kpic,ncl,ihole,idimp,nppmx, &
      &mx1,my1,mz1,npbmx,ntmax,irc)
          implicit none
-         integer :: idimp, nppmx, mx1, my1, mz1, npbmx, ntmax, irc
-         real, dimension(idimp,nppmx,mx1*my1*mz1) :: ppart
-         real, dimension(idimp,npbmx,mx1*my1*mz1) :: ppbuff
-         integer, dimension(mx1*my1*mz1) :: kpic
-         integer, dimension(26,mx1*my1*mz1) :: ncl
-         integer, dimension(2,ntmax+1,mx1*my1*mz1) :: ihole
+         integer, intent(in):: idimp, nppmx, mx1, my1, mz1, npbmx, ntmax
+         integer, intent(inout) :: irc
+         real, dimension(idimp,nppmx,mx1*my1*mz1), intent(inout) ::     &
+     &ppart
+         real, dimension(idimp,npbmx,mx1*my1*mz1), intent(inout) ::     &
+     &ppbuff
+         integer, dimension(mx1*my1*mz1), intent(inout) :: kpic
+         integer, dimension(26,mx1*my1*mz1), intent(inout) :: ncl
+         integer, dimension(2,ntmax+1,mx1*my1*mz1), intent(in) :: ihole
          end subroutine
       end interface
 !
       interface
          subroutine CGUARD3L(fxyz,nx,ny,nz,nxe,nye,nze)
          implicit none
-         integer :: nx, ny, nz, nxe, nye, nze
-         real, dimension(3,nxe,nye,nze) :: fxyz
+         integer, intent(in) :: nx, ny, nz, nxe, nye, nze
+         real, dimension(3,nxe,nye,nze), intent(inout) :: fxyz
          end subroutine
       end interface
 !
       interface
          subroutine AGUARD3L(q,nx,ny,nz,nxe,nye,nze)
          implicit none
-         integer :: nx, ny, nz, nxe, nye, nze
-         real, dimension(nxe,nye,nze) :: q
+         integer, intent(in) :: nx, ny, nz, nxe, nye, nze
+         real, dimension(nxe,nye,nze), intent(inout) :: q
          end subroutine
       end interface
 !
@@ -133,20 +148,22 @@
          subroutine MPOIS33(q,fxyz,isign,ffc,ax,ay,az,affp,we,nx,ny,nz, &
      &nxvh,nyv,nzv,nxhd,nyhd,nzhd)
          implicit none
-         integer :: isign, nx, ny, nz, nxvh, nyv, nzv, nxhd, nyhd, nzhd
-         real :: ax, ay, az, affp, we
-         real, dimension(2*nxvh,nyv,nzv) :: q
-         real, dimension(3,2*nxvh,nyv,nzv) :: fxyz
-         complex, dimension(nxhd,nyhd,nzhd) :: ffc
+         integer, intent(in) :: isign, nx, ny, nz, nxvh, nyv, nzv
+         integer, intent(in) :: nxhd, nyhd, nzhd
+         real, intent(in) :: ax, ay, az, affp
+         real, intent(inout) :: we
+         real, dimension(2*nxvh,nyv,nzv), intent(in) :: q
+         real, dimension(3,2*nxvh,nyv,nzv), intent(inout) :: fxyz
+         complex, dimension(nxhd,nyhd,nzhd), intent(inout) :: ffc
          end subroutine
       end interface
 !
       interface
          subroutine WFFT3RINIT(mixup,sct,indx,indy,indz,nxhyzd,nxyzhd)
          implicit none
-         integer :: indx, indy, indz, nxhyzd, nxyzhd
-         integer, dimension(nxhyzd) :: mixup
-         complex, dimension(nxyzhd) :: sct
+         integer, intent(in) :: indx, indy, indz, nxhyzd, nxyzhd
+         integer, dimension(nxhyzd), intent(inout) :: mixup
+         complex, dimension(nxyzhd), intent(inout) :: sct
          end subroutine
       end interface
 !
@@ -154,11 +171,11 @@
          subroutine WFFT3RMX(f,isign,mixup,sct,indx,indy,indz,nxhd,nyd, &
      &nzd,nxhyzd,nxyzhd)
          implicit none
-         integer :: isign, indx, indy, indz, nxhd, nyd, nzd
-         integer :: nxhyzd, nxyzhd
-         real, dimension(2*nxhd,nyd,nzd) :: f
-         integer, dimension(nxhyzd) :: mixup
-         complex, dimension(nxyzhd) :: sct
+         integer, intent(in) :: isign, indx, indy, indz, nxhd, nyd, nzd
+         integer, intent(in) :: nxhyzd, nxyzhd
+         real, dimension(2*nxhd,nyd,nzd), intent(inout) :: f
+         integer, dimension(nxhyzd), intent(in) :: mixup
+         complex, dimension(nxyzhd), intent(in) :: sct
          end subroutine
       end interface
 !
@@ -166,11 +183,11 @@
          subroutine WFFT3RM3(f,isign,mixup,sct,indx,indy,indz,nxhd,nyd, &
      &nzd,nxhyzd,nxyzhd)
          implicit none
-         integer :: isign, indx, indy, indz, nxhd, nyd, nzd
-         integer :: nxhyzd, nxyzhd
-         real, dimension(3,2*nxhd,nyd,nzd) :: f
-         integer, dimension(nxhyzd) :: mixup
-         complex, dimension(nxyzhd) :: sct
+         integer, intent(in) :: isign, indx, indy, indz, nxhd, nyd, nzd
+         integer, intent(in) :: nxhyzd, nxyzhd
+         real, dimension(3,2*nxhd,nyd,nzd), intent(inout) :: f
+         integer, dimension(nxhyzd), intent(in) :: mixup
+         complex, dimension(nxyzhd), intent(in) :: sct
          end subroutine
       end interface
 !
@@ -178,11 +195,11 @@
           subroutine FFT3RMXY(f,isign,mixup,sct,indx,indy,indz,nzi,nzp, &
      &nxhd,nyd,nzd,nxhyzd,nxyzhd)
          implicit none
-         integer :: isign, indx, indy, indz, nzi, nzp, nxhd, nyd, nzd
-         integer :: nxhyzd, nxyzhd
-         real, dimension(2*nxhd,nyd,nzd) :: f
-         integer, dimension(nxhyzd) :: mixup
-         complex, dimension(nxyzhd) :: sct
+         integer, intent(in) :: isign, indx, indy, indz, nzi, nzp
+         integer, intent(in) :: nxhd, nyd, nzd, nxhyzd, nxyzhd
+         real, dimension(2*nxhd,nyd,nzd), intent(inout) :: f
+         integer, dimension(nxhyzd), intent(in) :: mixup
+         complex, dimension(nxyzhd), intent(in) :: sct
          end subroutine
       end interface
 !
@@ -190,11 +207,11 @@
          subroutine FFT3RMXZ(f,isign,mixup,sct,indx,indy,indz,nyi,nyp,  &
      &nxhd,nyd,nzd,nxhyzd,nxyzhd)
          implicit none
-         integer :: isign, indx, indy, indz, nyi, nyp, nxhd, nyd, nzd
-         integer :: nxhyzd, nxyzhd
-         real, dimension(2*nxhd,nyd,nzd) :: f
-         integer, dimension(nxhyzd) :: mixup
-         complex, dimension(nxyzhd) :: sct
+         integer, intent(in) :: isign, indx, indy, indz, nyi, nyp
+         integer, intent(in) :: nxhd, nyd, nzd, nxhyzd, nxyzhd
+         real, dimension(2*nxhd,nyd,nzd), intent(inout) :: f
+         integer, dimension(nxhyzd), intent(in) :: mixup
+         complex, dimension(nxyzhd), intent(in) :: sct
          end subroutine
       end interface
 !
@@ -202,11 +219,11 @@
          subroutine FFT3RM3XY(f,isign,mixup,sct,indx,indy,indz,nzi,nzp, &
      &nxhd,nyd,nzd,nxhyzd,nxyzhd)
          implicit none
-         integer :: isign, indx, indy, indz, nzi, nzp, nxhd, nyd, nzd
-         integer :: nxhyzd, nxyzhd
-         real, dimension(3,2*nxhd,nyd,nzd) :: f
-         integer, dimension(nxhyzd) :: mixup
-         complex, dimension(nxyzhd) :: sct
+         integer, intent(in) :: isign, indx, indy, indz, nzi, nzp
+         integer, intent(in) :: nxhd, nyd, nzd, nxhyzd, nxyzhd
+         real, dimension(3,2*nxhd,nyd,nzd), intent(inout) :: f
+         integer, dimension(nxhyzd), intent(in) :: mixup
+         complex, dimension(nxyzhd), intent(in) :: sct
          end subroutine
       end interface
 !
@@ -214,11 +231,11 @@
          subroutine FFT3RM3Z(f,isign,mixup,sct,indx,indy,indz,nyi,nyp,  &
      &nxhd,nyd,nzd,nxhyzd,nxyzhd)
          implicit none
-         integer :: isign, indx, indy, indz, nyi, nyp, nxhd, nyd, nzd
-         integer :: nxhyzd, nxyzhd
-         real, dimension(3,2*nxhd,nyd,nzd) :: f
-         integer, dimension(nxhyzd) :: mixup
-         complex, dimension(nxyzhd) :: sct
+         integer, intent(in) :: isign, indx, indy, indz, nyi, nyp
+         integer, intent(in) :: nxhd, nyd, nzd, nxhyzd, nxyzhd
+         real, dimension(3,2*nxhd,nyd,nzd), intent(inout) :: f
+         integer, dimension(nxhyzd), intent(in) :: mixup
+         complex, dimension(nxyzhd), intent(in) :: sct
          end subroutine
       end interface
 !

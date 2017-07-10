@@ -85,7 +85,7 @@
 ! np = total number of particles in simulation
 ! nx/ny/nz = number of grid points in x/y/z direction
       np = npx*npy*npz; nx = 2**indx; ny = 2**indy; nz = 2**indz
-      nxh = nx/2; nyh = ny/2; nzh = nz/2
+      nxh = nx/2; nyh = max(1,ny/2); nzh = max(1,nz/2)
       nxe = nx + 2; nye = ny + 1; nze = nz + 1; nxeh = nxe/2
       nxyzh = max(nx,ny,nz)/2; nxhyz = max(nxh,ny,nz)
 ! mx1/my1/mz1 = number of tiles in x/y/z direction
@@ -113,7 +113,7 @@
       call DISTR3(part,vtx,vty,vtz,vx0,vy0,vz0,npx,npy,npz,idimp,np,nx, &
      &ny,nz,ipbc)
 !
-! find number of particles in each of mx, my mz, tiles:
+! find number of particles in each of mx, my, mz, tiles:
 ! updates kpic, nppmx
       call DBLKP3L(part,kpic,nppmx,idimp,np,mx,my,mz,mx1,my1,mxyz1,irc)
       if (irc /= 0) then
@@ -142,8 +142,6 @@
          write (*,*) 'PPCHECK3L error: irc=', irc
          stop
       endif
-!
-      nloop = 2
 !
 ! * * * start main iteration loop * * *
 !

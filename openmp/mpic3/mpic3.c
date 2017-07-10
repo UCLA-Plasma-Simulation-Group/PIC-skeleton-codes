@@ -92,7 +92,7 @@ int main(int argc, char *argv[]) {
 /* np = total number of particles in simulation */
 /* nx/ny/nz = number of grid points in x/y direction */
    np = npx*npy*npz; nx = 1L<<indx; ny = 1L<<indy; nz = 1L<<indz;
-   nxh = nx/2; nyh = ny/2; nzh = nz/2;
+   nxh = nx/2; nyh = 1 > ny/2 ? 1 : ny/2; nzh = 1 > nz/2 ? 1 : nz/2;
    nxe = nx + 2; nye = ny + 1; nze = nz + 1; nxeh = nxe/2;
    nxyzh = (nx > ny ? nx : ny); nxyzh = (nxyzh > nz ? nxyzh : nz)/2;
    nxhyz = nxh > ny ? nxh : ny; nxhyz = nxhyz > nz ? nxhyz : nz;
