@@ -1,4 +1,4 @@
-c Fortran Library for Skeleton 3D Electrostatic OpenMP PIC Code
+c Fortran Library for Skeleton 3D Electrostatic OpenMP/Vector PIC Code
 c written by Viktor K. Decyk, UCLA
 c-----------------------------------------------------------------------
       subroutine DISTR3(part,vtx,vty,vtz,vdx,vdy,vdz,npx,npy,npz,idimp, 
@@ -123,7 +123,7 @@ c irc = maximum overflow, returned only if error occurs, when irc > 0
       integer kpic, nppmx, idimp, nop, mx, my, mz, mx1, my1, mxyz1, irc
       real part
       dimension part(idimp,nop), kpic(mxyz1)
-c local datal, 
+c local data
       integer j, k, n, m, l, mxy1, isum, ist, npx, ierr
       ierr = 0
       mxy1 = mx1*my1
@@ -181,12 +181,12 @@ c ppart(n,4,m) = velocity vx of particle n in tile m
 c ppart(n,5,m) = velocity vy of particle n in tile m
 c ppart(n,6,m) = velocity vz of particle n in tile m
 c kpic = output number of particles per tile
-c nppmx = rmaximum number of particles in tile
+c nppmx = maximum number of particles in tile
 c idimp = size of phase space = 6
 c nop = number of particles
 c mx/my/mz = number of grids in sorting cell in x, y and z
 c mx1 = (system length in x direction - 1)/mx + 1
-c mxy1 = mx1*my1, where my1 = (system length in y direction - 1)/my + 1c my1 = (system length in y direction - 1)/my + 1
+c my1 = (system length in y direction - 1)/my + 1
 c mxyz1 = mx1*my1*mz1,
 c where mz1 = (system length in z direction - 1)/mz + 1
 c irc = maximum overflow, returned only if error occurs, when irc > 0
@@ -246,12 +246,12 @@ c ppart(n,5,m) = velocity vy of particle n in tile m
 c ppart(n,6,m) = velocity vz of particle n in tile m
 c kpic = output number of particles per tile
 c kp = original location of reordered particle
-c nppmx = rmaximum number of particles in tile
+c nppmx = maximum number of particles in tile
 c idimp = size of phase space = 6
 c nop = number of particles
 c mx/my/mz = number of grids in sorting cell in x, y and z
 c mx1 = (system length in x direction - 1)/mx + 1
-c mxy1 = mx1*my1, where my1 = (system length in y direction - 1)/my + 1c my1 = (system length in y direction - 1)/my + 1
+c my1 = (system length in y direction - 1)/my + 1
 c mxyz1 = mx1*my1*mz1,
 c where mz1 = (system length in z direction - 1)/mz + 1
 c irc = maximum overflow, returned only if error occurs, when irc > 0
@@ -666,7 +666,6 @@ c mx/my/mz = number of grids in sorting cell in x/y/z
 c nxv = second dimension of field array, must be >= nx+1
 c nyv = third dimension of field array, must be >= ny+1
 c nzv = fourth dimension of field array, must be >= nz+1
-c ipbc = particle boundary condition = (0,1,2,3) =
 c mx1 = (system length in x direction - 1)/mx + 1
 c my1 = (system length in y direction - 1)/my + 1
 c mxyz1 = mx1*my1*mz1,
@@ -804,7 +803,7 @@ c find particles going out of bounds
 c count how many particles are going in each direction in ncl
 c save their address and destination in ihole
 c use periodic boundary conditions and check for roundoff error
-c ist = direction particle is going
+c mm = direction particle is going
       if (dx.ge.edgerx) then
          if (dx.ge.anx) dx = dx - anx
          mm = 2
@@ -970,6 +969,7 @@ c scratch arrays
       integer n
       real s, t
       dimension n(npblk), s(npblk,lvect), t(npblk,3)
+!dir$ attributes align: 64:: n, s, t
       double precision sum1, sum2
       mxy1 = mx1*my1
       lxv = mx + 1
@@ -1015,6 +1015,7 @@ c loop over tiles
 c load local fields from global array
       do 30 k = 1, min(mz,nz-loff)+1
       do 20 j = 1, min(my,ny-moff)+1
+!dir$ ivdep
       do 10 i = 1, min(mx,nx-noff)+1
       sfxyz(1,i+lxv*(j-1)+lxyv*(k-1)) = 
      1 fxyz(1,i+noff+nxv*(j+moff-1)+nxyv*(k+loff-1))
@@ -1032,6 +1033,7 @@ c outer loop over number of full blocks
       do 90 m = 1, ipp
       joff = npblk*(m - 1)
 c inner loop over particles in block
+!dir$ vector aligned
       do 40 j = 1, npblk
 c find interpolation weights
       x = ppart(j+joff,1,l)
@@ -1072,7 +1074,6 @@ c find acceleration
       dx = 0.0
       dy = 0.0
       dz = 0.0
-!dir$ ivdep
       do 50 i = 1, lvect
       if (i.gt.6) then
          nn = k
@@ -1090,6 +1091,7 @@ c find acceleration
       s(j,3) = dz
    60 continue
 c new velocity
+!dir$ vector aligned
       do 70 j = 1, npblk
       x = t(j,1)
       y = t(j,2)
@@ -1114,7 +1116,7 @@ c new position
       s(j,6) = vz
    70 continue
 c check boundary conditions
-!dir$ novector
+!dir$ vector aligned
       do 80 j = 1, npblk
       dx = s(j,1)
       dy = s(j,2)
@@ -1311,7 +1313,6 @@ c mx/my/mz = number of grids in sorting cell in x/y/z
 c nxv = second dimension of field array, must be >= nx+1
 c nyv = third dimension of field array, must be >= ny+1
 c nzv = fourth dimension of field array, must be >= nz+1
-c ipbc = particle boundary condition = (0,1,2,3) =
 c mx1 = (system length in x direction - 1)/mx + 1
 c my1 = (system length in y direction - 1)/my + 1
 c mxyz1 = mx1*my1*mz1,
@@ -1345,6 +1346,7 @@ c scratch arrays
       integer n
       real s, t
       dimension n(npblk), s(npblk,lvect), t(npblk,3)
+!dir$ attributes align: 64:: n, s, t
       double precision sum1, sum2
       mxy1 = mx1*my1
       lxv = mx + 1
@@ -1363,7 +1365,7 @@ c loop over tiles
 !$OMP& x,y,z,dxp,dyp,dzp,amx,amy,amz,dx1,dx,dy,dz,vx,vy,vz,edgelx,edgely
 !$OMP& ,edgelz,edgerx,edgery,edgerz,sum1,sfxyz,n,s,t)
 !$OMP& REDUCTION(+:sum2)
-      do 120 l = 1, mxyz1
+      do 130 l = 1, mxyz1
       loff = (l - 1)/mxy1
       k = l - mxy1*loff
       loff = mz*loff
@@ -1385,6 +1387,7 @@ c loop over tiles
 c load local fields from global array
       do 30 k = 1, ll+1
       do 20 j = 1, mm+1
+!dir$ ivdep
       do 10 i = 1, nn+1
       sfxyz(1,i+lxv*(j-1)+lxyv*(k-1)) = 
      1 fxyz(1,i+noff+nxv*(j+moff-1)+nxyv*(k+loff-1))
@@ -1403,9 +1406,10 @@ c clear counters
 c loop over particles in tile
       ipp = npp/npblk
 c outer loop over number of full blocks
-      do 100 m = 1, ipp
+      do 110 m = 1, ipp
       joff = npblk*(m - 1)
 c inner loop over particles in block
+!dir$ vector aligned
       do 50 j = 1, npblk
 c find interpolation weights
       x = ppart(j+joff,1,l)
@@ -1446,7 +1450,6 @@ c find acceleration
       dx = 0.0
       dy = 0.0
       dz = 0.0
-!dir$ ivdep
       do 60 i = 1, lvect
       if (i.gt.6) then
          nn = k
@@ -1464,6 +1467,7 @@ c find acceleration
       s(j,3) = dz
    70 continue
 c new velocity
+!dir$ vector aligned
       do 80 j = 1, npblk
       x = t(j,1)
       y = t(j,2)
@@ -1488,7 +1492,7 @@ c new position
       s(j,6) = vz
    80 continue
 c check boundary conditions
-!dir$ novector
+!dir$ vector aligned
       do 90 j = 1, npblk
       dx = s(j,1)
       dy = s(j,2)
@@ -1498,7 +1502,7 @@ c find particles going out of bounds
 c count how many particles are going in each direction in ncl
 c save their address and destination in ihole
 c use periodic boundary conditions and check for roundoff error
-c ist = direction particle is going
+c mm = direction particle is going
       if (dx.ge.edgerx) then
          if (dx.ge.anx) dx = dx - anx
          mm = 2
@@ -1552,7 +1556,11 @@ c set new velocity
       ppart(j+joff,4,l) = s(j,4)
       ppart(j+joff,5,l) = s(j,5)
       ppart(j+joff,6,l) = s(j,6)
+      n(j) = mm
+   90 continue
 c increment counters
+      do 100 j = 1, npblk
+      mm = n(j)
       if (mm.gt.0) then
          ncl(mm,l) = ncl(mm,l) + 1
          ih = ih + 1
@@ -1563,11 +1571,11 @@ c increment counters
             nh = 1
          endif
       endif
-   90 continue
   100 continue
+  110 continue
       nps = npblk*ipp + 1
 c loop over remaining particles
-      do 110 j = nps, npp
+      do 120 j = nps, npp
 c find interpolation weights
       x = ppart(j,1,l)
       y = ppart(j,2,l)
@@ -1686,7 +1694,7 @@ c increment counters
             nh = 1
          endif
       endif
-  110 continue
+  120 continue
       sum2 = sum2 + sum1
 c set error and end of file flag
       if (nh.gt.0) then
@@ -1694,7 +1702,829 @@ c set error and end of file flag
          ih = -ih
       endif
       ihole(1,1,l) = ih
+  130 continue
+!$OMP END PARALLEL DO
+c normalize kinetic energy
+      ek = ek + 0.125*sum2
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine V2GPPUSH3LT(ppart,fxyz,kpic,qbm,dt,ek,idimp,nppmx,nx,ny
+     1,nz,mx,my,mz,nxv,nyv,nzv,mx1,my1,mxyz1,ipbc)
+c for 3d code, this subroutine updates particle co-ordinates and
+c velocities using leap-frog scheme in time and first-order linear
+c interpolation in space, with various boundary conditions.
+c vectorizable/OpenMP version using guard cells
+c data read in tiles
+c particles stored segmented array
+c 94 flops/particle, 30 loads, 6 stores
+c input: all, output: part, ek
+c equations used are:
+c vx(t+dt/2) = vx(t-dt/2) + (q/m)*fx(x(t),y(t),z(t))*dt,
+c vy(t+dt/2) = vy(t-dt/2) + (q/m)*fy(x(t),y(t),z(t))*dt,
+c vz(t+dt/2) = vz(t-dt/2) + (q/m)*fz(x(t),y(t),z(t))*dt,
+c where q/m is charge/mass, and
+c x(t+dt) = x(t) + vx(t+dt/2)*dt, y(t+dt) = y(t) + vy(t+dt/2)*dt,
+c z(t+dt) = z(t) + vz(t+dt/2)*dt
+c fx(x(t),y(t),z(t)), fy(x(t),y(t),z(t)), and fz(x(t),y(t),z(t))
+c are approximated by interpolation from the nearest grid points:
+c fx(x,y,z) = (1-dz)*((1-dy)*((1-dx)*fx(n,m,l)+dx*fx(n+1,m,l))
+c                + dy*((1-dx)*fx(n,m+1,l) + dx*fx(n+1,m+1,l)))
+c           + dz*((1-dy)*((1-dx)*fx(n,m,l+1)+dx*fx(n+1,m,l+1))
+c                + dy*((1-dx)*fx(n,m+1,l+1) + dx*fx(n+1,m+1,l+1)))
+c fy(x,y,z) = (1-dz)*((1-dy)*((1-dx)*fy(n,m,l)+dx*fy(n+1,m,l))
+c                + dy*((1-dx)*fy(n,m+1,l) + dx*fy(n+1,m+1,l)))
+c           + dz*((1-dy)*((1-dx)*fy(n,m,l+1)+dx*fy(n+1,m,l+1))
+c                + dy*((1-dx)*fy(n,m+1,l+1) + dx*fy(n+1,m+1,l+1)))
+c fz(x,y,z) = (1-dz)*((1-dy)*((1-dx)*fz(n,m,l)+dx*fz(n+1,m,l))
+c                + dy*((1-dx)*fz(n,m+1,l) + dx*fz(n+1,m+1,l)))
+c           + dz*((1-dy)*((1-dx)*fz(n,m,l+1)+dx*fz(n+1,m,l+1))
+c                + dy*((1-dx)*fz(n,m+1,l+1) + dx*fz(n+1,m+1,l+1)))
+c where n,m,l = leftmost grid points and dx = x-n, dy = y-m, dz = z-l
+c ppart(n,1,m) = position x of particle n in tile m
+c ppart(n,2,m) = position y of particle n in tile m
+c ppart(n,3,m) = position z of particle n in tile m
+c ppart(n,4,m) = velocity vx of particle n in tile m
+c ppart(n,5,m) = velocity vy of particle n in tile m
+c ppart(n,6,m) = velocity vz of particle n in tile m
+c fxyz(1,j,k,l) = x component of force/charge at grid (j,k,l)
+c fxyz(2,j,k,l) = y component of force/charge at grid (j,k,l)
+c fxyz(3,j,k,l) = z component of force/charge at grid (j,k,l)
+c that is, convolution of electric field over particle shape
+c kpic = number of particles per tile
+c qbm = particle charge/mass ratio
+c dt = time interval between successive calculations
+c kinetic energy/mass at time t is also calculated, using
+c ek = .125*sum((vx(t+dt/2)+vx(t-dt/2))**2+(vy(t+dt/2)+vy(t-dt/2))**2+
+c (vz(t+dt/2)+vz(t-dt/2))**2)
+c idimp = size of phase space = 6
+c nppmx = maximum number of particles in tile
+c nx/ny/nz = system length in x/y/z direction
+c mx/my/mz = number of grids in sorting cell in x/y/z
+c nxv = second dimension of field array, must be >= nx+1
+c nyv = third dimension of field array, must be >= ny+1
+c nzv = fourth dimension of field array, must be >= nz+1
+c mx1 = (system length in x direction - 1)/mx + 1
+c my1 = (system length in y direction - 1)/my + 1
+c mxyz1 = mx1*my1*mz1,
+c where mz1 = (system length in z direction - 1)/mz + 1
+c ipbc = particle boundary condition = (0,1,2,3) =
+c (none,3d periodic,3d reflecting,mixed 2d reflecting/1d periodic)
+      implicit none
+      integer idimp, nppmx, nx, ny, nz, mx, my, mz, nxv, nyv, nzv
+      integer mx1, my1, mxyz1, ipbc
+      real qbm, dt, ek
+      real ppart, fxyz
+      integer kpic
+      dimension ppart(nppmx,idimp,mxyz1), fxyz(4,nxv*nyv*nzv)
+      dimension kpic(mxyz1)
+c local data
+      integer MXV, MYV, MZV
+      parameter(MXV=17,MYV=17,MZV=17)
+      integer npblk, lvect
+      parameter(npblk=32,lvect=8)
+      integer mxy1, noff, moff, loff, npp, ipp, joff, nps
+      integer i, j, k, l, m, nn, mm, ll, lxv, lxyv, nxyv
+      real qtm, edgelx, edgely, edgelz, edgerx, edgery, edgerz
+      real x, y, z, dxp, dyp, dzp, amx, amy, amz, dx1, dx, dy, dz
+      real vx, vy, vz
+      real sfxyz
+      dimension sfxyz(4,MXV*MYV*MZV)
+c     dimension sfxyz(4,(mx+1)*(my+1)*(mz+1))
+c scratch arrays
+      integer n, mn
+      real s, t
+      dimension n(npblk), mn(lvect), s(npblk,lvect), t(npblk,3)
+!dir$ attributes align: 64:: n, mn, s, t
+      double precision sum1, sum2
+      mxy1 = mx1*my1
+      lxv = mx + 1
+      lxyv = lxv*(my + 1)
+      nxyv = nxv*nyv
+      mn(1) = 0
+      mn(2) = 1
+      mn(3) = lxv
+      mn(4) = lxv + 1
+      mn(5) = lxyv
+      mn(6) = lxyv + 1
+      mn(7) = lxyv + lxv
+      mn(8) = lxyv + lxv + 1
+      qtm = qbm*dt
+      sum2 = 0.0d0
+c set boundary values
+      edgelx = 0.0
+      edgely = 0.0
+      edgelz = 0.0
+      edgerx = real(nx)
+      edgery = real(ny)
+      edgerz = real(nz)
+      if (ipbc.eq.2) then
+         edgelx = 1.0
+         edgely = 1.0
+         edgelz = 1.0
+         edgerx = real(nx-1)
+         edgery = real(ny-1)
+         edgerz = real(nz-1)
+      else if (ipbc.eq.3) then
+         edgelx = 1.0
+         edgely = 1.0
+         edgerx = real(nx-1)
+         edgery = real(ny-1)
+      endif
+c error if local array is too small
+c     if ((mx.ge.MXV).or.(my.ge.MYV).or.(mz.ge.MZV)) return
+c loop over tiles
+!$OMP PARALLEL DO
+!$OMP& PRIVATE(i,j,k,l,m,noff,moff,loff,npp,ipp,joff,nps,nn,mm,ll,x,y,z,
+!$OMP& dxp,dyp,dzp,amx,amy,amz,dx1,dx,dy,dz,vx,vy,vz,sum1,sfxyz,n,s,t)
+!$OMP& REDUCTION(+:sum2)
+      do 110 l = 1, mxyz1
+      loff = (l - 1)/mxy1
+      k = l - mxy1*loff
+      loff = mz*loff
+      noff = (k - 1)/mx1
+      moff = my*noff
+      noff = mx*(k - mx1*noff - 1)
+      npp = kpic(l)
+c load local fields from global array
+      do 30 k = 1, min(mz,nz-loff)+1
+      do 20 j = 1, min(my,ny-moff)+1
+!dir$ ivdep
+      do 10 i = 1, min(mx,nx-noff)+1
+      sfxyz(1,i+lxv*(j-1)+lxyv*(k-1)) = 
+     1 fxyz(1,i+noff+nxv*(j+moff-1)+nxyv*(k+loff-1))
+      sfxyz(2,i+lxv*(j-1)+lxyv*(k-1)) = 
+     1 fxyz(2,i+noff+nxv*(j+moff-1)+nxyv*(k+loff-1))
+      sfxyz(3,i+lxv*(j-1)+lxyv*(k-1)) = 
+     1 fxyz(3,i+noff+nxv*(j+moff-1)+nxyv*(k+loff-1))
+   10 continue
+   20 continue
+   30 continue
+      sum1 = 0.0d0
+c loop over particles in tile
+      ipp = npp/npblk
+c outer loop over number of full blocks
+      do 90 m = 1, ipp
+      joff = npblk*(m - 1)
+c inner loop over particles in block
+!dir$ vector aligned
+      do 40 j = 1, npblk
+c find interpolation weights
+      x = ppart(j+joff,1,l)
+      y = ppart(j+joff,2,l)
+      z = ppart(j+joff,3,l)
+      nn = x
+      mm = y
+      ll = z
+      dxp = x - real(nn)
+      dyp = y - real(mm)
+      dzp = z - real(ll)
+      n(j) = nn - noff + lxv*(mm - moff) + lxyv*(ll - loff) + 1
+      amx = 1.0 - dxp
+      amy = 1.0 - dyp
+      dx1 = dxp*dyp
+      dyp = amx*dyp
+      amx = amx*amy
+      amz = 1.0 - dzp
+      amy = dxp*amy
+      s(j,1) = amx*amz
+      s(j,2) = amy*amz
+      s(j,3) = dyp*amz
+      s(j,4) = dx1*amz
+      s(j,5) = amx*dzp
+      s(j,6) = amy*dzp
+      s(j,7) = dyp*dzp
+      s(j,8) = dx1*dzp
+      t(j,1) = x
+      t(j,2) = y
+      t(j,3) = z
+   40 continue
+c find acceleration
+      do 60 j = 1, npblk
+      dx = 0.0
+      dy = 0.0
+      dz = 0.0
+!dir$ ivdep
+      do 50 i = 1, lvect
+      dx = dx + sfxyz(1,n(j)+mn(i))*s(j,i)
+      dy = dy + sfxyz(2,n(j)+mn(i))*s(j,i)
+      dz = dz + sfxyz(3,n(j)+mn(i))*s(j,i)
+   50 continue
+      s(j,1) = dx
+      s(j,2) = dy
+      s(j,3) = dz
+   60 continue
+c new velocity
+!dir$ vector aligned
+      do 70 j = 1, npblk
+      x = t(j,1)
+      y = t(j,2)
+      z = t(j,3)
+      dxp = ppart(j+joff,4,l)
+      dyp = ppart(j+joff,5,l)
+      dzp = ppart(j+joff,6,l)
+      vx = dxp + qtm*s(j,1)
+      vy = dyp + qtm*s(j,2)
+      vz = dzp + qtm*s(j,3)
+c average kinetic energy
+      dxp = dxp + vx
+      dyp = dyp + vy
+      dzp = dzp + vz
+      sum1 = sum1 + (dxp*dxp + dyp*dyp + dzp*dzp)
+c new position
+      s(j,1) = x + vx*dt
+      s(j,2) = y + vy*dt
+      s(j,3) = z + vz*dt
+      s(j,4) = vx
+      s(j,5) = vy
+      s(j,6) = vz
+   70 continue
+c check boundary conditions
+!dir$ vector aligned
+      do 80 j = 1, npblk
+      dx = s(j,1)
+      dy = s(j,2)
+      dz = s(j,3)
+      vx = s(j,4)
+      vy = s(j,5)
+      vz = s(j,6)
+c reflecting boundary conditions
+      if (ipbc.eq.2) then
+         if ((dx.lt.edgelx).or.(dx.ge.edgerx)) then
+            dx = t(j,1)
+            vx = -vx
+         endif
+         if ((dy.lt.edgely).or.(dy.ge.edgery)) then
+            dy = t(j,2)
+            vy = -vy
+         endif
+         if ((dz.lt.edgelz).or.(dz.ge.edgerz)) then
+            dz = t(j,3)
+            vz = -vz
+         endif
+c mixed reflecting/periodic boundary conditions
+      else if (ipbc.eq.3) then
+         if ((dx.lt.edgelx).or.(dx.ge.edgerx)) then
+            dx = t(j,1)
+            vx = -vx
+         endif
+         if ((dy.lt.edgely).or.(dy.ge.edgery)) then
+            dy = t(j,2)
+            vy = -vy
+         endif
+      endif
+c set new position
+      ppart(j+joff,1,l) = dx
+      ppart(j+joff,2,l) = dy
+      ppart(j+joff,3,l) = dz
+c set new velocity
+      ppart(j+joff,4,l) = vx
+      ppart(j+joff,5,l) = vy
+      ppart(j+joff,6,l) = vz
+   80 continue
+   90 continue
+      nps = npblk*ipp + 1
+c loop over remaining particles
+      do 100 j = nps, npp
+c find interpolation weights
+      x = ppart(j,1,l)
+      y = ppart(j,2,l)
+      z = ppart(j,3,l)
+      nn = x
+      mm = y
+      ll = z
+      dxp = x - real(nn)
+      dyp = y - real(mm)
+      dzp = z - real(ll)
+      nn = nn - noff + 1 + lxv*(mm - moff) + lxyv*(ll - loff)
+      amx = 1.0 - dxp
+      amy = 1.0 - dyp
+      dx1 = dxp*dyp
+      dyp = amx*dyp
+      amx = amx*amy
+      amz = 1.0 - dzp
+      amy = dxp*amy
+c find acceleration
+      dx = amx*sfxyz(1,nn) + amy*sfxyz(1,nn+1)
+      dy = amx*sfxyz(2,nn) + amy*sfxyz(2,nn+1)
+      dz = amx*sfxyz(3,nn) + amy*sfxyz(3,nn+1)
+      dx = amz*(dx + dyp*sfxyz(1,nn+lxv) + dx1*sfxyz(1,nn+1+lxv))
+      dy = amz*(dy + dyp*sfxyz(2,nn+lxv) + dx1*sfxyz(2,nn+1+lxv))
+      dz = amz*(dz + dyp*sfxyz(3,nn+lxv) + dx1*sfxyz(3,nn+1+lxv))
+      mm = nn + lxyv
+      vx = amx*sfxyz(1,mm) + amy*sfxyz(1,mm+1)
+      vy = amx*sfxyz(2,mm) + amy*sfxyz(2,mm+1)
+      vz = amx*sfxyz(3,mm) + amy*sfxyz(3,mm+1)
+      dx = dx + dzp*(vx + dyp*sfxyz(1,mm+lxv) + dx1*sfxyz(1,mm+1+lxv))
+      dy = dy + dzp*(vy + dyp*sfxyz(2,mm+lxv) + dx1*sfxyz(2,mm+1+lxv))
+      dz = dz + dzp*(vz + dyp*sfxyz(3,mm+lxv) + dx1*sfxyz(3,mm+1+lxv))
+c new velocity
+      dxp = ppart(j,4,l)
+      dyp = ppart(j,5,l)
+      dzp = ppart(j,6,l)
+      vx = dxp + qtm*dx
+      vy = dyp + qtm*dy
+      vz = dzp + qtm*dz
+c average kinetic energy
+      dxp = dxp + vx
+      dyp = dyp + vy
+      dzp = dzp + vz
+      sum1 = sum1 + (dxp*dxp + dyp*dyp + dzp*dzp)
+c new position
+      dx = x + vx*dt
+      dy = y + vy*dt
+      dz = z + vz*dt
+c reflecting boundary conditions
+      if (ipbc.eq.2) then
+         if ((dx.lt.edgelx).or.(dx.ge.edgerx)) then
+            dx = x
+            vx = -vx
+         endif
+         if ((dy.lt.edgely).or.(dy.ge.edgery)) then
+            dy = y
+            vy = -vy
+         endif
+         if ((dz.lt.edgelz).or.(dz.ge.edgerz)) then
+            dz = z
+            vz = -vz
+         endif
+c mixed reflecting/periodic boundary conditions
+      else if (ipbc.eq.3) then
+         if ((dx.lt.edgelx).or.(dx.ge.edgerx)) then
+            dx = x
+            vx = -vx
+         endif
+         if ((dy.lt.edgely).or.(dy.ge.edgery)) then
+            dy = y
+            vy = -vy
+         endif
+      endif
+c set new position
+      ppart(j,1,l) = dx
+      ppart(j,2,l) = dy
+      ppart(j,3,l) = dz
+c set new velocity
+      ppart(j,4,l) = vx
+      ppart(j,5,l) = vy
+      ppart(j,6,l) = vz
+  100 continue
+      sum2 = sum2 + sum1
+  110 continue
+!$OMP END PARALLEL DO
+c normalize kinetic energy
+      ek = ek + 0.125*sum2
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine V2GPPUSHF3LT(ppart,fxyz,kpic,ncl,ihole,qbm,dt,ek,idimp,
+     1nppmx,nx,ny,nz,mx,my,mz,nxv,nyv,nzv,mx1,my1,mxyz1,ntmax,irc)
+c for 3d code, this subroutine updates particle co-ordinates and
+c velocities using leap-frog scheme in time and first-order linear
+c interpolation in space, with periodic boundary conditions.
+c also determines list of particles which are leaving this tile
+c vectorizable/OpenMP version using guard cells
+c data read in tiles
+c particles stored segmented array
+c 94 flops/particle, 30 loads, 6 stores
+c input: all except ncl, ihole, irc, output: ppart, ncl, ihole, ek, irc
+c equations used are:
+c vx(t+dt/2) = vx(t-dt/2) + (q/m)*fx(x(t),y(t),z(t))*dt,
+c vy(t+dt/2) = vy(t-dt/2) + (q/m)*fy(x(t),y(t),z(t))*dt,
+c vz(t+dt/2) = vz(t-dt/2) + (q/m)*fz(x(t),y(t),z(t))*dt,
+c where q/m is charge/mass, and
+c x(t+dt) = x(t) + vx(t+dt/2)*dt, y(t+dt) = y(t) + vy(t+dt/2)*dt,
+c z(t+dt) = z(t) + vz(t+dt/2)*dt
+c fx(x(t),y(t),z(t)), fy(x(t),y(t),z(t)), and fz(x(t),y(t),z(t))
+c are approximated by interpolation from the nearest grid points:
+c fx(x,y,z) = (1-dz)*((1-dy)*((1-dx)*fx(n,m,l)+dx*fx(n+1,m,l))
+c                + dy*((1-dx)*fx(n,m+1,l) + dx*fx(n+1,m+1,l)))
+c           + dz*((1-dy)*((1-dx)*fx(n,m,l+1)+dx*fx(n+1,m,l+1))
+c                + dy*((1-dx)*fx(n,m+1,l+1) + dx*fx(n+1,m+1,l+1)))
+c fy(x,y,z) = (1-dz)*((1-dy)*((1-dx)*fy(n,m,l)+dx*fy(n+1,m,l))
+c                + dy*((1-dx)*fy(n,m+1,l) + dx*fy(n+1,m+1,l)))
+c           + dz*((1-dy)*((1-dx)*fy(n,m,l+1)+dx*fy(n+1,m,l+1))
+c                + dy*((1-dx)*fy(n,m+1,l+1) + dx*fy(n+1,m+1,l+1)))
+c fz(x,y,z) = (1-dz)*((1-dy)*((1-dx)*fz(n,m,l)+dx*fz(n+1,m,l))
+c                + dy*((1-dx)*fz(n,m+1,l) + dx*fz(n+1,m+1,l)))
+c           + dz*((1-dy)*((1-dx)*fz(n,m,l+1)+dx*fz(n+1,m,l+1))
+c                + dy*((1-dx)*fz(n,m+1,l+1) + dx*fz(n+1,m+1,l+1)))
+c where n,m,l = leftmost grid points and dx = x-n, dy = y-m, dz = z-l
+c ppart(n,1,m) = position x of particle n in tile m
+c ppart(n,2,m) = position y of particle n in tile m
+c ppart(n,3,m) = position z of particle n in tile m
+c ppart(n,4,m) = velocity vx of particle n in tile m
+c ppart(n,5,m) = velocity vy of particle n in tile m
+c ppart(n,6,m) = velocity vz of particle n in tile m
+c fxyz(1,j,k,l) = x component of force/charge at grid (j,k,l)
+c fxyz(2,j,k,l) = y component of force/charge at grid (j,k,l)
+c fxyz(3,j,k,l) = z component of force/charge at grid (j,k,l)
+c that is, convolution of electric field over particle shape
+c kpic(l) = number of particles in tile l
+c ncl(i,l) = number of particles going to destination i, tile l
+c ihole(1,:,l) = location of hole in array left by departing particle
+c ihole(2,:,l) = direction destination of particle leaving hole
+c all for tile l
+c ihole(1,1,l) = ih, number of holes left (error, if negative)
+c qbm = particle charge/mass ratio
+c dt = time interval between successive calculations
+c kinetic energy/mass at time t is also calculated, using
+c ek = .125*sum((vx(t+dt/2)+vx(t-dt/2))**2+(vy(t+dt/2)+vy(t-dt/2))**2+
+c (vz(t+dt/2)+vz(t-dt/2))**2)
+c idimp = size of phase space = 6
+c nppmx = maximum number of particles in tile
+c nx/ny/nz = system length in x/y/z direction
+c mx/my/mz = number of grids in sorting cell in x/y/z
+c nxv = second dimension of field array, must be >= nx+1
+c nyv = third dimension of field array, must be >= ny+1
+c nzv = fourth dimension of field array, must be >= nz+1
+c mx1 = (system length in x direction - 1)/mx + 1
+c my1 = (system length in y direction - 1)/my + 1
+c mxyz1 = mx1*my1*mz1,
+c where mz1 = (system length in z direction - 1)/mz + 1
+c ntmax = size of hole array for particles leaving tiles
+c irc = maximum overflow, returned only if error occurs, when irc > 0
+c optimized version
+      implicit none
+      integer idimp, nppmx, nx, ny, nz, mx, my, mz, nxv, nyv, nzv
+      integer mx1, my1, mxyz1, ntmax, irc
+      real qbm, dt, ek
+      real ppart, fxyz
+      integer kpic, ncl, ihole
+      dimension ppart(nppmx,idimp,mxyz1), fxyz(4,nxv*nyv*nzv)
+      dimension kpic(mxyz1), ncl(26,mxyz1)
+      dimension ihole(2,ntmax+1,mxyz1)
+c local data
+      integer MXV, MYV, MZV
+      parameter(MXV=17,MYV=17,MZV=17)
+      integer npblk, lvect
+      parameter(npblk=32,lvect=8)
+      integer mxy1, noff, moff, loff, npp, ipp, joff, nps
+      integer i, j, k, l, m, ih, nh, nn, mm, ll, lxv, lxyv, nxyv
+      real anx, any, anz, edgelx, edgely, edgelz, edgerx, edgery, edgerz
+      real qtm, x, y, z, dxp, dyp, dzp, amx, amy, amz, dx1, dx, dy, dz
+      real vx, vy, vz
+      real sfxyz
+      dimension sfxyz(4,MXV*MYV*MZV)
+c     dimension sfxyz(4,(mx+1)*(my+1)*(mz+1))
+c scratch arrays
+      integer n, mn
+      real s, t
+      dimension n(npblk), mn(lvect), s(npblk,lvect), t(npblk,3)
+!dir$ attributes align: 64:: n, mn, s, t
+      double precision sum1, sum2
+      mxy1 = mx1*my1
+      lxv = mx + 1
+      lxyv = lxv*(my + 1)
+      nxyv = nxv*nyv
+      mn(1) = 0
+      mn(2) = 1
+      mn(3) = lxv
+      mn(4) = lxv + 1
+      mn(5) = lxyv
+      mn(6) = lxyv + 1
+      mn(7) = lxyv + lxv
+      mn(8) = lxyv + lxv + 1
+      qtm = qbm*dt
+      anx = real(nx)
+      any = real(ny)
+      anz = real(nz)
+      sum2 = 0.0d0
+c error if local array is too small
+c     if ((mx.ge.MXV).or.(my.ge.MYV).or.(mz.ge.MZV)) return
+c loop over tiles
+!$OMP PARALLEL DO
+!$OMP& PRIVATE(i,j,k,l,m,noff,moff,loff,npp,ipp,joff,nps,nn,mm,ll,ih,nh,
+!$OMP& x,y,z,dxp,dyp,dzp,amx,amy,amz,dx1,dx,dy,dz,vx,vy,vz,edgelx,edgely
+!$OMP& ,edgelz,edgerx,edgery,edgerz,sum1,sfxyz,n,s,t)
+!$OMP& REDUCTION(+:sum2)
+      do 130 l = 1, mxyz1
+      loff = (l - 1)/mxy1
+      k = l - mxy1*loff
+      loff = mz*loff
+      noff = (k - 1)/mx1
+      moff = my*noff
+      noff = mx*(k - mx1*noff - 1)
+      npp = kpic(l)
+      nn = min(mx,nx-noff)
+      mm = min(my,ny-moff)
+      ll = min(mz,nz-loff)
+      edgelx = noff
+      edgerx = noff + nn
+      edgely = moff
+      edgery = moff + mm
+      edgelz = loff
+      edgerz = loff + ll
+      ih = 0
+      nh = 0
+c load local fields from global array
+      do 30 k = 1, ll+1
+      do 20 j = 1, mm+1
+!dir$ ivdep
+      do 10 i = 1, nn+1
+      sfxyz(1,i+lxv*(j-1)+lxyv*(k-1)) = 
+     1 fxyz(1,i+noff+nxv*(j+moff-1)+nxyv*(k+loff-1))
+      sfxyz(2,i+lxv*(j-1)+lxyv*(k-1)) = 
+     1 fxyz(2,i+noff+nxv*(j+moff-1)+nxyv*(k+loff-1))
+      sfxyz(3,i+lxv*(j-1)+lxyv*(k-1)) = 
+     1 fxyz(3,i+noff+nxv*(j+moff-1)+nxyv*(k+loff-1))
+   10 continue
+   20 continue
+   30 continue
+c clear counters
+      do 40 j = 1, 26
+      ncl(j,l) = 0
+   40 continue
+      sum1 = 0.0d0
+c loop over particles in tile
+      ipp = npp/npblk
+c outer loop over number of full blocks
+      do 110 m = 1, ipp
+      joff = npblk*(m - 1)
+c inner loop over particles in block
+!dir$ vector aligned
+      do 50 j = 1, npblk
+c find interpolation weights
+      x = ppart(j+joff,1,l)
+      y = ppart(j+joff,2,l)
+      z = ppart(j+joff,3,l)
+      nn = x
+      mm = y
+      ll = z
+      dxp = x - real(nn)
+      dyp = y - real(mm)
+      dzp = z - real(ll)
+      n(j) = nn - noff + lxv*(mm - moff) + lxyv*(ll - loff) + 1
+      amx = 1.0 - dxp
+      amy = 1.0 - dyp
+      dx1 = dxp*dyp
+      dyp = amx*dyp
+      amx = amx*amy
+      amz = 1.0 - dzp
+      amy = dxp*amy
+      s(j,1) = amx*amz
+      s(j,2) = amy*amz
+      s(j,3) = dyp*amz
+      s(j,4) = dx1*amz
+      s(j,5) = amx*dzp
+      s(j,6) = amy*dzp
+      s(j,7) = dyp*dzp
+      s(j,8) = dx1*dzp
+      t(j,1) = x
+      t(j,2) = y
+      t(j,3) = z
+   50 continue
+c find acceleration
+      do 70 j = 1, npblk
+      dx = 0.0
+      dy = 0.0
+      dz = 0.0
+!dir$ ivdep
+      do 60 i = 1, lvect
+      dx = dx + sfxyz(1,n(j)+mn(i))*s(j,i)
+      dy = dy + sfxyz(2,n(j)+mn(i))*s(j,i)
+      dz = dz + sfxyz(3,n(j)+mn(i))*s(j,i)
+   60 continue
+      s(j,1) = dx
+      s(j,2) = dy
+      s(j,3) = dz
+   70 continue
+c new velocity
+!dir$ vector aligned
+      do 80 j = 1, npblk
+      x = t(j,1)
+      y = t(j,2)
+      z = t(j,3)
+      dxp = ppart(j+joff,4,l)
+      dyp = ppart(j+joff,5,l)
+      dzp = ppart(j+joff,6,l)
+      vx = dxp + qtm*s(j,1)
+      vy = dyp + qtm*s(j,2)
+      vz = dzp + qtm*s(j,3)
+c average kinetic energy
+      dxp = dxp + vx
+      dyp = dyp + vy
+      dzp = dzp + vz
+      sum1 = sum1 + (dxp*dxp + dyp*dyp + dzp*dzp)
+c new position
+      s(j,1) = x + vx*dt
+      s(j,2) = y + vy*dt
+      s(j,3) = z + vz*dt
+      s(j,4) = vx
+      s(j,5) = vy
+      s(j,6) = vz
+   80 continue
+c check boundary conditions
+!dir$ vector aligned
+      do 90 j = 1, npblk
+      dx = s(j,1)
+      dy = s(j,2)
+      dz = s(j,3)
+c find particles going out of bounds
+      mm = 0
+c count how many particles are going in each direction in ncl
+c save their address and destination in ihole
+c use periodic boundary conditions and check for roundoff error
+c mm = direction particle is going
+      if (dx.ge.edgerx) then
+         if (dx.ge.anx) dx = dx - anx
+         mm = 2
+      else if (dx.lt.edgelx) then
+         if (dx.lt.0.0) then
+            dx = dx + anx
+            if (dx.lt.anx) then
+               mm = 1
+            else
+               dx = 0.0
+            endif
+         else
+            mm = 1
+         endif
+      endif
+      if (dy.ge.edgery) then
+         if (dy.ge.any) dy = dy - any
+         mm = mm + 6
+      else if (dy.lt.edgely) then
+         if (dy.lt.0.0) then
+            dy = dy + any
+            if (dy.lt.any) then
+               mm = mm + 3
+            else
+               dy = 0.0
+            endif
+         else
+            mm = mm + 3
+         endif
+      endif
+      if (dz.ge.edgerz) then
+         if (dz.ge.anz) dz = dz - anz
+         mm = mm + 18
+      else if (dz.lt.edgelz) then
+         if (dz.lt.0.0) then
+            dz = dz + anz
+            if (dz.lt.anz) then
+               mm = mm + 9
+            else
+               dz = 0.0
+            endif
+         else
+            mm = mm + 9
+         endif
+      endif
+c set new position
+      ppart(j+joff,1,l) = dx
+      ppart(j+joff,2,l) = dy
+      ppart(j+joff,3,l) = dz
+c set new velocity
+      ppart(j+joff,4,l) = s(j,4)
+      ppart(j+joff,5,l) = s(j,5)
+      ppart(j+joff,6,l) = s(j,6)
+      n(j) = mm
+   90 continue
+c increment counters
+      do 100 j = 1, npblk
+      mm = n(j)
+      if (mm.gt.0) then
+         ncl(mm,l) = ncl(mm,l) + 1
+         ih = ih + 1
+         if (ih.le.ntmax) then
+            ihole(1,ih+1,l) = j + joff
+            ihole(2,ih+1,l) = mm
+         else
+            nh = 1
+         endif
+      endif
+  100 continue
+  110 continue
+      nps = npblk*ipp + 1
+c loop over remaining particles
+      do 120 j = nps, npp
+c find interpolation weights
+      x = ppart(j,1,l)
+      y = ppart(j,2,l)
+      z = ppart(j,3,l)
+      nn = x
+      mm = y
+      ll = z
+      dxp = x - real(nn)
+      dyp = y - real(mm)
+      dzp = z - real(ll)
+      nn = nn - noff + 1 + lxv*(mm - moff) + lxyv*(ll - loff)
+      amx = 1.0 - dxp
+      amy = 1.0 - dyp
+      dx1 = dxp*dyp
+      dyp = amx*dyp
+      amx = amx*amy
+      amz = 1.0 - dzp
+      amy = dxp*amy
+c find acceleration
+      dx = amx*sfxyz(1,nn) + amy*sfxyz(1,nn+1)
+      dy = amx*sfxyz(2,nn) + amy*sfxyz(2,nn+1)
+      dz = amx*sfxyz(3,nn) + amy*sfxyz(3,nn+1)
+      dx = amz*(dx + dyp*sfxyz(1,nn+lxv) + dx1*sfxyz(1,nn+1+lxv))
+      dy = amz*(dy + dyp*sfxyz(2,nn+lxv) + dx1*sfxyz(2,nn+1+lxv))
+      dz = amz*(dz + dyp*sfxyz(3,nn+lxv) + dx1*sfxyz(3,nn+1+lxv))
+      mm = nn + lxyv
+      vx = amx*sfxyz(1,mm) + amy*sfxyz(1,mm+1)
+      vy = amx*sfxyz(2,mm) + amy*sfxyz(2,mm+1)
+      vz = amx*sfxyz(3,mm) + amy*sfxyz(3,mm+1)
+      dx = dx + dzp*(vx + dyp*sfxyz(1,mm+lxv) + dx1*sfxyz(1,mm+1+lxv))
+      dy = dy + dzp*(vy + dyp*sfxyz(2,mm+lxv) + dx1*sfxyz(2,mm+1+lxv))
+      dz = dz + dzp*(vz + dyp*sfxyz(3,mm+lxv) + dx1*sfxyz(3,mm+1+lxv))
+c new velocity
+      dxp = ppart(j,4,l)
+      dyp = ppart(j,5,l)
+      dzp = ppart(j,6,l)
+      vx = dxp + qtm*dx
+      vy = dyp + qtm*dy
+      vz = dzp + qtm*dz
+c average kinetic energy
+      dxp = dxp + vx
+      dyp = dyp + vy
+      dzp = dzp + vz
+      sum1 = sum1 + (dxp*dxp + dyp*dyp + dzp*dzp)
+c new position
+      dx = x + vx*dt
+      dy = y + vy*dt
+      dz = z + vz*dt
+c find particles going out of bounds
+      mm = 0
+c count how many particles are going in each direction in ncl
+c save their address and destination in ihole
+c use periodic boundary conditions and check for roundoff error
+c ist = direction particle is going
+      if (dx.ge.edgerx) then
+         if (dx.ge.anx) dx = dx - anx
+         mm = 2
+      else if (dx.lt.edgelx) then
+         if (dx.lt.0.0) then
+            dx = dx + anx
+            if (dx.lt.anx) then
+               mm = 1
+            else
+               dx = 0.0
+            endif
+         else
+            mm = 1
+         endif
+      endif
+      if (dy.ge.edgery) then
+         if (dy.ge.any) dy = dy - any
+         mm = mm + 6
+      else if (dy.lt.edgely) then
+         if (dy.lt.0.0) then
+            dy = dy + any
+            if (dy.lt.any) then
+               mm = mm + 3
+            else
+               dy = 0.0
+            endif
+         else
+            mm = mm + 3
+         endif
+      endif
+      if (dz.ge.edgerz) then
+         if (dz.ge.anz) dz = dz - anz
+         mm = mm + 18
+      else if (dz.lt.edgelz) then
+         if (dz.lt.0.0) then
+            dz = dz + anz
+            if (dz.lt.anz) then
+               mm = mm + 9
+            else
+               dz = 0.0
+            endif
+         else
+            mm = mm + 9
+         endif
+      endif
+c set new position
+      ppart(j,1,l) = dx
+      ppart(j,2,l) = dy
+      ppart(j,3,l) = dz
+c set new velocity
+      ppart(j,4,l) = vx
+      ppart(j,5,l) = vy
+      ppart(j,6,l) = vz
+c increment counters
+      if (mm.gt.0) then
+         ncl(mm,l) = ncl(mm,l) + 1
+         ih = ih + 1
+         if (ih.le.ntmax) then
+            ihole(1,ih+1,l) = j
+            ihole(2,ih+1,l) = mm
+         else
+            nh = 1
+         endif
+      endif
   120 continue
+      sum2 = sum2 + sum1
+c set error and end of file flag
+      if (nh.gt.0) then
+         irc = ih
+         ih = -ih
+      endif
+      ihole(1,1,l) = ih
+  130 continue
 !$OMP END PARALLEL DO
 c normalize kinetic energy
       ek = ek + 0.125*sum2
@@ -1741,25 +2571,28 @@ c where mz1 = (system length in z direction - 1)/mz + 1
       real qm
       real ppart, q
       integer kpic
-      dimension ppart(nppmx,idimp,mxyz1), q(nxv,nyv,nzv)
+      dimension ppart(nppmx,idimp,mxyz1), q(nxv*nyv*nzv)
       dimension kpic(mxyz1)
 c local data
       integer MXV, MYV, MZV
       parameter(MXV=17,MYV=17,MZV=17)
       integer mxy1, noff, moff, loff, npp
-      integer i, j, k, l, nn, mm, ll, nm, lm
-      real x, y, z, dxp, dyp, dzp, amx, amy, amz, dx1
+      integer i, j, k, l, nn, mm, ll, nm, lm, lxv, lxyv, nxyv
+      real x, y, z, w, dxp, dyp, dzp, amx, amy, amz, dx1
       real sq
-c     dimension sq(MXV,MYV,MZV)
-      dimension sq(mx+1,my+1,mz+1)
+c     dimension sq(MXV*MYV*MZV)
+      dimension sq((mx+1)*(my+1)*(mz+1))
       mxy1 = mx1*my1
+      lxv = mx + 1
+      lxyv = lxv*(my + 1)
+      nxyv = nxv*nyv
 c error if local array is too small
 c     if ((mx.ge.MXV).or.(my.ge.MYV).or.(mz.ge.MZV)) return
 c loop over tiles
 !$OMP PARALLEL DO
-!$OMP& PRIVATE(i,j,k,l,noff,moff,loff,npp,nn,mm,ll,nm,lm,x,y,z,dxp,dyp, 
-!$OMP& dzp,amx,amy,amz,dx1,sq)
-      do 150 l = 1, mxyz1
+!$OMP& PRIVATE(i,j,k,l,noff,moff,loff,npp,nn,mm,ll,nm,lm,x,y,z,w,dxp,
+!$OMP& dyp,dzp,amx,amy,amz,dx1,sq)
+      do 130 l = 1, mxyz1
       loff = (l - 1)/mxy1
       k = l - mxy1*loff
       loff = mz*loff
@@ -1768,15 +2601,11 @@ c loop over tiles
       noff = mx*(k - mx1*noff - 1)
       npp = kpic(l)
 c zero out local accumulator
-      do 30 k = 1, mz+1
-      do 20 j = 1, my+1
-      do 10 i = 1, mx+1
-      sq(i,j,k) = 0.0
+      do 10 j = 1, (mx+1)*(my+1)*(mz+1)
+      sq(j) = 0.0
    10 continue
-   20 continue
-   30 continue
 c loop over particles in tile
-      do 40 j = 1, npp
+      do 20 j = 1, npp
 c find interpolation weights
       x = ppart(j,1,l)
       y = ppart(j,2,l)
@@ -1787,9 +2616,7 @@ c find interpolation weights
       dxp = qm*(x - real(nn))
       dyp = y - real(mm)
       dzp = z - real(ll)
-      nn = nn - noff + 1
-      mm = mm - moff + 1
-      ll = ll - loff + 1
+      nn = nn - noff + 1 + lxv*(mm - moff) + lxyv*(ll - loff)
       amx = qm - dxp
       amy = 1.0 - dyp
       dx1 = dxp*dyp
@@ -1798,92 +2625,106 @@ c find interpolation weights
       amz = 1.0 - dzp
       amy = dxp*amy
 c deposit charge within tile to local accumulator
-      x = sq(nn,mm,ll) + amx*amz
-      y = sq(nn+1,mm,ll) + amy*amz
-      sq(nn,mm,ll) = x
-      sq(nn+1,mm,ll) = y
-      x = sq(nn,mm+1,ll) + dyp*amz
-      y = sq(nn+1,mm+1,ll) + dx1*amz
-      sq(nn,mm+1,ll) = x
-      sq(nn+1,mm+1,ll) = y
-      x = sq(nn,mm,ll+1) + amx*dzp
-      y = sq(nn+1,mm,ll+1) + amy*dzp
-      sq(nn,mm,ll+1) = x
-      sq(nn+1,mm,ll+1) = y
-      x = sq(nn,mm+1,ll+1) + dyp*dzp
-      y = sq(nn+1,mm+1,ll+1) + dx1*dzp
-      sq(nn,mm+1,ll+1) = x
-      sq(nn+1,mm+1,ll+1) = y
-   40 continue
+      x = sq(nn) + amx*amz
+      y = sq(nn+1) + amy*amz
+      z = sq(nn+lxv) + dyp*amz
+      w = sq(nn+1+lxv) + dx1*amz
+      sq(nn) = x
+      sq(nn+1) = y
+      sq(nn+lxv) = z
+      sq(nn+1+lxv) = w
+      mm = nn + lxyv
+      x = sq(mm) + amx*dzp
+      y = sq(mm+1) + amy*dzp
+      z = sq(mm+lxv) + dyp*dzp
+      w = sq(mm+1+lxv) + dx1*dzp
+      sq(mm) = x
+      sq(mm+1) = y
+      sq(mm+lxv) = z
+      sq(mm+1+lxv) = w
+   20 continue
 c deposit charge to interior points in global array
       nn = min(mx,nxv-noff)
       mm = min(my,nyv-moff)
       ll = min(mz,nzv-loff)
-      do 70 k = 2, ll
-      do 60 j = 2, mm
-      do 50 i = 2, nn
-      q(i+noff,j+moff,k+loff) = q(i+noff,j+moff,k+loff) + sq(i,j,k)
+      do 50 k = 2, ll
+      do 40 j = 2, mm
+!dir$ ivdep
+      do 30 i = 2, nn
+      q(i+noff+nxv*(j+moff-1)+nxyv*(k+loff-1)) =                        
+     1q(i+noff+nxv*(j+moff-1)+nxyv*(k+loff-1)) +                        
+     2 sq(i+lxv*(j-1)+lxyv*(k-1))
+   30 continue
+   40 continue
    50 continue
-   60 continue
-   70 continue
 c deposit charge to edge points in global array
       lm = min(mz+1,nzv-loff)
-      do 90 j = 2, mm
-      do 80 i = 2, nn
+      do 70 j = 2, mm
+      do 60 i = 2, nn
 !$OMP ATOMIC
-      q(i+noff,j+moff,1+loff) = q(i+noff,j+moff,1+loff) + sq(i,j,1)
+      q(i+noff+nxv*(j+moff-1)+nxyv*loff) =                              
+     1q(i+noff+nxv*(j+moff-1)+nxyv*loff) + sq(i+lxv*(j-1))
       if (lm > mz) then
 !$OMP ATOMIC
-         q(i+noff,j+moff,lm+loff) = q(i+noff,j+moff,lm+loff)
-     1   + sq(i,j,lm)
+         q(i+noff+nxv*(j+moff-1)+nxyv*(lm+loff-1)) =                    
+     1   q(i+noff+nxv*(j+moff-1)+nxyv*(lm+loff-1))
+     1   + sq(i+lxv*(j-1)+lxyv*(lm-1))
       endif
-   80 continue
-   90 continue
+   60 continue
+   70 continue
       nm = min(mx+1,nxv-noff)
       mm = min(my+1,nyv-moff)
-      do 120 k = 1, ll
-      do 100 i = 2, nn
+      do 100 k = 1, ll
+      do 80 i = 2, nn
 !$OMP ATOMIC
-      q(i+noff,1+moff,k+loff) = q(i+noff,1+moff,k+loff) + sq(i,1,k)
+      q(i+noff+nxv*moff+nxyv*(k+loff-1)) =                              
+     1q(i+noff+nxv*moff+nxyv*(k+loff-1)) + sq(i+lxyv*(k-1))
       if (mm > my) then
 !$OMP ATOMIC
-         q(i+noff,mm+moff,k+loff) = q(i+noff,mm+moff,k+loff)            
-     1   + sq(i,mm,k)
+         q(i+noff+nxv*(mm+moff-1)+nxyv*(k+loff-1)) =      
+     1   q(i+noff+nxv*(mm+moff-1)+nxyv*(k+loff-1))                      
+     2   + sq(i+lxv*(mm-1)+lxyv*(k-1))
       endif
-  100 continue
-      do 110 j = 1, mm
+   80 continue
+      do 90 j = 1, mm
 !$OMP ATOMIC
-      q(1+noff,j+moff,k+loff) = q(1+noff,j+moff,k+loff) + sq(1,j,k)
+      q(1+noff+nxv*(j+moff-1)+nxyv*(k+loff-1)) =                        
+     1q(1+noff+nxv*(j+moff-1)+nxyv*(k+loff-1))                          
+     2+ sq(1+lxv*(j-1)+lxyv*(k-1))
       if (nm > mx) then
 !$OMP ATOMIC
-         q(nm+noff,j+moff,k+loff) = q(nm+noff,j+moff,k+loff)            
-     1   + sq(nm,j,k)
+         q(nm+noff+nxv*(j+moff-1)+nxyv*(k+loff-1)) =                    
+     1   q(nm+noff+nxv*(j+moff-1)+nxyv*(k+loff-1))                      
+     1   + sq(nm+lxv*(j-1)+lxyv*(k-1))
       endif
-  110 continue
-  120 continue
+   90 continue
+  100 continue
       if (lm > mz) then
-         do 130 i = 2, nn
+         do 110 i = 2, nn
 !$OMP ATOMIC
-         q(i+noff,1+moff,lm+loff) = q(i+noff,1+moff,lm+loff)
-     1   + sq(i,1,lm)
+         q(i+noff+nxv*moff+nxyv*(lm+loff-1)) =                          
+     1   q(i+noff+nxv*moff+nxyv*(lm+loff-1)) + sq(i+lxyv*(lm-1))
          if (mm > my) then
 !$OMP ATOMIC
-            q(i+noff,mm+moff,lm+loff) = q(i+noff,mm+moff,lm+loff)       
-     1      + sq(i,mm,lm)
+            q(i+noff+nxv*(mm+moff-1)+nxyv*(lm+loff-1)) =                
+     1      q(i+noff+nxv*(mm+moff-1)+nxyv*(lm+loff-1))                  
+     1      + sq(i+lxv*(mm-1)+lxyv*(lm-1))
          endif
-  130    continue
-         do 140 j = 1, mm
+  110    continue
+         do 120 j = 1, mm
 !$OMP ATOMIC
-         q(1+noff,j+moff,lm+loff) = q(1+noff,j+moff,lm+loff)            
-     1   + sq(1,j,lm)
+         q(1+noff+nxv*(j+moff-1)+nxyv*(lm+loff-1)) =                    
+     1   q(1+noff+nxv*(j+moff-1)+nxyv*(lm+loff-1))                      
+     1   + sq(1+lxv*(j-1)+lxyv*(lm-1))
          if (nm > mx) then
 !$OMP ATOMIC
-            q(nm+noff,j+moff,lm+loff) = q(nm+noff,j+moff,lm+loff)       
-     1      + sq(nm,j,lm)
+            q(nm+noff+nxv*(j+moff-1)+nxyv*(lm+loff-1)) =                
+     1      q(nm+noff+nxv*(j+moff-1)+nxyv*(lm+loff-1))                  
+     1      + sq(nm+lxv*(j-1)+lxyv*(lm-1))
          endif
-  140    continue
+  120    continue
       endif
-  150 continue
+  130 continue
 !$OMP END PARALLEL DO
       return
       end
@@ -1937,24 +2778,33 @@ c local data
       parameter(npblk=32,lvect=8)
       integer mxy1, noff, moff, loff, npp, ipp, joff, nps
       integer i, j, k, l, m, nn, mm, ll, nm, lm, lxv, lxyv, nxyv
-      real x, y, z, dxp, dyp, dzp, amx, amy, amz, dx1
+      real x, y, z, w, dxp, dyp, dzp, amx, amy, amz, dx1
       real sq
 c     dimension sq(MXV*MYV*MZV)
       dimension sq((mx+1)*(my+1)*(mz+1))
 c scratch arrays
-      integer n
+      integer n, mn
       real s
-      dimension n(npblk), s(npblk,lvect)
+      dimension n(npblk), mn(lvect), s(npblk,lvect)
+!dir$ attributes align: 64:: n, mn, s
       mxy1 = mx1*my1
       lxv = mx + 1
       lxyv = lxv*(my + 1)
       nxyv = nxv*nyv
+      mn(1) = 0
+      mn(2) = 1
+      mn(3) = lxv
+      mn(4) = lxv + 1
+      mn(5) = lxyv
+      mn(6) = lxyv + 1
+      mn(7) = lxyv + lxv
+      mn(8) = lxyv + lxv + 1
 c error if local array is too small
 c     if ((mx.ge.MXV).or.(my.ge.MYV).or.(mz.ge.MZV)) return
 c loop over tiles
 !$OMP PARALLEL DO
 !$OMP& PRIVATE(i,j,k,l,m,noff,moff,loff,npp,ipp,joff,nps,nn,mm,ll,nm,lm,
-!$OMP& x,y,z,dxp,dyp,dzp,amx,amy,amz,dx1,sq,n,s)
+!$OMP& x,y,z,w,dxp,dyp,dzp,amx,amy,amz,dx1,sq,n,s)
       do 170 l = 1, mxyz1
       loff = (l - 1)/mxy1
       k = l - mxy1*loff
@@ -1973,6 +2823,7 @@ c outer loop over number of full blocks
       do 50 m = 1, ipp
       joff = npblk*(m - 1)
 c inner loop over particles in block
+!dir$ vector aligned
       do 20 j = 1, npblk
 c find interpolation weights
       x = ppart(j+joff,1,l)
@@ -1984,7 +2835,7 @@ c find interpolation weights
       dxp = qm*(x - real(nn))
       dyp = y - real(mm)
       dzp = z - real(ll)
-      n(j) = nn - noff + lxv*(mm - moff) + lxyv*(ll - loff)
+      n(j) = nn - noff + lxv*(mm - moff) + lxyv*(ll - loff) + 1
       amx = qm - dxp
       amy = 1.0 - dyp
       dx1 = dxp*dyp
@@ -2003,20 +2854,9 @@ c find interpolation weights
    20 continue
 c deposit charge within tile to local accumulator
       do 40 j = 1, npblk
-      nn = n(j)
-      mm = nn + lxv - 2
-      ll = nn + lxyv - 4
-      k = ll + lxv - 2
 !dir$ ivdep
       do 30 i = 1, lvect
-      if (i.gt.6) then
-         nn = k
-      else if (i.gt.4) then
-         nn = ll
-      else if (i.gt.2) then
-         nn = mm
-      endif
-      sq(i+nn) = sq(i+nn) + s(j,i)
+      sq(n(j)+mn(i)) = sq(n(j)+mn(i)) + s(j,i)
    30 continue
    40 continue
    50 continue
@@ -2044,21 +2884,21 @@ c find interpolation weights
 c deposit charge within tile to local accumulator
       x = sq(nn) + amx*amz
       y = sq(nn+1) + amy*amz
+      z = sq(nn+lxv) + dyp*amz
+      w = sq(nn+1+lxv) + dx1*amz
       sq(nn) = x
       sq(nn+1) = y
-      x = sq(nn+lxv) + dyp*amz
-      y = sq(nn+1+lxv) + dx1*amz
-      sq(nn+lxv) = x
-      sq(nn+1+lxv) = y
+      sq(nn+lxv) = z
+      sq(nn+1+lxv) = w
       mm = nn + lxyv
       x = sq(mm) + amx*dzp
       y = sq(mm+1) + amy*dzp
+      z = sq(mm+lxv) + dyp*dzp
+      w = sq(mm+1+lxv) + dx1*dzp
       sq(mm) = x
       sq(mm+1) = y
-      x = sq(mm+lxv) + dyp*dzp
-      y = sq(mm+1+lxv) + dx1*dzp
-      sq(mm+lxv) = x
-      sq(mm+1+lxv) = y
+      sq(mm+lxv) = z
+      sq(mm+1+lxv) = w
    60 continue
 c deposit charge to interior points in global array
       nn = min(mx,nxv-noff)
@@ -2761,9 +3601,11 @@ c local data
       real dx, dy, dz
       integer sncl, ks
       dimension sncl(26), ks(26)
+!dir$ attributes align: 64:: sncl, ks
 c scratch arrays
       integer n
       dimension n(npblk,3)
+!dir$ attributes align: 64:: n
       mxy1 = mx1*my1
       mxyz1 = mxy1*mz1
       anx = real(nx)
@@ -2773,9 +3615,9 @@ c find and count particles leaving tiles and determine destination
 c update ppart, ihole, ncl
 c loop over tiles
 !$OMP PARALLEL DO
-!$OMP& PRIVATE(j,k,l,noff,moff,loff,npp,nn,mm,ll,ih,nh,ist,dx,dy,dz,    
-!$OMP& edgelx,edgely,edgelz,edgerx,edgery,edgerz)
-      do 30 l = 1, mxyz1
+!$OMP& PRIVATE(j,k,l,noff,moff,loff,npp,ipp,joff,nps,nn,mm,ll,ih,nh,ist,
+!$OMP& dx,dy,dz,edgelx,edgely,edgelz,edgerx,edgery,edgerz,n)
+      do 60 l = 1, mxyz1
       loff = (l - 1)/mxy1
       k = l - mxy1*loff
       loff = mz*loff
@@ -2799,7 +3641,90 @@ c clear counters
       ncl(j,l) = 0
    10 continue
 c loop over particles in tile
-      do 20 j = 1, npp
+      ipp = npp/npblk
+c outer loop over number of full blocks
+      do 40 m = 1, ipp
+      joff = npblk*(m - 1)
+c inner loop over particles in block
+!dir$ vector aligned
+      do 20 j = 1, npblk
+      dx = ppart(j+joff,1,l)
+      dy = ppart(j+joff,2,l)
+      dz = ppart(j+joff,3,l)
+c find particles going out of bounds
+      ist = 0
+c count how many particles are going in each direction in ncl
+c save their address and destination in ihole
+c use periodic boundary conditions and check for roundoff error
+c ist = direction particle is going
+      if (dx.ge.edgerx) then
+         if (dx.ge.anx) ppart(j+joff,1,l) = dx - anx
+         ist = 2
+      else if (dx.lt.edgelx) then
+         if (dx.lt.0.0) then
+            dx = dx + anx
+            if (dx.lt.anx) then
+               ist = 1
+            else
+               dx = 0.0
+            endif
+            ppart(j+joff,1,l) = dx
+         else
+            ist = 1
+         endif
+      endif
+      if (dy.ge.edgery) then
+         if (dy.ge.any) ppart(j+joff,2,l) = dy - any
+         ist = ist + 6
+      else if (dy.lt.edgely) then
+         if (dy.lt.0.0) then
+            dy = dy + any
+            if (dy.lt.any) then
+               ist = ist + 3
+            else
+               dy = 0.0
+            endif
+            ppart(j+joff,2,l) = dy
+         else
+            ist = ist + 3
+         endif
+      endif
+      if (dz.ge.edgerz) then
+         if (dz.ge.anz) ppart(j+joff,3,l) = dz - anz
+         ist = ist + 18
+      else if (dz.lt.edgelz) then
+         if (dz.lt.0.0) then
+            dz = dz + anz
+            if (dz.lt.anz) then
+               ist = ist + 9
+            else
+               dz = 0.0
+            endif
+            ppart(j+joff,3,l) = dz
+         else
+            ist = ist + 9
+         endif
+      endif
+      n(j,1) = ist
+   20 continue
+! store outgoing particle address and destination
+      do 30 j = 1, npblk
+      ist = n(j,1)
+      if (ist.gt.0) then
+         ncl(ist,l) = ncl(ist,l) + 1
+         ih = ih + 1
+         if (ih.le.ntmax) then
+            ihole(1,ih+1,l) = j + joff
+            ihole(2,ih+1,l) = ist
+         else
+            nh = 1
+         endif
+      endif
+   30 continue
+   40 continue
+      nps = npblk*ipp + 1
+c loop over remaining particles
+      do 50 j = nps, npp
       dx = ppart(j,1,l)
       dy = ppart(j,2,l)
       dz = ppart(j,3,l)
@@ -2867,14 +3792,14 @@ c ist = direction particle is going
             nh = 1
          endif
       endif
-   20 continue
+   50 continue
 c set error and end of file flag
       if (nh.gt.0) then
          irc = ih
          ih = -ih
       endif
       ihole(1,1,l) = ih
-   30 continue
+   60 continue
 !$OMP END PARALLEL DO
 c ihole overflow
       if (irc.gt.0) return
@@ -2883,51 +3808,51 @@ c buffer particles that are leaving tile: update ppbuff, ncl
 c loop over tiles
 !$OMP PARALLEL DO
 !$OMP& PRIVATE(i,j,l,m,kxs,lb,ist,nh,ip,ipp,nps,joff,j1,ii,sncl,ks,n)
-      do 160 l = 1, mxyz1
+      do 190 l = 1, mxyz1
 c find address offset for ordered ppbuff array
-      do 40 j = 1, 26
+      do 70 j = 1, 26
       sncl(j) = ncl(j,l)
       ks(j) = j - 1
-   40 continue
+   70 continue
       kxs = 1
-   50 if (kxs.lt.26) then
+   80 if (kxs.lt.26) then
 !dir$ ivdep
-         do 60 j = 1, 13
+         do 90 j = 1, 13
          lb = kxs*ks(j)
          if ((j+lb+kxs).le.26) then
             sncl(j+lb+kxs) = sncl(j+lb+kxs) + sncl(2*lb+kxs)
          endif
          ks(j) = ks(j)/2
-   60    continue
+   90    continue
          kxs = kxs + kxs
-         go to 50
+         go to 80
       endif
-      do 70 j = 1, 26
+      do 100 j = 1, 26
       sncl(j) = sncl(j) - ncl(j,l)
-   70 continue
+  100 continue
       nh = ihole(1,1,l)
       ip = 0
 c buffer particles that are leaving tile, in direction order
 c loop over particles leaving tile
       ipp = nh/npblk
 c outer loop over number of full blocks
-      do 120 m = 1, ipp
+      do 150 m = 1, ipp
       joff = npblk*(m - 1) + 1
 c inner loop over particles in block
-      do 80 j = 1, npblk
+      do 110 j = 1, npblk
       n(j,1) = ihole(1,j+joff,l)
       n(j,2) = ihole(2,j+joff,l)
-   80 continue
+  110 continue
 c calculate offsets
-      do 90 j = 1, npblk
+      do 120 j = 1, npblk
       ist = n(j,2)
       ii = sncl(ist) + 1
       n(j,2) = ii
       sncl(ist) = ii
-   90 continue
+  120 continue
 c buffer particles that are leaving tile, in direction order
-      do 110 i = 1, idimp
-      do 100 j = 1, npblk
+      do 140 i = 1, idimp
+      do 130 j = 1, npblk
       j1 = n(j,1)
       ii = n(j,2)
       if (ii.le.npbmx) then
@@ -2935,31 +3860,31 @@ c buffer particles that are leaving tile, in direction order
       else
          ip = 1
       endif
-  100 continue
-  110 continue
-  120 continue
+  130 continue
+  140 continue
+  150 continue
       nps = npblk*ipp + 1
 c loop over remaining particles
-      do 140 j = nps, nh
+      do 170 j = nps, nh
 c buffer particles that are leaving tile, in direction order
       j1 = ihole(1,j+1,l)
       ist = ihole(2,j+1,l)
       ii = sncl(ist) + 1
       if (ii.le.npbmx) then
-         do 130 i = 1, idimp
+         do 160 i = 1, idimp
          ppbuff(ii,i,l) = ppart(j1,i,l)
-  130    continue
+  160    continue
       else
          ip = 1
       endif
       sncl(ist) = ii
-  140 continue
-      do 150 j = 1, 26
+  170 continue
+      do 180 j = 1, 26
       ncl(j,l) = sncl(j)
-  150 continue
+  180 continue
 c set error
       if (ip.gt.0) irc = ncl(26,l)
-  160 continue
+  190 continue
 !$OMP END PARALLEL DO
 c ppbuff overflow
       if (irc.gt.0) return
@@ -2969,7 +3894,7 @@ c loop over tiles
 !$OMP PARALLEL DO
 !$OMP& PRIVATE(i,j,k,l,m,ii,kk,in,npp,ipp,joff,nps,kx,ky,kz,kl,kr,kxl,  
 !$OMP& kxr,lk,ll,lr,ih,nh,nn,mm,ncoff,ist,j1,j2,ip,ks,n)
-      do 310 l = 1, mxyz1
+      do 340 l = 1, mxyz1
       npp = kpic(l)
       kz = (l - 1)/mxy1
       k = l - mxy1*kz
@@ -3034,17 +3959,17 @@ c loop over directions
       ih = 0
       ist = 0
       j1 = 0
-      do 230 ii = 1, 26
+      do 260 ii = 1, 26
       if (ii.gt.1) ncoff = ncl(ii-1,ks(ii))
 c ip = number of particles coming from direction ii
       ip = ncl(ii,ks(ii)) - ncoff
 c loop over particles coming from direction ii
       ipp = ip/npblk
 c outer loop over number of full blocks
-      do 200 m = 1, ipp
+      do 230 m = 1, ipp
       joff = npblk*(m - 1)
 c inner loop over particles in block
-      do 170 j = 1, npblk
+      do 200 j = 1, npblk
 c insert incoming particles into holes
       if ((j+ih).le.nh) then
          j1 = ihole(1,j+ih+1,l)
@@ -3053,22 +3978,22 @@ c place overflow at end of array
          j1 = npp + j + ih - nh
       endif
       n(j,1) = j1
-  170 continue
-      do 190 i = 1, idimp
-      do 180 j = 1, npblk
+  200 continue
+      do 220 i = 1, idimp
+      do 210 j = 1, npblk
       j1 = n(j,1)
       if (j1.le.nppmx) then
          ppart(j1,i,l) = ppbuff(j+joff+ncoff,i,ks(ii))
       else
          ist = 1
       endif
-  180 continue
-  190 continue
+  210 continue
+  220 continue
       ih = ih + npblk
-  200 continue
+  230 continue
       nps = npblk*ipp + 1
 c loop over remaining particles
-      do 220 j = nps, ip
+      do 250 j = nps, ip
       ih = ih + 1
 c insert incoming particles into holes
       if (ih.le.nh) then
@@ -3078,14 +4003,14 @@ c place overflow at end of array
          j1 = npp + ih - nh
       endif
       if (j1.le.nppmx) then
-         do 210 i = 1, idimp
+         do 240 i = 1, idimp
          ppart(j1,i,l) = ppbuff(j+ncoff,i,ks(ii))
-  210    continue
+  240    continue
       else
          ist = 1
       endif
-  220 continue
-  230 continue
+  250 continue
+  260 continue
       if (ih > nh) npp = npp + ih - nh
 c set error
       if (ist.gt.0) irc = j1
@@ -3098,17 +4023,17 @@ c holes are processed in increasing order
          ii = nh + 1
          ipp = ip/npblk
 c outer loop over number of full blocks
-         do 280 m = 1, ipp
+         do 310 m = 1, ipp
          joff = npblk*(m - 1)
 c inner loop over particles in block
-         do 240 j = 1, npblk
+         do 270 j = 1, npblk
          n(j,2) = ihole(1,ih+j+1,l)
          n(j,3) = ihole(1,ii-j+1,l)
-  240    continue
+  270    continue
          in = 1
          mm = 1
          nn = n(in,3)
-         do 250 j = 1, npblk
+         do 280 j = 1, npblk
          j1 = npp - j - joff + 1
          n(j,1) = n(mm,2)
          if (j1.eq.nn) then
@@ -3118,40 +4043,40 @@ c inner loop over particles in block
          else
             mm = mm + 1
          endif
-  250    continue
-         do 270 i = 1, idimp
+  280    continue
+         do 300 i = 1, idimp
 !dir$ ivdep
-         do 260 j = 1, npblk
+         do 290 j = 1, npblk
          j1 = npp - j - joff + 1
          j2 = n(j,1)
          if (j2.gt.0) ppart(j2,i,l) = ppart(j1,i,l)
-  260    continue
-  270    continue
+  290    continue
+  300    continue
          ii = ii - in + 1
          ih = ih + mm - 1
-  280    continue
+  310    continue
          nps = npblk*ipp + 1
          nn = ihole(1,ii,l)
          ih = ih + 2
          j2 = ihole(1,ih,l)
 c loop over remaining particles
-         do 300 j = nps, ip
+         do 330 j = nps, ip
          j1 = npp - j + 1
          if (j1.eq.nn) then
             ii = ii - 1
             nn = ihole(1,ii,l)
          else
-            do 290 i = 1, idimp
+            do 320 i = 1, idimp
             ppart(j2,i,l) = ppart(j1,i,l)
-  290       continue
+  320       continue
             ih = ih + 1
             j2 = ihole(1,ih,l)
          endif
-  300    continue
+  330    continue
          npp = npp - ip
       endif
       kpic(l) = npp
-  310 continue
+  340 continue
 !$OMP END PARALLEL DO
       return
       end
@@ -3204,9 +4129,11 @@ c local data
       integer lb, kxs, m, ipp, nps, joff
       integer sncl, ks
       dimension sncl(26), ks(26)
+!dir$ attributes align: 64:: sncl, ks
 c scratch arrays
       integer n
       dimension n(npblk,3)
+!dir$ attributes align: 64:: n
       mxy1 = mx1*my1
       mxyz1 = mxy1*mz1
 c buffer particles that are leaving tile: update ppbuff, ncl
@@ -3486,6 +4413,338 @@ c loop over remaining particles
       return
       end
 c-----------------------------------------------------------------------
+      subroutine V2PPORDERF3LT(ppart,ppbuff,kpic,ncl,ihole,idimp,nppmx, 
+     1mx1,my1,mz1,npbmx,ntmax,irc)
+c this subroutine sorts particles by x,y,z grid in tiles of mx, my, mz
+c linear interpolation, with periodic boundary conditions
+c tiles are assumed to be arranged in 3D linear memory
+c the algorithm has 2 steps.  first, a prefix scan of ncl is performed
+c and departing particles are buffered in ppbuff in direction order.
+c then we copy the incoming particles from other tiles into ppart.
+c it assumes that the number, location, and destination of particles 
+c leaving a tile have been previously stored in ncl and ihole by the
+c GPPUSHF3LT subroutine.
+c input: all except ppbuff, irc
+c output: ppart, ppbuff, kpic, ncl, irc
+c ppart(n,1,m) = position x of particle n in tile m
+c ppart(n,2,m) = position y of particle n in tile m
+c ppart(n,3,m) = position z of particle n in tile m
+c ppbuff(i,n,l) = i co-ordinate of particle n in tile l
+c kpic(l) = number of particles in tile l
+c ncl(i,l) = number of particles going to destination i, tile l
+c ihole(1,:,l) = location of hole in array left by departing particle
+c ihole(2,:,l) = direction destination of particle leaving hole
+c all for tile l
+c ihole(1,1,l) = ih, number of holes left (error, if negative)
+c idimp = size of phase space = 6
+c nppmx = maximum number of particles in tile
+c mx1 = (system length in x direction - 1)/mx + 1
+c my1 = (system length in y direction - 1)/my + 1
+c mz1 = (system length in z direction - 1)/mz + 1
+c npbmx = size of buffer array ppbuff
+c ntmax = size of hole array for particles leaving tiles
+c irc = maximum overflow, returned only if error occurs, when irc > 0
+      implicit none
+      integer idimp, nppmx, mx1, my1, mz1, npbmx, ntmax, irc
+      real ppart, ppbuff
+      integer kpic, ncl, ihole
+      dimension ppart(nppmx,idimp,mx1*my1*mz1)
+      dimension ppbuff(idimp,npbmx,mx1*my1*mz1)
+      dimension kpic(mx1*my1*mz1), ncl(26,mx1*my1*mz1)
+      dimension ihole(2,ntmax+1,mx1*my1*mz1)
+c local data
+      integer npblk
+      parameter(npblk=16)
+      integer mxy1, mxyz1, npp, ncoff
+      integer i, j, k, l, ii, kx, ky, kz, ih, nh, ist, nn, ll, mm, in
+      integer ip, j1, j2, kxl, kxr, kk, kl, kr, lk, lr
+      integer lb, kxs, m, ipp, nps, joff
+      integer sncl, ks
+      dimension sncl(26), ks(26)
+!dir$ attributes align: 64:: sncl, ks
+c scratch arrays
+      integer n
+      dimension n(npblk,3)
+!dir$ attributes align: 64:: n
+      mxy1 = mx1*my1
+      mxyz1 = mxy1*mz1
+c buffer particles that are leaving tile: update ppbuff, ncl
+c loop over tiles
+!$OMP PARALLEL DO
+!$OMP& PRIVATE(i,j,l,m,kxs,lb,ist,nh,ip,ipp,nps,joff,j1,ii,sncl,ks,n)
+      do 130 l = 1, mxyz1
+c find address offset for ordered ppbuff array
+      do 10 j = 1, 26
+      sncl(j) = ncl(j,l)
+      ks(j) = j - 1
+   10 continue
+      kxs = 1
+   20 if (kxs.lt.26) then
+!dir$ ivdep
+         do 30 j = 1, 13
+         lb = kxs*ks(j)
+         if ((j+lb+kxs).le.26) then
+            sncl(j+lb+kxs) = sncl(j+lb+kxs) + sncl(2*lb+kxs)
+         endif
+         ks(j) = ks(j)/2
+   30    continue
+         kxs = kxs + kxs
+         go to 20
+      endif
+      do 40 j = 1, 26
+      sncl(j) = sncl(j) - ncl(j,l)
+   40 continue
+      nh = ihole(1,1,l)
+      ip = 0
+c buffer particles that are leaving tile, in direction order
+c loop over particles leaving tile
+      ipp = nh/npblk
+c outer loop over number of full blocks
+      do 90 m = 1, ipp
+      joff = npblk*(m - 1) + 1
+c inner loop over particles in block
+      do 50 j = 1, npblk
+      n(j,1) = ihole(1,j+joff,l)
+      n(j,2) = ihole(2,j+joff,l)
+   50 continue
+c calculate offsets
+      do 60 j = 1, npblk
+      ist = n(j,2)
+      ii = sncl(ist) + 1
+      n(j,2) = ii
+      sncl(ist) = ii
+   60 continue
+c buffer particles that are leaving tile, in direction order
+      do 80 j = 1, npblk
+      j1 = n(j,1)
+      ii = n(j,2)
+      if (ii.le.npbmx) then
+         do 70 i = 1, idimp
+         ppbuff(i,ii,l) = ppart(j1,i,l)
+   70    continue
+      else
+         ip = 1
+      endif
+   80 continue
+   90 continue
+      nps = npblk*ipp + 1
+c loop over remaining particles
+      do 110 j = nps, nh
+c buffer particles that are leaving tile, in direction order
+      j1 = ihole(1,j+1,l)
+      ist = ihole(2,j+1,l)
+      ii = sncl(ist) + 1
+      if (ii.le.npbmx) then
+         do 100 i = 1, idimp
+         ppbuff(i,ii,l) = ppart(j1,i,l)
+  100    continue
+      else
+         ip = 1
+      endif
+      sncl(ist) = ii
+  110 continue
+      do 120 j = 1, 26
+      ncl(j,l) = sncl(j)
+  120 continue
+c set error
+      if (ip.gt.0) irc = ncl(26,l)
+  130 continue
+!$OMP END PARALLEL DO
+c ppbuff overflow
+      if (irc.gt.0) return
+c
+c copy incoming particles from buffer into ppart: update ppart, kpic
+c loop over tiles
+!$OMP PARALLEL DO
+!$OMP& PRIVATE(i,j,k,l,m,ii,kk,in,npp,ipp,joff,nps,kx,ky,kz,kl,kr,kxl,  
+!$OMP& kxr,lk,ll,lr,ih,nh,nn,mm,ncoff,ist,j1,j2,ip,ks,n)
+      do 280 l = 1, mxyz1
+      npp = kpic(l)
+      kz = (l - 1)/mxy1
+      k = l - mxy1*kz
+      kz = kz + 1
+c loop over tiles in z, assume periodic boundary conditions
+      lk = (kz - 1)*mxy1
+c find tile behind
+      ll = kz - 1 
+      if (ll.lt.1) ll = ll + mz1
+      ll = (ll - 1)*mxy1
+c find tile in front
+      lr = kz + 1
+      if (lr.gt.mz1) lr = lr - mz1
+      lr = (lr - 1)*mxy1
+      ky = (k - 1)/mx1 + 1
+c loop over tiles in y, assume periodic boundary conditions
+      kk = (ky - 1)*mx1
+c find tile above
+      kl = ky - 1 
+      if (kl.lt.1) kl = kl + my1
+      kl = (kl - 1)*mx1
+c find tile below
+      kr = ky + 1
+      if (kr.gt.my1) kr = kr - my1
+      kr = (kr - 1)*mx1
+c loop over tiles in x, assume periodic boundary conditions
+      kx = k - (ky - 1)*mx1
+      kxl = kx - 1 
+      if (kxl.lt.1) kxl = kxl + mx1
+      kxr = kx + 1
+      if (kxr.gt.mx1) kxr = kxr - mx1
+c find tile number for different directions
+      ks(1) = kxr + kk + lk
+      ks(2) = kxl + kk + lk
+      ks(3) = kx + kr + lk
+      ks(4) = kxr + kr + lk
+      ks(5) = kxl + kr + lk
+      ks(6) = kx + kl + lk
+      ks(7) = kxr + kl + lk
+      ks(8) = kxl + kl + lk
+      ks(9) = kx + kk + lr
+      ks(10) = kxr + kk + lr
+      ks(11) = kxl + kk + lr
+      ks(12) = kx + kr + lr
+      ks(13) = kxr + kr + lr
+      ks(14) = kxl + kr + lr
+      ks(15) = kx + kl + lr
+      ks(16) = kxr + kl + lr
+      ks(17) = kxl + kl + lr
+      ks(18) = kx + kk + ll
+      ks(19) = kxr + kk + ll
+      ks(20) = kxl + kk + ll
+      ks(21) = kx + kr + ll
+      ks(22) = kxr + kr + ll
+      ks(23) = kxl + kr + ll
+      ks(24) = kx + kl + ll
+      ks(25) = kxr + kl + ll
+      ks(26) = kxl + kl + ll
+c loop over directions
+      nh = ihole(1,1,l)
+      ncoff = 0
+      ih = 0
+      ist = 0
+      j1 = 0
+      do 200 ii = 1, 26
+      if (ii.gt.1) ncoff = ncl(ii-1,ks(ii))
+c ip = number of particles coming from direction ii
+      ip = ncl(ii,ks(ii)) - ncoff
+c loop over particles coming from direction ii
+      ipp = ip/npblk
+c outer loop over number of full blocks
+      do 170 m = 1, ipp
+      joff = npblk*(m - 1)
+c inner loop over particles in block
+      do 140 j = 1, npblk
+c insert incoming particles into holes
+      if ((j+ih).le.nh) then
+         j1 = ihole(1,j+ih+1,l)
+c place overflow at end of array
+      else
+         j1 = npp + j + ih - nh
+      endif
+      n(j,1) = j1
+  140 continue
+      do 160 j = 1, npblk
+      j1 = n(j,1)
+      if (j1.le.nppmx) then
+         do 150 i = 1, idimp
+         ppart(j1,i,l) = ppbuff(i,j+joff+ncoff,ks(ii))
+  150    continue
+      else
+         ist = 1
+      endif
+  160 continue
+      ih = ih + npblk
+  170 continue
+      nps = npblk*ipp + 1
+c loop over remaining particles
+      do 190 j = nps, ip
+      ih = ih + 1
+c insert incoming particles into holes
+      if (ih.le.nh) then
+         j1 = ihole(1,ih+1,l)
+c place overflow at end of array
+      else
+         j1 = npp + ih - nh
+      endif
+      if (j1.le.nppmx) then
+         do 180 i = 1, idimp
+         ppart(j1,i,l) = ppbuff(i,j+ncoff,ks(ii))
+  180    continue
+      else
+         ist = 1
+      endif
+  190 continue
+  200 continue
+      if (ih > nh) npp = npp + ih - nh
+c set error
+      if (ist.gt.0) irc = j1
+c fill up remaining holes in particle array with particles from bottom
+c holes with locations great than npp-ip do not need to be filled
+      if (ih.lt.nh) then
+         ip = nh - ih
+c move particles from end into remaining holes
+c holes are processed in increasing order
+         ii = nh + 1
+         ipp = ip/npblk
+c outer loop over number of full blocks
+         do 250 m = 1, ipp
+         joff = npblk*(m - 1)
+c inner loop over particles in block
+         do 210 j = 1, npblk
+         n(j,2) = ihole(1,ih+j+1,l)
+         n(j,3) = ihole(1,ii-j+1,l)
+  210    continue
+         in = 1
+         mm = 1
+         nn = n(in,3)
+         do 220 j = 1, npblk
+         j1 = npp - j - joff + 1
+         n(j,1) = n(mm,2)
+         if (j1.eq.nn) then
+            in = in + 1
+            nn = n(in,3)
+            n(j,1) = -1
+         else
+            mm = mm + 1
+         endif
+  220    continue
+         do 240 i = 1, idimp
+!dir$ ivdep
+         do 230 j = 1, npblk
+         j1 = npp - j - joff + 1
+         j2 = n(j,1)
+         if (j2.gt.0) ppart(j2,i,l) = ppart(j1,i,l)
+  230    continue
+  240    continue
+         ii = ii - in + 1
+         ih = ih + mm - 1
+  250    continue
+         nps = npblk*ipp + 1
+         nn = ihole(1,ii,l)
+         ih = ih + 2
+         j2 = ihole(1,ih,l)
+c loop over remaining particles
+         do 270 j = nps, ip
+         j1 = npp - j + 1
+         if (j1.eq.nn) then
+            ii = ii - 1
+            nn = ihole(1,ii,l)
+         else
+            do 260 i = 1, idimp
+            ppart(j2,i,l) = ppart(j1,i,l)
+  260       continue
+            ih = ih + 1
+            j2 = ihole(1,ih,l)
+         endif
+  270    continue
+         npp = npp - ip
+      endif
+      kpic(l) = npp
+  280 continue
+!$OMP END PARALLEL DO
+      return
+      end
+c-----------------------------------------------------------------------
       subroutine CGUARD3L(fxyz,nx,ny,nz,nxe,nye,nze)
 c replicate extended periodic vector field fxyz
 c linear interpolation
@@ -3553,6 +4812,7 @@ c nze = third dimension of field arrays, must be >= nz+1
       real q
       integer nx, ny, nz, nxe, nye, nze
       dimension q(nxe,nye,nze)
+c local data
       integer j, k, l
 c accumulate edges of extended field
 !$OMP PARALLEL
@@ -3569,7 +4829,7 @@ c accumulate edges of extended field
       q(1,1,l) = q(1,1,l) + q(nx+1,ny+1,l)
       q(nx+1,ny+1,l) = 0.0
    30 continue
-!$OMP END DO NOWAIT
+!$OMP END DO
 !$OMP DO PRIVATE(j,k)
       do 50 k = 1, ny
       do 40 j = 1, nx
@@ -3697,20 +4957,25 @@ c mode numbers 0 < kx < nx/2, 0 < ky < ny/2, and 0 < kz < nz/2
       dky = dny*real(k - 1)
 !dir$ ivdep
       do 50 j = 2, nxh
-      at1 = real(ffc(j,k,l))*aimag(ffc(j,k,l))
+      zt1 = ffc(j,k,l)
+      at1 = real(zt1)*aimag(zt1)
       at2 = dnx*real(j - 1)*at1
       at3 = dky*at1
       at4 = dkz*at1
-      zt1 = cmplx(aimag(q(j,k,l)),-real(q(j,k,l)))
-      zt2 = cmplx(aimag(q(j,k1,l)),-real(q(j,k1,l)))
+      zt1 = q(j,k,l)
+      zt1 = cmplx(aimag(zt1),-real(zt1))
+      zt2 = q(j,k1,l)
+      zt2 = cmplx(aimag(zt2),-real(zt2))
       fxyz(1,j,k,l) = at2*zt1
       fxyz(2,j,k,l) = at3*zt1
       fxyz(3,j,k,l) = at4*zt1
       fxyz(1,j,k1,l) = at2*zt2
       fxyz(2,j,k1,l) = -at3*zt2
       fxyz(3,j,k1,l) = at4*zt2
-      zt1 = cmplx(aimag(q(j,k,l1)),-real(q(j,k,l1)))
-      zt2 = cmplx(aimag(q(j,k1,l1)),-real(q(j,k1,l1)))
+      zt1 = q(j,k,l1)
+      zt1 = cmplx(aimag(zt1),-real(zt1))
+      zt2 = q(j,k1,l1)
+      zt2 = cmplx(aimag(zt2),-real(zt2))
       fxyz(1,j,k,l1) = at2*zt1
       fxyz(2,j,k,l1) = at3*zt1
       fxyz(3,j,k,l1) = -at4*zt1
@@ -3726,11 +4991,14 @@ c mode numbers kx = 0, nx/2
 !dir$ ivdep
       do 70 k = 2, nyh
       k1 = ny2 - k
-      at1 = real(ffc(1,k,l))*aimag(ffc(1,k,l))
+      zt1 = ffc(1,k,l)
+      at1 = real(zt1)*aimag(zt1)
       at3 = dny*real(k - 1)*at1
       at4 = dkz*at1
-      zt1 = cmplx(aimag(q(1,k,l)),-real(q(1,k,l)))
-      zt2 = cmplx(aimag(q(1,k,l1)),-real(q(1,k,l1)))
+      zt1 = q(1,k,l)
+      zt1 = cmplx(aimag(zt1),-real(zt1))
+      zt2 = q(1,k,l1)
+      zt2 = cmplx(aimag(zt2),-real(zt2))
       fxyz(1,1,k,l) = zero
       fxyz(2,1,k,l) = at3*zt1
       fxyz(3,1,k,l) = at4*zt1
@@ -3750,11 +5018,14 @@ c mode numbers ky = 0, ny/2
       k1 = nyh + 1
 !dir$ ivdep
       do 80 j = 2, nxh
-      at1 = real(ffc(j,1,l))*aimag(ffc(j,1,l))
+      zt1 = ffc(j,1,l)
+      at1 = real(zt1)*aimag(zt1)
       at2 = dnx*real(j - 1)*at1
       at4 = dkz*at1
-      zt1 = cmplx(aimag(q(j,1,l)),-real(q(j,1,l)))
-      zt2 = cmplx(aimag(q(j,1,l1)),-real(q(j,1,l1)))
+      zt1 = q(j,1,l)
+      zt1 = cmplx(aimag(zt1),-real(zt1))
+      zt2 = q(j,1,l1)
+      zt2 = cmplx(aimag(zt2),-real(zt2))
       fxyz(1,j,1,l) = at2*zt1
       fxyz(2,j,1,l) = zero
       fxyz(3,j,1,l) = at4*zt1
@@ -3771,11 +5042,13 @@ c mode numbers ky = 0, ny/2
       wp = wp + dble(at1)
    80 continue
 c mode numbers kx = 0, nx/2
-      at1 = real(ffc(1,1,l))*aimag(ffc(1,1,l))
+      zt1 = ffc(1,1,l)
+      at1 = real(zt1)*aimag(zt1)
       at4 = dkz*at1
       fxyz(1,1,1,l) = zero
       fxyz(2,1,1,l) = zero
-      fxyz(3,1,1,l) = at4*cmplx(aimag(q(1,1,l)),-real(q(1,1,l)))
+      zt1 = q(1,1,l)
+      fxyz(3,1,1,l) = at4*cmplx(aimag(zt1),-real(zt1))
       fxyz(1,1,k1,l) = zero
       fxyz(2,1,k1,l) = zero
       fxyz(3,1,k1,l) = zero
@@ -3802,11 +5075,14 @@ c mode numbers kz = 0, nz/2
       wp = 0.0d0
 !dir$ ivdep
       do 100 j = 2, nxh
-      at1 = real(ffc(j,k,1))*aimag(ffc(j,k,1))
+      zt1 = ffc(j,k,1)
+      at1 = real(zt1)*aimag(zt1)
       at2 = dnx*real(j - 1)*at1
       at3 = dky*at1
-      zt1 = cmplx(aimag(q(j,k,1)),-real(q(j,k,1)))
-      zt2 = cmplx(aimag(q(j,k1,1)),-real(q(j,k1,1)))
+      zt1 = q(j,k,1)
+      zt1 = cmplx(aimag(zt1),-real(zt1))
+      zt2 = q(j,k1,1)
+      zt2 = cmplx(aimag(zt2),-real(zt2))
       fxyz(1,j,k,1) = at2*zt1
       fxyz(2,j,k,1) = at3*zt1
       fxyz(3,j,k,1) = zero
@@ -3822,18 +5098,13 @@ c mode numbers kz = 0, nz/2
       at1 = at1*(q(j,k,1)*conjg(q(j,k,1)) + q(j,k1,1)*conjg(q(j,k1,1)))
       wp = wp + dble(at1)
   100 continue
-      sum2 = sum2 + wp
-  110 continue
-!$OMP END PARALLEL DO
-      wp = 0.0d0
 c mode numbers kx = 0, nx/2
-!dir$ ivdep
-      do 120 k = 2, nyh
-      k1 = ny2 - k
-      at1 = real(ffc(1,k,1))*aimag(ffc(1,k,1))
+      zt1 = ffc(1,k,1)
+      at1 = real(zt1)*aimag(zt1)
       at3 = dny*real(k - 1)*at1
       fxyz(1,1,k,1) = zero
-      fxyz(2,1,k,1) = at3*cmplx(aimag(q(1,k,1)),-real(q(1,k,1)))
+      zt1 = q(1,k,1)
+      fxyz(2,1,k,1) = at3*cmplx(aimag(zt1),-real(zt1))
       fxyz(3,1,k,1) = zero
       fxyz(1,1,k1,1) = zero
       fxyz(2,1,k1,1) = zero
@@ -3846,14 +5117,19 @@ c mode numbers kx = 0, nx/2
       fxyz(3,1,k1,l1) = zero
       at1 = at1*(q(1,k,1)*conjg(q(1,k,1)))
       wp = wp + dble(at1)
-  120 continue
+      sum2 = sum2 + wp
+  110 continue
+!$OMP END PARALLEL DO
+      wp = 0.0d0
 c mode numbers ky = 0, ny/2
       k1 = nyh + 1
 !dir$ ivdep
-      do 130 j = 2, nxh
-      at1 = real(ffc(j,1,1))*aimag(ffc(j,1,1))
+      do 120 j = 2, nxh
+      zt1 = ffc(j,1,1)
+      at1 = real(zt1)*aimag(zt1)
       at2 = dnx*real(j - 1)*at1
-      fxyz(1,j,1,1) = at2*cmplx(aimag(q(j,1,1)),-real(q(j,1,1)))
+      zt1 = q(j,1,1)
+      fxyz(1,j,1,1) = at2*cmplx(aimag(zt1),-real(zt1))
       fxyz(2,j,1,1) = zero
       fxyz(3,j,1,1) = zero
       fxyz(1,j,k1,1) = zero
@@ -3867,7 +5143,7 @@ c mode numbers ky = 0, ny/2
       fxyz(3,j,k1,l1) = zero
       at1 = at1*(q(j,1,1)*conjg(q(j,1,1)))
       wp = wp + dble(at1)
-  130 continue
+  120 continue
       fxyz(1,1,1,1) = zero
       fxyz(2,1,1,1) = zero
       fxyz(3,1,1,1) = zero
@@ -4055,7 +5331,7 @@ c written by viktor k. decyk, ucla
       dimension f(nxhd,nyd,nzd), mixup(nxhyzd), sct(nxyzhd)
 c local data
       integer indx1, ndx1yz, nx, nxh, nxhh, nxh2, ny, nyh, ny2
-      integer nz, nzh, nz2, nxyz, nxhyz, nzt, nrx, nry, nrxb, nryb
+      integer nz, nxyz, nxhyz, nzt, nrx, nry, nrxb, nryb
       integer i, j, k, l, n, j1, k1, k2, ns, ns2, km, kmr
       real ani
       complex t1, t2, t3
@@ -4070,8 +5346,6 @@ c local data
       nyh = ny/2
       ny2 = ny + 2
       nz = 2**indz
-      nzh = nz/2
-      nz2 = nz + 2
       nxyz = max0(nx,ny,nz)
       nxhyz = 2**ndx1yz
       nzt = nzi + nzp - 1
@@ -4296,7 +5570,7 @@ c nxyzhd = maximum of (nx,ny,nz)/2
 c fourier coefficients are stored as follows:
 c f(j,k,l) = real, imaginary part of mode j-1,k-1,l-1
 c where 1 <= j <= nx/2, 1 <= k <= ny, 1 <= l <= nz, except for
-c f(1,k,l), = real, imaginary part of mode nx/2,k-1,l-1,
+c f(1,k,l) = real, imaginary part of mode nx/2,k-1,l-1,
 c where ny/2+2 <= k <= ny and 1 <= l <= nz, and
 c f(1,1,l) = real, imaginary part of mode nx/2,0,l-1,
 c f(1,ny/2+1,l) = real, imaginary part mode nx/2,ny/2,l-1,
@@ -4318,20 +5592,17 @@ c written by viktor k. decyk, ucla
       integer mixup
       dimension f(nxhd,nyd,nzd), mixup(nxhyzd), sct(nxyzhd)
 c local data
-      integer indx1, ndx1yz, nx, nxh, nxhh, nxh2, ny, nyh, ny2
+      integer indx1, ndx1yz, nx, nxh, ny, nyh
       integer nz, nzh, nz2, nxyz, nxhyz, nyt, nrz, nrzb
-      integer i, j, k, l, n, j1, k1, k2, l1, ns, ns2, km, kmr
+      integer i, j, k, l, n, k1, k2, l1, ns, ns2, km, kmr
       complex t1, t2
       if (isign.eq.0) return
       indx1 = indx - 1
       ndx1yz = max0(indx1,indy,indz)
       nx = 2**indx
       nxh = nx/2
-      nxhh = nx/4
-      nxh2 = nxh + 2
       ny = 2**indy
       nyh = ny/2
-      ny2 = ny + 2
       nz = 2**indz
       nzh = nz/2
       nz2 = nz + 2
@@ -4343,7 +5614,7 @@ c inverse fourier transform
       nrzb = nxhyz/nz
       nrz = nxyz/nz
 !$OMP PARALLEL DO
-!$OMP& PRIVATE(i,j,k,l,n,ns,ns2,km,kmr,k1,k2,j1,l1,t1,t2)
+!$OMP& PRIVATE(i,j,k,l,n,ns,ns2,km,kmr,k1,k2,l1,t1,t2)
       do 70 n = nyi, nyt
 c bit-reverse array elements in z
       do 20 l = 1, nz
@@ -4420,7 +5691,7 @@ c scramble modes kx = 0, nx/2
       endif
 c bit-reverse array elements in z
 !$OMP PARALLEL DO
-!$OMP& PRIVATE(i,j,k,l,n,ns,ns2,km,kmr,k1,k2,j1,l1,t1,t2)
+!$OMP& PRIVATE(i,j,k,l,n,ns,ns2,km,kmr,k1,k2,l1,t1,t2)
       do 190 n = nyi, nyt
       do 140 l = 1, nz
       l1 = (mixup(l) - 1)/nrzb + 1
@@ -4509,7 +5780,7 @@ c written by viktor k. decyk, ucla
       dimension f(4,nxhd,nyd,nzd), mixup(nxhyzd), sct(nxyzhd)
 c local data
       integer indx1, ndx1yz, nx, nxh, nxhh, nxh2, ny, nyh, ny2
-      integer nz, nzh, nz2, nxyz, nxhyz, nzt, nrx, nry, nrxb, nryb
+      integer nz, nxyz, nxhyz, nzt, nrx, nry, nrxb, nryb
       integer i, j, k, l, n, jj, j1, k1, k2, ns, ns2, km, kmr
       real at1, at2, ani
       complex t1, t2, t3, t4
@@ -4524,8 +5795,6 @@ c local data
       nyh = ny/2
       ny2 = ny + 2
       nz = 2**indz
-      nzh = nz/2
-      nz2 = nz + 2
       nxyz = max0(nx,ny,nz)
       nxhyz = 2**ndx1yz
       nzt = nzi + nzp - 1
@@ -4596,8 +5865,8 @@ c unscramble coefficients and normalize
       ani = 0.5/(real(nx)*real(ny)*real(nz))
       do 110 j = 2, nxhh
       t3 = cmplx(aimag(sct(1+kmr*(j-1))),-real(sct(1+kmr*(j-1))))
-      do 100 jj = 1, 3
-      do 90 k = 1, ny
+      do 100 k = 1, ny
+      do 90 jj = 1, 3
       t2 = conjg(f(jj,nxh2-j,k,n))
       t1 = f(jj,j,k,n) + t2
       t2 = (f(jj,j,k,n) - t2)*t3
@@ -4607,8 +5876,8 @@ c unscramble coefficients and normalize
   100 continue
   110 continue
       ani = 2.0*ani
-      do 130 jj = 1, 3
-      do 120 k = 1, ny
+      do 130 k = 1, ny
+      do 120 jj = 1, 3
       f(jj,nxhh+1,k,n) = ani*conjg(f(jj,nxhh+1,k,n))
       f(jj,1,k,n) = ani*cmplx(real(f(jj,1,k,n)) + aimag(f(jj,1,k,n)),
      1                        real(f(jj,1,k,n)) - aimag(f(jj,1,k,n)))
@@ -4657,9 +5926,8 @@ c then transform in y
   180 continue
   190 continue
 c unscramble modes kx = 0, nx/2
-      do 210 jj = 1, 3
-!dir$ ivdep
-      do 200 k = 2, nyh
+      do 210 k = 2, nyh
+      do 200 jj = 1, 3
       t1 = f(jj,1,ny2-k,n)
       f(jj,1,ny2-k,n) = 0.5*cmplx(aimag(f(jj,1,k,n) + t1),
      1                            real(f(jj,1,k,n) - t1))
@@ -4679,9 +5947,8 @@ c forward fourier transform
 !$OMP& PRIVATE(i,j,k,l,n,ns,ns2,km,kmr,k1,k2,jj,j1,at1,at2,t1,t2,t3,t4)
       do 450 n = nzi, nzt
 c scramble modes kx = 0, nx/2
-      do 250 jj = 1, 3
-!dir$ ivdep
-      do 240 k = 2, nyh
+      do 250 k = 2, nyh
+      do 240 jj = 1, 3
       t1 = cmplx(aimag(f(jj,1,ny2-k,n)),real(f(jj,1,ny2-k,n)))
       f(jj,1,ny2-k,n) = conjg(f(jj,1,k,n) - t1)
       f(jj,1,k,n) = f(jj,1,k,n) + t1
@@ -4733,8 +6000,8 @@ c scramble coefficients
       kmr = nxyz/nx
       do 340 j = 2, nxhh
       t3 = cmplx(aimag(sct(1+kmr*(j-1))),real(sct(1+kmr*(j-1))))
-      do 330 jj = 1, 3
-      do 320 k = 1, ny
+      do 330 k = 1, ny
+      do 320 jj = 1, 3
       t2 = conjg(f(jj,nxh2-j,k,n))
       t1 = f(jj,j,k,n) + t2
       t2 = (f(jj,j,k,n) - t2)*t3
@@ -4743,8 +6010,8 @@ c scramble coefficients
   320 continue
   330 continue
   340 continue
-      do 360 jj = 1, 3
-      do 350 k = 1, ny
+      do 360 k = 1, ny
+      do 350 jj = 1, 3
       f(jj,nxhh+1,k,n) = 2.0*conjg(f(jj,nxhh+1,k,n))
       f(jj,1,k,n) = cmplx(real(f(jj,1,k,n)) + aimag(f(jj,1,k,n)),
      1                    real(f(jj,1,k,n)) - aimag(f(jj,1,k,n)))
@@ -4856,20 +6123,17 @@ c written by viktor k. decyk, ucla
       integer mixup
       dimension f(4,nxhd,nyd,nzd), mixup(nxhyzd), sct(nxyzhd)
 c local data
-      integer indx1, ndx1yz, nx, nxh, nxhh, nxh2, ny, nyh, ny2
+      integer indx1, ndx1yz, nx, nxh, ny, nyh
       integer nz, nzh, nz2, nxyz, nxhyz, nyt, nrz, nrzb
-      integer i, j, k, l, n, jj, j1, k1, k2, l1, ns, ns2, km, kmr
+      integer i, j, k, l, n, jj, k1, k2, l1, ns, ns2, km, kmr
       complex t1, t2, t3, t4
       if (isign.eq.0) return
       indx1 = indx - 1
       ndx1yz = max0(indx1,indy,indz)
       nx = 2**indx
       nxh = nx/2
-      nxhh = nx/4
-      nxh2 = nxh + 2
       ny = 2**indy
       nyh = ny/2
-      ny2 = ny + 2
       nz = 2**indz
       nzh = nz/2
       nz2 = nz + 2
@@ -4881,7 +6145,7 @@ c inverse fourier transform
       nrzb = nxhyz/nz
       nrz = nxyz/nz
 !$OMP PARALLEL DO
-!$OMP& PRIVATE(i,j,k,l,n,ns,ns2,km,kmr,k1,k2,j1,l1,t1,t2,t3,t4)
+!$OMP& PRIVATE(i,j,k,l,n,ns,ns2,km,kmr,k1,k2,l1,t1,t2,t3,t4)
       do 70 n = nyi, nyt
 c bit-reverse array elements in z
       do 20 l = 1, nz
@@ -4929,9 +6193,8 @@ c finally transform in z
 !$OMP END PARALLEL DO
 c unscramble modes kx = 0, nx/2
       if (nyi.eq.1) then
-         do 90 jj = 1, 3
-!dir$ ivdep
-         do 80 n = 2, nzh
+         do 90 n = 2, nzh
+         do 80 jj = 1, 3
          t1 = f(jj,1,1,nz2-n)
          f(jj,1,1,nz2-n) = 0.5*cmplx(aimag(f(jj,1,1,n) + t1),
      1                               real(f(jj,1,1,n) - t1))
@@ -4941,9 +6204,8 @@ c unscramble modes kx = 0, nx/2
    90    continue
       endif
       if ((nyi.le.nyh+1).and.(nyt.ge.nyh+1)) then
-         do 110 jj = 1, 3
-!dir$ ivdep
-         do 100 n = 2, nzh
+         do 110 n = 2, nzh
+         do 100 jj = 1, 3
          t1 = f(jj,1,nyh+1,nz2-n)
          f(jj,1,nyh+1,nz2-n) = 0.5*cmplx(aimag(f(jj,1,nyh+1,n) + t1),
      1                                  real(f(jj,1,nyh+1,n) - t1))
@@ -4958,9 +6220,8 @@ c forward fourier transform
       nrz = nxyz/nz
 c scramble modes kx = 0, nx/2
       if (nyi.eq.1) then
-         do 140 jj = 1, 3
-!dir$ ivdep
-         do 130 n = 2, nzh
+         do 140 n = 2, nzh
+         do 130 jj = 1, 3
          t1 = cmplx(aimag(f(jj,1,1,nz2-n)),real(f(jj,1,1,nz2-n)))
          f(jj,1,1,nz2-n) = conjg(f(jj,1,1,n) - t1)
          f(jj,1,1,n) = f(jj,1,1,n) + t1
@@ -4968,9 +6229,8 @@ c scramble modes kx = 0, nx/2
   140    continue
       endif
       if ((nyi.le.nyh+1).and.(nyt.ge.nyh+1)) then
-         do 160 jj = 1, 3
-!dir$ ivdep
-         do 150 n = 2, nzh
+         do 160 n = 2, nzh
+         do 150 jj = 1, 3
          t1 = cmplx(aimag(f(jj,1,nyh+1,nz2-n)),
      1              real(f(jj,1,nyh+1,nz2-n)))
          f(jj,1,nyh+1,nz2-n) = conjg(f(jj,1,nyh+1,n) - t1)
@@ -4980,7 +6240,7 @@ c scramble modes kx = 0, nx/2
       endif
 c bit-reverse array elements in z
 !$OMP PARALLEL DO
-!$OMP& PRIVATE(i,j,k,l,n,ns,ns2,km,kmr,k1,k2,j1,l1,t1,t2,t3,t4)
+!$OMP& PRIVATE(i,j,k,l,n,ns,ns2,km,kmr,k1,k2,l1,t1,t2,t3,t4)
       do 230 n = nyi, nyt
       do 180 l = 1, nz
       l1 = (mixup(l) - 1)/nrzb + 1
@@ -5025,6 +6285,231 @@ c first transform in z
   220 continue
   230 continue
 !$OMP END PARALLEL DO
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine SET_SZERO3(q,mx,my,mz,nxv,nyv,nzv,mx1,my1,mxyz1)
+c for 3d code, this subroutine zeros out charge density array.
+c for Intel NUMA architecture with first touch policy, this associates
+c array segments with appropriate threads
+c OpenMP version
+c input: all, output: q
+c q(j,k,l) = charge density at grid point j,k,l
+c mx/my/mz = number of grids in sorting cell in x/y/z
+c nxv = first dimension of charge array, must be >= nx+ng
+c nyv = second dimension of charge array, must be >= ny+ng
+c nzv = third dimension of charge array, must be >= nz+ng
+c mx1 = (system length in x direction - 1)/mx + 1
+c my1 = (system length in y direction - 1)/my + 1
+c mxyz1 = mx1*my1*mz1,
+c where mz1 = (system length in z direction - 1)/mz + 1
+      implicit none
+      integer mx, my, mz, nxv, nyv, nzv, mx1, my1, mxyz1
+      real q
+      dimension q(nxv,nyv,nzv)
+c local data
+      integer mxy1, mz1, noff, moff, loff
+      integer i, j, k, l, nn, mm, ll
+      mxy1 = mx1*my1
+      mz1 = mxyz1/mxy1
+c loop over tiles
+!$OMP PARALLEL DO
+!$OMP& PRIVATE(i,j,k,l,noff,moff,loff,nn,mm,ll)
+      do 40 l = 1, mxyz1
+      i = (l - 1)/mxy1
+      k = l - mxy1*i
+      loff = mz*i
+      ll = mz
+      if ((i+1).eq.mz1) ll = nzv - loff
+      j = (k - 1)/mx1
+      moff = my*j
+      mm = my
+      if ((j+1).eq.my1) mm = nyv - moff
+      k = k - mx1*j
+      noff = mx*(k - 1)
+      nn = mx
+      if (k.eq.mx1) nn = nxv - noff
+c zero charge in global array
+      do 30 k = 1, ll
+      do 20 j = 1, mm
+!dir$ ivdep
+      do 10 i = 1, nn
+      q(i+noff,j+moff,k+loff) = 0.0
+   10 continue
+   20 continue
+   30 continue
+   40 continue
+!$OMP END PARALLEL DO
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine SET_VZERO3(cu,mx,my,mz,ndim,nxv,nyv,nzv,mx1,my1,mxyz1)
+c for 3d code, this subroutine zeros out current density array.
+c for Intel NUMA architecture with first touch policy, this associates
+c array segments with appropriate threads
+c OpenMP version
+c input: all, output: cu
+c cu(m,j,k,l) = charge density at grid point m,j,k,l
+c mx/my/mz = number of grids in sorting cell in x/y/z
+c ndim = first dimension of current array
+c nxv = second dimension of current array, must be >= nx+ng
+c nyv = third dimension of current array, must be >= ny+ng
+c nzv = fourth dimension of current array, must be >= nz+ng
+c mx1 = (system length in x direction - 1)/mx + 1
+c my1 = (system length in y direction - 1)/my + 1
+c mxyz1 = mx1*my1*mz1,
+c where mz1 = (system length in z direction - 1)/mz + 1
+      implicit none
+      integer mx, my, mz, ndim, nxv, nyv, nzv, mx1, my1, mxyz1
+      real cu
+      dimension cu(ndim,nxv,nyv,nzv)
+c local data
+      integer mxy1, mz1, noff, moff, loff
+      integer i, j, k, l, m, nn, mm, ll
+      mxy1 = mx1*my1
+      mz1 = mxyz1/mxy1
+c loop over tiles
+!$OMP PARALLEL DO
+!$OMP& PRIVATE(i,j,k,l,m,noff,moff,loff,nn,mm,ll)
+      do 50 l = 1, mxyz1
+      i = (l - 1)/mxy1
+      k = l - mxy1*i
+      loff = mz*i
+      ll = mz
+      if ((i+1).eq.mz1) ll = nzv - loff
+      j = (k - 1)/mx1
+      moff = my*j
+      mm = my
+      if ((j+1).eq.my1) mm = nyv - moff
+      k = k - mx1*j
+      noff = mx*(k - 1)
+      nn = mx
+      if (k.eq.mx1) nn = nxv - noff
+c zero current in global array
+      do 40 k = 1, ll
+      do 30 j = 1, mm
+      do 20 i = 1, nn
+      do 10 m = 1, ndim
+      cu(m,i+noff,j+moff,k+loff) = 0.0
+   10 continue
+   20 continue
+   30 continue
+   40 continue
+   50 continue
+!$OMP END PARALLEL DO
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine SET_CVZERO3(exyz,nx,ny,nz,ndim,nxvh,nyv,nzv)
+c for 3d code, this subroutine zeros out transverse field array.
+c for Intel NUMA architecture with first touch policy, this associates
+c array segments with appropriate threads
+c OpenMP version
+c input: all, output: exyz
+c exyz(i,j,k,l) = complex transverse electric field
+c nx/ny/nz = system length in x/y/z direction
+c ndim = first dimension of field array
+c nxvh = second dimension of field array, must be >= nxh
+c nyv = third dimension of field array, must be >= ny
+c nzv = fourth dimension of field array, must be >= nz
+      implicit none
+      integer nx, ny, nz, ndim, nxvh, nyv, nzv
+      complex exyz
+      dimension exyz(ndim,nxvh,nyv,nzv)
+c local data
+      integer nxh, nyh, nzh, ny2, nz2, i, j, k, l, k1, l1
+      complex zero
+      nxh = nx/2
+      nyh = max(1,ny/2)
+      nzh = max(1,nz/2)
+      ny2 = ny + 2
+      nz2 = nz + 2
+      zero = cmplx(0.0,0.0)
+c loop over mode numbers
+c mode numbers 0 < kx < nx/2, 0 < ky < ny/2, and 0 < kz < nz/2
+!$OMP PARALLEL
+!$OMP DO PRIVATE(i,j,k,l,k1,l1)
+      do 90 l = 2, nzh
+      l1 = nz2 - l
+      do 30 k = 2, nyh
+      k1 = ny2 - k
+      do 20 j = 2, nxh
+      do 10 i = 1, ndim
+      exyz(i,j,k,l) = zero
+      exyz(i,j,k1,l) = zero
+      exyz(i,j,k,l1) = zero
+      exyz(i,j,k1,l1) = zero
+   10 continue
+   20 continue
+   30 continue
+c mode numbers kx = 0, nx/2
+      do 50 k = 2, nyh
+      k1 = ny2 - k
+      do 40 i = 1, ndim
+      exyz(i,1,k,l) = zero
+      exyz(i,1,k1,l) = zero
+      exyz(i,1,k,l1) = zero
+      exyz(i,1,k1,l1) = zero
+   40 continue
+   50 continue
+c mode numbers ky = 0, ny/2
+      k1 = nyh + 1
+      do 70 j = 2, nxh
+      do 60 i = 1, ndim
+      exyz(i,j,1,l) = zero
+      exyz(i,j,k1,l) = zero
+      exyz(i,j,1,l1) = zero
+      exyz(i,j,k1,l1) = zero
+   60 continue
+   70 continue
+c mode numbers kx = 0, nx/2
+      do 80 i = 1, ndim
+      exyz(i,1,1,l) = zero
+      exyz(i,1,k1,l) = zero
+      exyz(i,1,1,l1) = zero
+      exyz(i,1,k1,l1) = zero
+   80 continue
+   90 continue
+!$OMP END DO NOWAIT
+!$OMP END PARALLEL
+      l1 = nzh + 1
+c mode numbers kz = 0, nz/2
+!$OMP PARALLEL DO PRIVATE(i,j,k,k1)
+      do 130 k = 2, nyh
+      k1 = ny2 - k
+      do 110 j = 2, nxh
+      do 100 i = 1, ndim
+      exyz(i,j,k,1) = zero
+      exyz(i,j,k1,1) = zero
+      exyz(i,j,k,l1) = zero
+      exyz(i,j,k1,l1) = zero
+  100 continue
+  110 continue
+c mode numbers kx = 0, nx/2
+      do 120 i = 1, ndim
+      exyz(i,1,k,1) = zero
+      exyz(i,1,k1,1) = zero
+      exyz(i,1,k,l1) = zero
+      exyz(i,1,k1,l1) = zero
+  120 continue
+  130 continue
+!$OMP END PARALLEL DO
+c mode numbers ky = 0, ny/2
+      k1 = nyh + 1
+      do 150 j = 2, nxh
+      do 140 i = 1, ndim
+      exyz(i,j,1,1) = zero
+      exyz(i,j,k1,1) = zero
+      exyz(i,j,1,l1) = zero
+      exyz(i,j,k1,l1) = zero
+  140 continue
+  150 continue
+      do 160 i = 1, ndim
+      exyz(i,1,1,1) = zero
+      exyz(i,1,k1,1) = zero
+      exyz(i,1,1,l1) = zero
+      exyz(i,1,k1,l1) = zero
+  160 continue
       return
       end
 c-----------------------------------------------------------------------

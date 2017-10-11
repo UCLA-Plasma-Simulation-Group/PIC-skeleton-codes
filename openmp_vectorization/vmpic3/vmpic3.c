@@ -1,13 +1,14 @@
 /*---------------------------------------------------------------------*/
 /* Skeleton 3D Electrostatic OpenMP/Vector PIC code */
-/* written by Viktor K. Decyk, UCLA */
+/* written by Viktor K. Decyk, UCLA and Ricardo Fonseca, ISCTE */
 #include <stdlib.h>
 #include <stdio.h>
 #include <complex.h>
 #include <sys/time.h>
 #include "vmpush3.h"
 #include "omplib.h"
-#include "sselib3.h"
+#include "avx512lib3.h"
+#include "kncmpush3.h"
 
 void dtimer(double *time, struct timeval *itime, int icntrl);
 
@@ -38,6 +39,9 @@ int main(int argc, char *argv[]) {
    int mx = 8, my = 8, mz = 8;
 /* xtras = fraction of extra particles needed for particle management */
    float xtras = 0.2;
+/* kvec = (1,2) = run (autovector,KNC) version */
+   int kvec = 1;
+
 /* declare scalars for standard code */
    int j;
    int np, nx, ny, nz, nxh, nyh, nzh, nxe, nye, nze, nxeh;
@@ -96,7 +100,7 @@ int main(int argc, char *argv[]) {
 /* np = total number of particles in simulation */
 /* nx/ny/nz = number of grid points in x/y direction */
    np = npx*npy*npz; nx = 1L<<indx; ny = 1L<<indy; nz = 1L<<indz;
-   nxh = nx/2; nyh = ny/2; nzh = nz/2;
+   nxh = nx/2; nyh = 1 > ny/2 ? 1 : ny/2; nzh = 1 > nz/2 ? 1 : nz/2;
    nxe = nx + 2; nye = ny + 1; nze = nz + 1; nxeh = nxe/2;
    nxyzh = (nx > ny ? nx : ny); nxyzh = (nxyzh > nz ? nxyzh : nz)/2;
    nxhyz = nxh > ny ? nxh : ny; nxhyz = nxhyz > nz ? nxhyz : nz;
@@ -115,13 +119,13 @@ int main(int argc, char *argv[]) {
    sct = (float complex *) malloc(nxyzh*sizeof(float complex));
    kpic = (int *) malloc(mxyz1*sizeof(int));
 
-   lvect = 4;
+   lvect = 16;
 /* allocate vector field data */
    nxe = lvect*((nxe - 1)/lvect + 1);
    nxeh = nxe/2;
-   sse_fallocate(&qe,nxe*nye*nze,&irc);
-   sse_fallocate(&fxyze,ndim*nxe*nye*nze,&irc);
-   sse_callocate(&ffc,nxh*nyh*nzh,&irc);
+   avx512_fallocate(&qe,nxe*nye*nze,&irc);
+   avx512_fallocate(&fxyze,ndim*nxe*nye*nze,&irc);
+   avx512_callocate(&ffc,nxh*nyh*nzh,&irc);
    if (irc != 0) {
       printf("aligned field allocation error: irc = %d\n",irc);
    }
@@ -147,8 +151,12 @@ int main(int argc, char *argv[]) {
    nppmx0 = (1.0 + xtras)*nppmx;
    ntmax = xtras*nppmx;
    npbmx = xtras*nppmx;
-   ppartt = (float *) malloc(nppmx0*idimp*mxyz1*sizeof(float));
-   ppbuff = (float *) malloc(npbmx*idimp*mxyz1*sizeof(float));
+/* align data for Vector Processor */
+   nppmx0 = lvect*((nppmx0 - 1)/lvect + 1);
+   ntmax = lvect*(ntmax/lvect + 1);
+   npbmx = lvect*((npbmx - 1)/lvect + 1);
+   avx512_fallocate(&ppartt,nppmx0*idimp*mxyz1,&irc);
+   avx512_fallocate(&ppbuff,npbmx*idimp*mxyz1,&irc);
    ncl = (int *) malloc(26*mxyz1*sizeof(int));
    ihole = (int *) malloc(2*(ntmax+1)*mxyz1*sizeof(int));
    kp = (int *) malloc(nppmx0*mxyz1*sizeof(int));
@@ -179,18 +187,25 @@ L500: if (nloop <= ntime)
  
 /* deposit charge with OpenMP: updates qe */
       dtimer(&dtime,&itime,-1);
-      for (j = 0; j < nxe*nye*nze; j++) {
-         qe[j] = 0.0;
-      }
-      cvgppost3lt(ppartt,qe,kpic,qme,nppmx0,idimp,mx,my,mz,nxe,nye,nze,
-                  mx1,my1,mxyz1);
+      cset_szero3(qe,mx,my,mz,nxe,nye,nze,mx1,my1,mxyz1);
+      if (kvec==1)
+         cvgppost3lt(ppartt,qe,kpic,qme,nppmx0,idimp,mx,my,mz,nxe,nye,
+                     nze,mx1,my1,mxyz1);
+/* KNC function */
+      else if (kvec==2)
+         cknc2gppost3lt(ppartt,qe,kpic,qme,nppmx0,idimp,mx,my,mz,nxe,nye,
+                        nze,mx1,my1,mxyz1);
       dtimer(&dtime,&itime,1);
       time = (float) dtime;
       tdpost += time;
 
 /* add guard cells with OpenMP: updates qe */
       dtimer(&dtime,&itime,-1);
-      caguard3l(qe,nx,ny,nz,nxe,nye,nze);
+      if (kvec==1)
+         caguard3l(qe,nx,ny,nz,nxe,nye,nze);
+/* KNC function */
+      else if (kvec==2)
+         ckncaguard3l(qe,nx,ny,nz,nxe,nye,nze);
       dtimer(&dtime,&itime,1);
       time = (float) dtime;
       tguard += time;
@@ -198,8 +213,13 @@ L500: if (nloop <= ntime)
 /* transform charge to fourier space with OpenMP: updates qe */
       dtimer(&dtime,&itime,-1);
       isign = -1;
-      cwfft3rvmx((float complex *)qe,isign,mixup,sct,indx,indy,indz,
-                 nxeh,nye,nze,nxhyz,nxyzh);
+      if (kvec==1)
+         cwfft3rvmx((float complex *)qe,isign,mixup,sct,indx,indy,indz,
+                    nxeh,nye,nze,nxhyz,nxyzh);
+/* KNC function */
+      else if (kvec==2)
+         ckncwfft3rmx((float complex *)qe,isign,mixup,sct,indx,indy,indz,
+                      nxeh,nye,nze,nxhyz,nxyzh);
       dtimer(&dtime,&itime,1);
       time = (float) dtime;
       tfft += time;
@@ -208,8 +228,14 @@ L500: if (nloop <= ntime)
 /* updates fxyze, we */
       dtimer(&dtime,&itime,-1);
       isign = -1;
-      cvmpois33((float complex *)qe,(float complex *)fxyze,isign,ffc,ax,
-                ay,az,affp,&we,nx,ny,nz,nxeh,nye,nze,nxh,nyh,nzh);
+      if (kvec==1)
+         cvmpois33((float complex *)qe,(float complex *)fxyze,isign,ffc,
+                   ax,ay,az,affp,&we,nx,ny,nz,nxeh,nye,nze,nxh,nyh,nzh);
+/* KNC function */
+      else if (kvec==2)
+         ckncmpois33((float complex *)qe,(float complex *)fxyze,isign,
+                     ffc,ax,ay,az,affp,&we,nx,ny,nz,nxeh,nye,nze,nxh,nyh,
+                     nzh);
       dtimer(&dtime,&itime,1);
       time = (float) dtime;
       tfield += time;
@@ -217,15 +243,24 @@ L500: if (nloop <= ntime)
 /* transform force to real space with OpenMP: updates fxyze */
       dtimer(&dtime,&itime,-1);
       isign = 1;
-      cwfft3rvm3((float complex *)fxyze,isign,mixup,sct,indx,indy,indz,
-                 nxeh,nye,nze,nxhyz,nxyzh);
+      if (kvec==1)
+         cwfft3rvm3((float complex *)fxyze,isign,mixup,sct,indx,indy,
+                    indz,nxeh,nye,nze,nxhyz,nxyzh);
+/* KNC function */
+      else if (kvec==2)
+         ckncwfft3rm3((float complex *)fxyze,isign,mixup,sct,indx,indy,
+                       indz,nxeh,nye,nze,nxhyz,nxyzh);
       dtimer(&dtime,&itime,1);
       time = (float) dtime;
       tfft += time;
 
 /* copy guard cells with OpenMP: updates fxyze */
       dtimer(&dtime,&itime,-1);
-      ccguard3l(fxyze,nx,ny,nz,nxe,nye,nze);
+      if (kvec==1)
+         ccguard3l(fxyze,nx,ny,nz,nxe,nye,nze);
+/* KNC function */
+      else if (kvec==2)
+         cknccguard3l(fxyze,nx,ny,nz,nxe,nye,nze);
       dtimer(&dtime,&itime,1);
       time = (float) dtime;
       tguard += time;
@@ -233,13 +268,23 @@ L500: if (nloop <= ntime)
 /* push particles with OpenMP: */
       wke = 0.0;
       dtimer(&dtime,&itime,-1);
+      if (kvec==1)
 /* updates ppartt, wke */
-/*    cvgppush3lt(ppartt,fxyze,kpic,qbme,dt,&wke,idimp,nppmx0,nx,ny, */
-/*                nz,mx,my,mz,nxe,nye,nze,mx1,my1,mxyz1,ipbc);       */
+/*       cvgppush3lt(ppartt,fxyze,kpic,qbme,dt,&wke,idimp,nppmx0,nx,ny, */
+/*                   nz,mx,my,mz,nxe,nye,nze,mx1,my1,mxyz1,ipbc);       */
 /* updates ppartt, ncl, ihole, wke, irc */
-      cvgppushf3lt(ppartt,fxyze,kpic,ncl,ihole,qbme,dt,&wke,idimp,
-                   nppmx0,nx,ny,nz,mx,my,mz,nxe,nye,nze,mx1,my1,mxyz1,
-                   ntmax,&irc);
+         cvgppushf3lt(ppartt,fxyze,kpic,ncl,ihole,qbme,dt,&wke,idimp,
+                      nppmx0,nx,ny,nz,mx,my,mz,nxe,nye,nze,mx1,my1,mxyz1,
+                      ntmax,&irc);
+/* KNC function */
+      else if (kvec==2)
+/* updates ppartt, wke */
+/*       ckncgppush3lt(ppartt,fxyze,kpic,qbme,dt,&wke,idimp,nppmx0,nx, */
+/*                     ny,nz,mx,my,mz,nxe,nye,nze,mx1,my1,mxyz1,ipbc); */
+/* updates ppartt, ncl, ihole, wke, irc */
+         ckncgppushf3lt(ppartt,fxyze,kpic,ncl,ihole,qbme,dt,&wke,idimp,
+                        nppmx0,nx,ny,nz,mx,my,mz,nxe,nye,nze,mx1,my1,
+                        mxyz1,ntmax,&irc);
       dtimer(&dtime,&itime,1);
       time = (float) dtime;
       tpush += time;
@@ -250,12 +295,21 @@ L500: if (nloop <= ntime)
 
 /* reorder particles by tile with OpenMP: */
       dtimer(&dtime,&itime,-1);
+      if (kvec==1)
 /* updates ppartt, ppbuff, kpic, ncl, ihole, and irc */
-/*    cvpporder3lt(ppartt,ppbuff,kpic,ncl,ihole,idimp,nppmx0,nx,ny,nz, */
-/*                 mx,my,mz,mx1,my1,mz1,npbmx,ntmax,&irc);             */
+/*       cvpporder3lt(ppartt,ppbuff,kpic,ncl,ihole,idimp,nppmx0,nx,ny, */
+/*                    nz,mx,my,mz,mx1,my1,mz1,npbmx,ntmax,&irc);       */
 /* updates ppartt, ppbuff, kpic, ncl, and irc */
-      cvpporderf3lt(ppartt,ppbuff,kpic,ncl,ihole,idimp,nppmx0,mx1,my1,
-                   mz1,npbmx,ntmax,&irc);
+         cvpporderf3lt(ppartt,ppbuff,kpic,ncl,ihole,idimp,nppmx0,mx1,my1,
+                       mz1,npbmx,ntmax,&irc);
+/* KNC function */
+      else if (kvec==2)
+/* updates ppartt, ppbuff, kpic, ncl, ihole, and irc */
+/*       ckncpporder3lt(ppartt,ppbuff,kpic,ncl,ihole,idimp,nppmx0,nx, */
+/*                      ny,nz,mx,my,mz,mx1,my1,mz1,npbmx,ntmax,&irc); */
+/* updates ppartt, ppbuff, kpic, ncl, and irc */
+         ckncpporderf3lt(ppartt,ppbuff,kpic,ncl,ihole,idimp,nppmx0,mx1,
+                         my1,mz1,npbmx,ntmax,&irc);
       dtimer(&dtime,&itime,1);
       time = (float) dtime;
       tsort += time;
@@ -274,7 +328,7 @@ L2000:
 
 /* * * * end main iteration loop * * * */
 
-   printf("ntime = %i\n",ntime);
+   printf("ntime = %i, kvec = %i\n",ntime,kvec);
    printf("Final Field, Kinetic and Total Energies:\n");
    printf("%e %e %e\n",we,wke,wke+we);
 
@@ -300,11 +354,11 @@ L2000:
    printf("Total Particle Time (nsec) = %f\n",time*wt);
    printf("\n");
 
-   sse_deallocate(ppartt);
-   sse_deallocate(ppbuff);
-   sse_deallocate(ffc);
-   sse_deallocate(fxyze);
-   sse_deallocate(qe);
+   avx512_deallocate(ppartt);
+   avx512_deallocate(ppbuff);
+   avx512_deallocate(ffc);
+   avx512_deallocate(fxyze);
+   avx512_deallocate(qe);
 
    return 0;
 }

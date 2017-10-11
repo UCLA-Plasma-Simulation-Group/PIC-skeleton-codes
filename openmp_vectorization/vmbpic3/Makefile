@@ -1,4 +1,4 @@
-#Makefile for 3D Electrostatic OpenMP/Vector PIC codes
+#Makefile for 3D Electromagnetic OpenMP/Vector PIC codes
 
 # Makefile gfortran compiler with MacOS X
 
@@ -172,32 +172,32 @@ LEGACY = -nofor_main
 
 # Linkage rules
 
-all : fvmpic3 cvmpic3 f03vmpic3
+all : fvmbpic3 cvmbpic3 f03vmbpic3
 
-special: fvmpic3_c cvmpic3_f
+special: fvmbpic3_c cvmbpic3_f
 
-fvmpic3 : fvmpic3.o fvmpush3.o fomplib.o cavx512lib3.o cavx512flib3.o \
-          ckncmpush3.o dtimer.o
-	$(MPFC) $(OPTS90) -o fvmpic3 fvmpic3.o fvmpush3.o fomplib.o cavx512flib3.o \
-	cavx512lib3.o ckncmpush3.o avx512lib3_h.o avx512flib3_h.o kncmpush3_h.o \
-	vmpush3_h.o omplib_h.o dtimer.o
+fvmbpic3 : fvmbpic3.o fvmbpush3.o fomplib.o cavx512lib3.o cavx512flib3.o \
+           ckncmbpush3.o dtimer.o
+	$(MPFC) $(OPTS90) -o fvmbpic3 fvmbpic3.o fvmbpush3.o fomplib.o cavx512flib3.o \
+ 	cavx512lib3.o ckncmbpush3.o avx512lib3_h.o avx512flib3_h.o kncmbpush3_h.o \
+ 	vmbpush3_h.o omplib_h.o dtimer.o
 
-cvmpic3 : cvmpic3.o cvmpush3.o complib.o cavx512lib3.o ckncmpush3.o dtimer.o
-	$(MPCC) $(CCOPTS) -o cvmpic3 cvmpic3.o cvmpush3.o complib.o cavx512lib3.o \
-    ckncmpush3.o dtimer.o -lm
+cvmbpic3 : cvmbpic3.o cvmbpush3.o complib.o cavx512lib3.o ckncmbpush3.o dtimer.o
+	$(MPCC) $(CCOPTS) -o cvmbpic3 cvmbpic3.o cvmbpush3.o complib.o cavx512lib3.o \
+    ckncmbpush3.o dtimer.o -lm
 
-f03vmpic3 : f03vmpic3.o fvmpush3.o fomplib.o cavx512lib3.o ckncmpush3.o dtimer.o
-	$(MPFC) $(OPTS03) -o f03vmpic3 f03vmpic3.o fvmpush3.o fomplib.o cavx512lib3.o \
-	avx512lib3_c.o kncmpush3_c.o vmpush3_h.o omplib_h.o ckncmpush3.o dtimer.o
+f03vmbpic3 : f03vmbpic3.o fvmbpush3.o fomplib.o cavx512lib3.o ckncmbpush3.o dtimer.o
+	$(MPFC) $(OPTS03) -o f03vmbpic3 f03vmbpic3.o fvmbpush3.o fomplib.o cavx512lib3.o \
+	avx512lib3_c.o kncmbpush3_c.o vmbpush3_h.o omplib_h.o ckncmbpush3.o dtimer.o
 
-fvmpic3_c : fvmpic3_c.o cvmpush3.o complib.o cavx512flib3.o cavx512lib3.o dtimer.o
-	$(MPFC) $(OPTS90) -o fvmpic3_c fvmpic3_c.o cvmpush3.o complib.o \
-	cavx512flib3.o cavx512lib3.o avx512flib3_h.o dtimer.o
+fvmbpic3_c : fvmbpic3_c.o cvmbpush3.o complib.o cavx512flib3.o cavx512lib3.o dtimer.o
+	$(MPFC) $(OPTS90) -o fvmbpic3_c fvmbpic3_c.o cvmbpush3.o complib.o \
+ 	cavx512flib3.o cavx512lib3.o avx512flib3_h.o dtimer.o
 
-cvmpic3_f : cvmpic3.o cvmpush3_f.o complib_f.o fvmpush3.o fomplib.o cavx512lib3.o \
-            dtimer.o
-	$(MPFC) $(OPTS90) $(LEGACY) -o cvmpic3_f cvmpic3.o cvmpush3_f.o complib_f.o \
-	fvmpush3.o fomplib.o cavx512lib3.o dtimer.o -lm
+cvmbpic3_f : cvmbpic3.o cvmbpush3_f.o complib_f.o fvmbpush3.o fomplib.o \
+             cavx512lib3.o dtimer.o
+	$(MPFC) $(OPTS90) $(LEGACY) -o cvmbpic3_f cvmbpic3.o cvmbpush3_f.o complib_f.o \
+	fvmbpush3.o fomplib.o cavx512lib3.o dtimer.o -lm
 
 # Compilation rules
 
@@ -216,14 +216,14 @@ complib.o : omplib.c
 complib_f.o : omplib_f.c
 	$(MPCC) $(CCOPTS) -o complib_f.o -c omplib_f.c
 
-fvmpush3.o : vmpush3.f
-	$(MPFC) $(OPTS90) -o fvmpush3.o -c vmpush3.f
+fvmbpush3.o : vmbpush3.f
+	$(MPFC) $(OPTS90) -o fvmbpush3.o -c vmbpush3.f
 
-vmpush3_h.o : vmpush3_h.f90
-	$(FC90) $(OPTS90) -o vmpush3_h.o -c vmpush3_h.f90
+vmbpush3_h.o : vmbpush3_h.f90
+	$(FC90) $(OPTS90) -o vmbpush3_h.o -c vmbpush3_h.f90
 
-cvmpush3.o : vmpush3.c
-	$(MPCC) $(CCOPTS) -o cvmpush3.o -c vmpush3.c
+cvmbpush3.o : vmbpush3.c
+	$(MPCC) $(CCOPTS) -o cvmbpush3.o -c vmbpush3.c
 
 cavx512lib3.o : avx512lib3.c
 	$(CC) $(CCOPTS) -o cavx512lib3.o -c avx512lib3.c
@@ -231,8 +231,8 @@ cavx512lib3.o : avx512lib3.c
 cavx512flib3.o : avx512flib3.c
 	$(CC) $(CCOPTS) -o cavx512flib3.o -c avx512flib3.c
 
-ckncmpush3.o : kncmpush3.c
-	$(MPCC) $(CCOPTS) -o ckncmpush3.o -c kncmpush3.c
+ckncmbpush3.o : kncmbpush3.c
+	$(MPCC) $(CCOPTS) -o ckncmbpush3.o -c kncmbpush3.c
 
 avx512lib3_h.o : avx512lib3_h.f90
 	$(FC90) $(OPTS90) -o avx512lib3_h.o -c avx512lib3_h.f90
@@ -240,32 +240,32 @@ avx512lib3_h.o : avx512lib3_h.f90
 avx512flib3_h.o : avx512flib3_h.f90 avx512lib3_h.o
 	$(FC90) $(OPTS90) -o avx512flib3_h.o -c avx512flib3_h.f90
 
-kncmpush3_h.o : kncmpush3_h.f90
-	$(FC90) $(OPTS90) -o kncmpush3_h.o -c kncmpush3_h.f90
+kncmbpush3_h.o : kncmbpush3_h.f90
+	$(FC90) $(OPTS90) -o kncmbpush3_h.o -c kncmbpush3_h.f90
 
 avx512lib3_c.o : avx512lib3_c.f03
 	$(FC03) $(OPTS03) -o avx512lib3_c.o -c $(FF03) avx512lib3_c.f03
 
-kncmpush3_c.o : kncmpush3_c.f03
-	$(FC03) $(OPTS03) -o kncmpush3_c.o -c $(FF03) kncmpush3_c.f03
+kncmbpush3_c.o : kncmbpush3_c.f03
+	$(FC03) $(OPTS03) -o kncmbpush3_c.o -c $(FF03) kncmbpush3_c.f03
 
-fvmpic3.o : vmpic3.f90 avx512flib3_h.o kncmpush3_h.o vmpush3_h.o omplib_h.o
-	$(FC90) $(OPTS90) -o fvmpic3.o -c vmpic3.f90
+fvmbpic3.o : vmbpic3.f90 avx512flib3_h.o kncmbpush3_h.o vmbpush3_h.o omplib_h.o
+	$(FC90) $(OPTS90) -o fvmbpic3.o -c vmbpic3.f90
 
-cvmpush3_f.o : vmpush3_f.c
-	$(MPCC) $(CCOPTS) -o cvmpush3_f.o -c vmpush3_f.c
+cvmbpush3_f.o : vmbpush3_f.c
+	$(MPCC) $(CCOPTS) -o cvmbpush3_f.o -c vmbpush3_f.c
 
-cvmpic3.o : vmpic3.c
-	$(CC) $(CCOPTS) -o cvmpic3.o -c vmpic3.c
+cvmbpic3.o : vmbpic3.c
+	$(CC) $(CCOPTS) -o cvmbpic3.o -c vmbpic3.c
 
-f03vmpic3.o : vmpic3.f03 avx512lib3_c.o kncmpush3_c.o vmpush3_h.o omplib_h.o
-	$(FC03) $(OPTS03) -o f03vmpic3.o -c $(FF03) vmpic3.f03
+f03vmbpic3.o : vmbpic3.f03 avx512lib3_c.o kncmbpush3_c.o vmbpush3_h.o omplib_h.o
+	$(FC03) $(OPTS03) -o f03vmbpic3.o -c $(FF03) vmbpic3.f03
 
-fvmpic3_c.o : vmpic3_c.f90 avx512flib3_h.o
-	$(FC90) $(OPTS90) -o fvmpic3_c.o -c vmpic3_c.f90
+fvmbpic3_c.o : vmbpic3_c.f90 avx512flib3_h.o
+	$(FC90) $(OPTS90) -o fvmbpic3_c.o -c vmbpic3_c.f90
 
 clean :
 	rm -f *.o *.mod
 
 clobber: clean
-	rm -f fvmpic3 cvmpic3 f03vmpic3 fvmpic3_c cvmpic3_f
+	rm -f fvmbpic3 cvmbpic3 f03vmbpic3 fvmbpic3_c cvmbpic3_f

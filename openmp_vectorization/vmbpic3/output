@@ -1,0 +1,65 @@
+VGRJPPOST3LT/VGPPOST3LT/V2GRBPPUSH3LT/VPPORDER3LT 
+
+ number of cpus found =          240
+ maximum number of threads =          240
+ using          240  thread(s)
+ Initial Total Field, Kinetic and Total Energies:
+ 0.8448585E+03 0.8391774E+08 0.8391859E+08
+ Initial Electrostatic, Transverse Electric and Magnetic Field Energies:
+ 0.1697242E-03 0.0000000E+00 0.8448583E+03
+ ntime, relativity =          285           1
+ kvec =            1
+ Final Total Field, Kinetic and Total Energies:
+ 0.1594879E+05 0.8390274E+08 0.8391870E+08
+ Final Electrostatic, Transverse Electric and Magnetic Field Energies:
+ 0.1508726E+05 0.3389386E+02 0.8276402E+03
+ 
+ deposit time =    15.01944    
+ current deposit time =    31.71491    
+ total deposit time =    46.73435    
+ guard time =   0.2610002    
+ solver time =    4.794248    
+ fft time =    24.41190    
+ push time =    39.49588    
+ sort time =    10.92017    
+ total solver time =    29.46714    
+ total particle time =    97.15041    
+ total time =    126.6176    
+ 
+ Push Time (nsec) =    2.447447    
+ Deposit Time (nsec) =    2.895994    
+ Sort Time (nsec) =   0.6766917    
+ Total Particle Time (nsec) =    6.020133    
+ 
+VGRJPPOSTF3LT/VGPPOST3LT/V2GRBPPUSHF3LT/VPPORDERF3LT
+
+ number of cpus found =          240
+ maximum number of threads =          240
+ using          240  thread(s)
+ Initial Total Field, Kinetic and Total Energies:
+ 0.8448585E+03 0.8391774E+08 0.8391859E+08
+ Initial Electrostatic, Transverse Electric and Magnetic Field Energies:
+ 0.1697504E-03 0.0000000E+00 0.8448583E+03
+ ntime, relativity =          285           1
+ kvec =            1
+ Final Total Field, Kinetic and Total Energies:
+ 0.1594879E+05 0.8390274E+08 0.8391870E+08
+ Final Electrostatic, Transverse Electric and Magnetic Field Energies:
+ 0.1508726E+05 0.3389386E+02 0.8276401E+03
+ 
+ deposit time =    15.03128    
+ current deposit time =    41.75056    
+ total deposit time =    56.78185    
+ guard time =   0.2676792    
+ solver time =    4.813014    
+ fft time =    24.46506    
+ push time =    40.87583    
+ sort time =    4.182273    
+ total solver time =    29.54576    
+ total particle time =    101.8400    
+ total time =    131.3857    
+ 
+ Push Time (nsec) =    2.532958    
+ Deposit Time (nsec) =    3.518608    
+ Sort Time (nsec) =   0.2591635    
+ Total Particle Time (nsec) =    6.310730   

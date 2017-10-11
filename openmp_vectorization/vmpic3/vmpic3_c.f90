@@ -3,9 +3,8 @@
 ! written by Viktor K. Decyk, UCLA and Ricardo Fonseca, ISCTE
       program vmpic3
       use avx512flib3_h
-      use kncmpush3_h
-      use vmpush3_h
-      use omplib_h
+! #include "vmpush3.h"
+! #include "omplib.h"
       implicit none
 ! indx/indy/indz = exponent which determines grid points in x/y/z
 ! direction: nx = 2**indx, ny = 2**indy, nz = 2**indz.
@@ -33,9 +32,6 @@
       integer :: mx = 8, my = 8, mz = 8
 ! xtras = fraction of extra particles needed for particle management
       real :: xtras = 0.2
-! kvec = (1,2) = run (autovector,KNC) version
-      integer :: kvec = 1
-
 ! declare scalars for standard code
       integer :: np, nx, ny, nz, nxh, nyh, nzh, nxe, nye, nze, nxeh
       integer :: nxyzh, nxhyz, mx1, my1, mz1, mxyz1
@@ -87,7 +83,7 @@
 !     write (*,*) 'enter number of nodes:'
 !     read (5,*) nvp
 ! initialize for shared memory parallel processing
-      call INIT_OMP(nvp)
+      call cinit_omp(nvp)
 !
 ! initialize scalars for standard code
 ! np = total number of particles in simulation
@@ -122,20 +118,20 @@
       endif
 !
 ! prepare fft tables
-      call WFFT3RINIT(mixup,sct,indx,indy,indz,nxhyz,nxyzh)
+      call cwfft3rinit(mixup,sct,indx,indy,indz,nxhyz,nxyzh)
 ! calculate form factors
       isign = 0
-      call VMPOIS33(qe,fxyze,isign,ffc,ax,ay,az,affp,we,nx,ny,nz,nxeh,  &
+      call cvmpois33(qe,fxyze,isign,ffc,ax,ay,az,affp,we,nx,ny,nz,nxeh, &
      &nye,nze,nxh,nyh,nzh)
 ! initialize electrons
-      call DISTR3(part,vtx,vty,vtz,vx0,vy0,vz0,npx,npy,npz,idimp,np,nx, &
+      call cdistr3(part,vtx,vty,vtz,vx0,vy0,vz0,npx,npy,npz,idimp,np,nx,&
      &ny,nz,ipbc)
 !
-! find number of particles in each of mx, my, mz, tiles:
+! find number of particles in each of mx, my mz, tiles:
 ! updates kpic, nppmx
-      call DBLKP3L(part,kpic,nppmx,idimp,np,mx,my,mz,mx1,my1,mxyz1,irc)
+      call cdblkp3l(part,kpic,nppmx,idimp,np,mx,my,mz,mx1,my1,mxyz1,irc)
       if (irc /= 0) then
-         write (*,*) 'DBLKP3L error, irc=', irc
+         write (*,*) 'cdblkp3l error, irc=', irc
          stop
       endif
 ! allocate vector particle data
@@ -153,17 +149,17 @@
       allocate(kp(nppmx0,mxyz1))
 !
 ! copy ordered particle data for OpenMP: updates ppartt, kpic, and kp
-      call PPMOVIN3LTP(part,ppartt,kpic,kp,nppmx0,idimp,np,mx,my,mz,mx1,&
-     &my1,mxyz1,irc)
+      call cppmovin3ltp(part,ppartt,kpic,kp,nppmx0,idimp,np,mx,my,mz,mx1&
+     &,my1,mxyz1,irc)
       if (irc /= 0) then
-         write (*,*) 'PPMOVIN3LTP overflow error, irc=', irc
+         write (*,*) 'cppmovin3ltp overflow error, irc=', irc
          stop
       endif
 ! sanity check
-      call PPCHECK3LT(ppartt,kpic,idimp,nppmx0,nx,ny,nz,mx,my,mz,mx1,my1&
-     &,mz1,irc)
+      call cppcheck3lt(ppartt,kpic,idimp,nppmx0,nx,ny,nz,mx,my,mz,mx1,  &
+     &my1,mz1,irc)
       if (irc /= 0) then
-         write (*,*) 'PPCHECK3LT error: irc=', irc
+         write (*,*) 'cppcheck3lt error: irc=', irc
          stop
       endif
 !
@@ -174,44 +170,27 @@
 !
 ! deposit charge with OpenMP: updates qe
       call dtimer(dtime,itime,-1)
-      call SET_SZERO3(qe,mx,my,mz,nxe,nye,nze,mx1,my1,mxyz1)
-      if (kvec==1) then
-!        call GPPOST3LT(ppartt,qe,kpic,qme,nppmx0,idimp,mx,my,mz,nxe,   &
-!    &nye,nze,mx1,my1,mxyz1)
-         call VGPPOST3LT(ppartt,qe,kpic,qme,nppmx0,idimp,mx,my,mz,nxe,  &
-     &nye,nze,mx1,my1,mxyz1)
-! KNC function
-      else if (kvec==2) then
-         call cknc2gppost3lt(ppartt,qe,kpic,qme,nppmx0,idimp,mx,my,mz,  &
-     &nxe,nye,nze,mx1,my1,mxyz1)
-      endif
+      call cset_szero3(qe,mx,my,mz,nxe,nye,nze,mx1,my1,mxyz1)
+!     call cgppost3lt(ppartt,qe,kpic,qme,nppmx0,idimp,mx,my,mz,nxe,nye, &
+!    &nze,mx1,my1,mxyz1)
+      call cvgppost3lt(ppartt,qe,kpic,qme,nppmx0,idimp,mx,my,mz,nxe,nye,&
+     &nze,mx1,my1,mxyz1)
       call dtimer(dtime,itime,1)
       time = real(dtime)
       tdpost = tdpost + time
 !
 ! add guard cells with OpenMP: updates qe
       call dtimer(dtime,itime,-1)
-      if (kvec==1) then
-         call AGUARD3L(qe,nx,ny,nz,nxe,nye,nze)
-! KNC function
-      else if (kvec==2) then
-         call ckncaguard3l(qe,nx,ny,nz,nxe,nye,nze)
-      endif
-         call dtimer(dtime,itime,1)
+      call caguard3l(qe,nx,ny,nz,nxe,nye,nze)
+      call dtimer(dtime,itime,1)
       time = real(dtime)
       tguard = tguard + time
 !
 ! transform charge to fourier space with OpenMP: updates qe
       call dtimer(dtime,itime,-1)
       isign = -1
-      if (kvec==1) then
-         call WFFT3RVMX(qe,isign,mixup,sct,indx,indy,indz,nxeh,nye,nze, &
+      call cwfft3rvmx(qe,isign,mixup,sct,indx,indy,indz,nxeh,nye,nze,   &
      &nxhyz,nxyzh)
-! KNC function
-      else if (kvec==2) then
-         call ckncwfft3rmx(qe,isign,mixup,sct,indx,indy,indz,nxeh,nye,  &
-     &nze,nxhyz,nxyzh)
-      endif
       call dtimer(dtime,itime,1)
       time = real(dtime)
       tfft = tfft + time
@@ -219,14 +198,8 @@
 ! calculate force/charge in fourier space with OpenMP: updates fxyze, we
       call dtimer(dtime,itime,-1)
       isign = -1
-      if (kvec==1) then
-         call VMPOIS33(qe,fxyze,isign,ffc,ax,ay,az,affp,we,nx,ny,nz,nxeh&
-     &,nye,nze,nxh,nyh,nzh)
-! KNC function
-      else if (kvec==2) then
-         call ckncmpois33(qe,fxyze,isign,ffc,ax,ay,az,affp,we,nx,ny,nz, &
-     &nxeh,nye,nze,nxh,nyh,nzh)
-      endif
+      call cvmpois33(qe,fxyze,isign,ffc,ax,ay,az,affp,we,nx,ny,nz,nxeh, &
+     &nye,nze,nxh,nyh,nzh)
       call dtimer(dtime,itime,1)
       time = real(dtime)
       tfield = tfield + time
@@ -234,26 +207,15 @@
 ! transform force to real space with OpenMP: updates fxyze
       call dtimer(dtime,itime,-1)
       isign = 1
-      if (kvec==1) then
-         call WFFT3RVM3(fxyze,isign,mixup,sct,indx,indy,indz,nxeh,nye,  &
-     &nze,nxhyz,nxyzh)
-! KNC function
-      else if (kvec==2) then
-         call ckncwfft3rm3(fxyze,isign,mixup,sct,indx,indy,indz,nxeh,nye&
-     &,nze,nxhyz,nxyzh)
-      endif
+      call cwfft3rvm3(fxyze,isign,mixup,sct,indx,indy,indz,nxeh,nye,nze,&
+     &nxhyz,nxyzh)
       call dtimer(dtime,itime,1)
       time = real(dtime)
       tfft = tfft + time
 !
 ! copy guard cells with OpenMP: updates fxyze
       call dtimer(dtime,itime,-1)
-      if (kvec==1) then
-         call CGUARD3L(fxyze,nx,ny,nz,nxe,nye,nze)
-! KNC function
-      else if (kvec==2) then
-         call cknccguard3l(fxyze,nx,ny,nz,nxe,nye,nze)
-      endif
+      call ccguard3l(fxyze,nx,ny,nz,nxe,nye,nze)
       call dtimer(dtime,itime,1)
       time = real(dtime)
       tguard = tguard + time
@@ -261,68 +223,45 @@
 ! push particles with OpenMP:
       wke = 0.0
       call dtimer(dtime,itime,-1)
-      if (kvec==1) then
-! updates ppart, wke
-!        call GPPUSH3LT(ppartt,fxyze,kpic,qbme,dt,wke,idimp,nppmx0,nx,ny&
+! updates ppartt, wke
+!     call cgppush3lt(ppartt,fxyze,kpic,qbme,dt,wke,idimp,nppmx0,nx,ny, &
+!    &nz,mx,my,mz,nxe,nye,nze,mx1,my1,mxyz1,ipbc)
+!     call cvgppush3lt(ppartt,fxyze,kpic,qbme,dt,wke,idimp,nppmx0,nx,ny,&
+!    &nz,mx,my,mz,nxe,nye,nze,mx1,my1,mxyz1,ipbc)
+!     call cv2gppush3lt(ppartt,fxyze,kpic,qbme,dt,wke,idimp,nppmx0,nx,ny&
 !    &,nz,mx,my,mz,nxe,nye,nze,mx1,my1,mxyz1,ipbc)
-         call VGPPUSH3LT(ppartt,fxyze,kpic,qbme,dt,wke,idimp,nppmx0,nx, &
-     &ny,nz,mx,my,mz,nxe,nye,nze,mx1,my1,mxyz1,ipbc)
-!        call V2GPPUSH3LT(ppartt,fxyze,kpic,qbme,dt,wke,idimp,nppmx0,nx,&
-!    &ny,nz,mx,my,mz,nxe,nye,nze,mx1,my1,mxyz1,ipbc)
 ! updates ppart, ncl, ihole, wke, irc
-!        call GPPUSHF3LT(ppartt,fxyze,kpic,ncl,ihole,qbme,dt,wke,idimp, &
+!     call cgppushf3lt(ppartt,fxyze,kpic,ncl,ihole,qbme,dt,wke,idimp,   &
 !    &nppmx0,nx,ny,nz,mx,my,mz,nxe,nye,nze,mx1,my1,mxyz1,ntmax,irc)
-!        call VGPPUSHF3LT(ppartt,fxyze,kpic,ncl,ihole,qbme,dt,wke,idimp,&
+      call cvgppushf3lt(ppartt,fxyze,kpic,ncl,ihole,qbme,dt,wke,idimp,  &
+     &nppmx0,nx,ny,nz,mx,my,mz,nxe,nye,nze,mx1,my1,mxyz1,ntmax,irc)
+!     call cv2gppushf3lt(ppartt,fxyze,kpic,ncl,ihole,qbme,dt,wke,idimp,  &
 !    &nppmx0,nx,ny,nz,mx,my,mz,nxe,nye,nze,mx1,my1,mxyz1,ntmax,irc)
-!        call V2GPPUSHF3LT(ppartt,fxyze,kpic,ncl,ihole,qbme,dt,wke,idimp&
-!    &,nppmx0,nx,ny,nz,mx,my,mz,nxe,nye,nze,mx1,my1,mxyz1,ntmax,irc)
-! KNC function
-      else if (kvec==2) then
-! updates ppart, wke
-         call ckncgppush3lt(ppartt,fxyze,kpic,qbme,dt,wke,idimp,nppmx0, &
-     &nx,ny,nz,mx,my,mz,nxe,nye,nze,mx1,my1,mxyz1,ipbc)
-! updates ppart, ncl, ihole, wke, irc
-!        call ckncgppushf3lt(ppartt,fxyze,kpic,ncl,ihole,qbme,dt,wke,   &
-!    &idimp,nppmx0,nx,ny,nz,mx,my,mz,nxe,nye,nze,mx1,my1,mxyz1,ntmax,irc&
-!    &)
-      endif
       call dtimer(dtime,itime,1)
       time = real(dtime)
       tpush = tpush + time
       if (irc /= 0) then
-         write (*,*) 'VGPPUSHF3LT error: irc=', irc
+         write (*,*) 'cvgppushf3lt error: irc=', irc
          stop
       endif
 !
 ! reorder particles by tile with OpenMP:
       call dtimer(dtime,itime,-1)
-      if (kvec==1) then
-! updates ppartt, ppbuff, kpic, ncl, ihole, and irc
-!        call PPORDER3LT(ppartt,ppbuff,kpic,ncl,ihole,idimp,nppmx0,nx,ny&
-!    &,nz,mx,my,mz,mx1,my1,mz1,npbmx,ntmax,irc)
-         call VPPORDER3LT(ppartt,ppbuff,kpic,ncl,ihole,idimp,nppmx0,nx, &
-     &ny,nz,mx,my,mz,mx1,my1,mz1,npbmx,ntmax,irc)
-! updates ppartt, ppbuff, kpic, ncl, and irc
-!        call PPORDERF3LT(ppartt,ppbuff,kpic,ncl,ihole,idimp,nppmx0,mx1,&
+! updates ppart, ppbuff, kpic, ncl, ihole, and irc
+!     call cpporder3lt(ppartt,ppbuff,kpic,ncl,ihole,idimp,nppmx0,nx,ny, &
+!    &nz,mx,my,mz,mx1,my1,mz1,npbmx,ntmax,irc)
+!     call cvpporder3lt(ppartt,ppbuff,kpic,ncl,ihole,idimp,nppmx0,nx,ny,&
+!    &nz,mx,my,mz,mx1,my1,mz1,npbmx,ntmax,irc)
+! updates ppart, ppbuff, kpic, ncl, and irc
+!     call cpporderf3lt(ppartt,ppbuff,kpic,ncl,ihole,idimp,nppmx0,mx1,  &
 !    &my1,mz1,npbmx,ntmax,irc)
-!        call VPPORDERF3LT(ppartt,ppbuff,kpic,ncl,ihole,idimp,nppmx0,   &
-!    &mx1,my1,mz1,npbmx,ntmax,irc)
-!        call V2PPORDERF3LT(ppartt,ppbuff,kpic,ncl,ihole,idimp,nppmx0,  &
-!    &mx1,my1,mz1,npbmx,ntmax,irc)
-! KNC function
-      else if (kvec==2) then
-! updates ppartt, ppbuff, kpic, ncl, ihole, and irc
-         call ckncpporder3lt(ppartt,ppbuff,kpic,ncl,ihole,idimp,nppmx0, &
-     &nx,ny,nz,mx,my,mz,mx1,my1,mz1,npbmx,ntmax,irc)
-! updates ppartt, ppbuff, kpic, ncl, and irc
-!        call ckncpporderf3lt(ppartt,ppbuff,kpic,ncl,ihole,idimp,nppmx0,&
-!    &mx1,my1,mz1,npbmx,ntmax,irc)
-      endif
+      call cvpporderf3lt(ppartt,ppbuff,kpic,ncl,ihole,idimp,nppmx0,mx1, &
+     &my1,mz1,npbmx,ntmax,irc)
       call dtimer(dtime,itime,1)
       time = real(dtime)
       tsort = tsort + time
       if (irc /= 0) then
-         write (*,*) 'VPPORDERF3LT error: ntmax, irc=', ntmax, irc
+         write (*,*) 'cvpporderf3lt error: ntmax, irc=', ntmax, irc
          stop
       endif
 !
@@ -336,7 +275,7 @@
 !
 ! * * * end main iteration loop * * *
 !
-      write (*,*) 'ntime = ', ntime, 'kvec = ', kvec
+      write (*,*) 'ntime = ', ntime
       write (*,*) 'Final Field, Kinetic and Total Energies:'
       write (*,'(3e14.7)') we, wke, wke + we
 !
@@ -399,3 +338,4 @@
       complex, dimension(:,:,:), pointer :: cref 
       cref => carray 
       end subroutine
+

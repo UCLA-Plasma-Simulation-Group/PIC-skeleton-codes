@@ -56,6 +56,20 @@ void cvgppushf3lt(float ppart[], float fxyz[], int kpic[], int ncl[],
                   int my1, int mxyz1, int ntmax, int *irc);
 
 /*--------------------------------------------------------------------*/
+void cv2gppush3lt(float ppart[], float fxyz[], int kpic[], float qbm,
+                  float dt, float *ek, int idimp, int nppmx, int nx,
+                  int ny, int nz, int mx, int my, int mz, int nxv,
+                  int nyv, int nzv, int mx1, int my1, int mxyz1,
+                  int ipbc);
+
+/*--------------------------------------------------------------------*/
+void cv2gppushf3lt(float ppart[], float fxyz[], int kpic[], int ncl[],
+                   int ihole[], float qbm, float dt, float *ek,
+                   int idimp, int nppmx, int nx, int ny, int nz, int mx,
+                   int my, int mz, int nxv, int nyv, int nzv, int mx1,
+                   int my1, int mxyz1, int ntmax, int *irc);
+
+/*--------------------------------------------------------------------*/
 void cgppost3lt(float ppart[], float q[], int kpic[], float qm,
                 int nppmx, int idimp, int mx, int my, int mz, int nxv,
                 int nyv, int nzv, int mx1, int my1, int mxyz1);
@@ -65,6 +79,7 @@ void cvgppost3lt(float ppart[], float q[], int kpic[], float qm,
                  int nppmx, int idimp, int mx, int my, int mz, int nxv,
                  int nyv, int nzv, int mx1, int my1, int mxyz1);
 
+/*--------------------------------------------------------------------*/
 void cviscan2(int *isdata, int *mb, int nths);
 
 /*--------------------------------------------------------------------*/
@@ -88,6 +103,12 @@ void cvpporder3lt(float ppart[], float ppbuff[], int kpic[], int ncl[],
 void cvpporderf3lt(float ppart[], float ppbuff[], int kpic[], int ncl[],
                    int ihole[], int idimp, int nppmx, int mx1, int my1,
                    int mz1, int npbmx, int ntmax, int *irc);
+
+/*--------------------------------------------------------------------*/
+void cv2pporderf3lt(float ppart[], float ppbuff[], int kpic[],
+                    int ncl[], int ihole[], int idimp, int nppmx,
+                    int mx1, int my1, int mz1, int npbmx, int ntmax,
+                    int *irc);
 
 /*--------------------------------------------------------------------*/
 void ccguard3l(float fxyz[], int nx, int ny, int nz, int nxe, int nye,
@@ -140,3 +161,15 @@ void cwfft3rvmx(float complex f[], int isign, int mixup[],
 void cwfft3rvm3(float complex f[], int isign, int mixup[],
                 float complex sct[], int indx, int indy, int indz,
                 int nxhd, int nyd, int nzd, int nxhyzd, int nxyzhd);
+
+/*--------------------------------------------------------------------*/
+void cset_szero3(float q[], int mx, int my, int mz, int nxv, int nyv,
+                 int nzv, int mx1, int my1, int mxyz1);
+
+/*--------------------------------------------------------------------*/
+void cset_vzero3(float cu[], int mx, int my, int mz, int ndim, int nxv,
+                 int nyv, int nzv, int mx1, int my1, int mxyz1);
+
+/*--------------------------------------------------------------------*/
+void cset_cvzero3(float complex exyz[], int nx, int ny, int nz,
+                  int ndim, int nxvh, int nyv, int nzv);

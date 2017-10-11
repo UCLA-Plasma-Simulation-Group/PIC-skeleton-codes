@@ -194,6 +194,19 @@
       end interface
 !
       interface
+         subroutine V2PPORDERF3LT(ppart,ppbuff,kpic,ncl,ihole,idimp,    &
+     &nppmx,mx1,my1,mz1,npbmx,ntmax,irc)
+         implicit none
+         integer :: idimp, nppmx, mx1, my1, mz1, npbmx, ntmax, irc
+         real, dimension(nppmx,idimp,mx1*my1*mz1) :: ppart
+         real, dimension(idimp,npbmx,mx1*my1*mz1) :: ppbuff
+         integer, dimension(mx1*my1*mz1) :: kpic
+         integer, dimension(26,mx1*my1*mz1) :: ncl
+         integer, dimension(2,ntmax+1,mx1*my1*mz1) :: ihole
+         end subroutine
+      end interface
+!
+      interface
          subroutine CGUARD3L(fxyz,nx,ny,nz,nxe,nye,nze)
          implicit none
          integer :: nx, ny, nz, nxe, nye, nze
@@ -299,6 +312,31 @@
          real, dimension(4,2*nxhd,nyd,nzd) :: f
          integer, dimension(nxhyzd) :: mixup
          complex, dimension(nxyzhd) :: sct
+         end subroutine
+      end interface
+!
+      interface
+         subroutine SET_SZERO3(q,mx,my,mz,nxv,nyv,nzv,mx1,my1,mxyz1)
+         implicit none
+         integer :: mx, my, mz, nxv, nyv, nzv, mx1, my1, mxyz1
+         real, dimension(nxv,nyv,nzv) :: q
+         end subroutine
+      end interface
+!
+      interface
+         subroutine SET_VZERO3(cu,mx,my,mz,ndim,nxv,nyv,nzv,mx1,my1,    &
+     &mxyz1)
+         implicit none
+         integer :: mx, my, mz, ndim, nxv, nyv, nzv, mx1, my1, mxyz1
+         real, dimension(ndim,nxv,nyv,nzv) :: cu
+         end subroutine
+      end interface
+!
+      interface
+         subroutine SET_CVZERO3(exyz,nx,ny,nz,ndim,nxvh,nyv,nzv)
+         implicit none
+         integer :: nx, ny, nz, ndim, nxvh, nyv, nzv
+         complex, dimension(ndim,nxvh,nyv,nzv) :: exyz
          end subroutine
       end interface
 !
