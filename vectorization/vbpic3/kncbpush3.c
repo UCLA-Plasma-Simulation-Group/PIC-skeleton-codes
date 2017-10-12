@@ -2909,7 +2909,7 @@ local data                                                            */
       v_at = _mm512_fmadd_ps(b,b,_mm512_mul_ps(a,a));
       v_at = _mm512_fmadd_ps(c,c,v_at);
 /*    gami = 1.0f/sqrtf(1.0f + p2*ci2); */
-/* approximate calculation *
+/* approximate calculation */
 /*    v_gami = _mm512_rsqrt23_ps(_mm512_fmadd_ps(v_at,v_ci2,v_one)); */
 /* full accuracy calculation */
       v_gami = _mm512_sqrt_ps(_mm512_fmadd_ps(v_at,v_ci2,v_one));
@@ -2983,7 +2983,7 @@ local data                                                            */
       v_at = _mm512_fmadd_ps(v_vy,v_vy,_mm512_mul_ps(v_vx,v_vx));
       v_at = _mm512_fmadd_ps(v_vz,v_vz,v_at);
 /*    dtg = dtc/sqrtf(1.0f + p2*ci2); */
-/* approximate calculation *
+/* approximate calculation */
 /*    v_at = _mm512_rsqrt23_ps(_mm512_fmadd_ps(v_at,v_ci2,v_one)); */
 /*    v_at = _mm512_mul_ps(v_dtc,v_at);                            */
 /* full accuracy calculation */
@@ -4426,7 +4426,7 @@ local data                                                            */
       v_at = _mm512_fmadd_ps(v_uy,v_uy,_mm512_mul_ps(v_ux,v_ux));
       v_at = _mm512_fmadd_ps(v_uz,v_uz,v_at);
 /*    gami = 1.0f/sqrtf(1.0f + p2*ci2); */
-/* approximate calculation *
+/* approximate calculation */
 /*    v_gami = _mm512_rsqrt23_ps(_mm512_fmadd_ps(v_at,v_ci2,v_one)); */
 /* full accuracy calculation */
       v_gami = _mm512_sqrt_ps(_mm512_fmadd_ps(v_at,v_ci2,v_one));
@@ -5887,13 +5887,6 @@ L40: wp = 0.0;
       _mm512_store_ps((float *)&fxyz[8+4*j],b);
       _mm512_store_ps((float *)&fxyz[16+4*j],c);
       _mm512_store_ps((float *)&fxyz[24+4*j],d);
-/*    fxyz[4*(j+k1+lj)] = zero;   */
-/*    fxyz[1+4*(j+k1+lj)] = zero; */
-/*    fxyz[2+4*(j+k1+lj)] = zero; */
-      _mm512_store_ps((float *)&fxyz[4*(j+k1+lj)],v_zero);
-      _mm512_store_ps((float *)&fxyz[8+4*(j+k1+lj)],v_zero);
-      _mm512_store_ps((float *)&fxyz[16+4*(j+k1+lj)],v_zero);
-      _mm512_store_ps((float *)&fxyz[24+4*(j+k1+lj)],v_zero);
 /*    fxyz[4*(j+k1)] = zero;   */
 /*    fxyz[1+4*(j+k1)] = zero; */
 /*    fxyz[2+4*(j+k1)] = zero; */

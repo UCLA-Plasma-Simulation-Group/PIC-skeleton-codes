@@ -2285,13 +2285,6 @@ L40: wp = 0.0;
       _mm512_store_ps((float *)&fxyz[8+4*j],b);
       _mm512_store_ps((float *)&fxyz[16+4*j],c);
       _mm512_store_ps((float *)&fxyz[24+4*j],d);
-/*    fxyz[4*(j+k1+lj)] = zero;   */
-/*    fxyz[1+4*(j+k1+lj)] = zero; */
-/*    fxyz[2+4*(j+k1+lj)] = zero; */
-      _mm512_store_ps((float *)&fxyz[4*(j+k1+lj)],v_zero);
-      _mm512_store_ps((float *)&fxyz[8+4*(j+k1+lj)],v_zero);
-      _mm512_store_ps((float *)&fxyz[16+4*(j+k1+lj)],v_zero);
-      _mm512_store_ps((float *)&fxyz[24+4*(j+k1+lj)],v_zero);
 /*    fxyz[4*(j+k1)] = zero;   */
 /*    fxyz[1+4*(j+k1)] = zero; */
 /*    fxyz[2+4*(j+k1)] = zero; */
