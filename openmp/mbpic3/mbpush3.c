@@ -16,7 +16,7 @@ double ranorm() {
       y(k+1) = (-2*ln(x(k)))**1/2*cos(2*pi*x(k+1)),
    where x is a random number uniformly distributed on (0,1).
    written for the ibm by viktor k. decyk, ucla
-local data                                                              */
+local data                                                            */
    static int r1 = 885098780, r2 = 1824280461;
    static int r4 = 1396483093, r5 = 55318673;
    static int iflg = 0;
@@ -1338,7 +1338,7 @@ reduction(+:sum2)
          rot7 += omyt;
          rot6 = omxt + rot8;
          rot8 -= omxt;
-/* new velocity */
+/* new momentum */
          dx += (rot1*acx + rot2*acy + rot3*acz)*anorm;
          dy += (rot4*acx + rot5*acy + rot6*acz)*anorm;
          dz += (rot7*acx + rot8*acy + rot9*acz)*anorm;
@@ -1679,7 +1679,7 @@ reduction(+:sum2)
          rot7 += omyt;
          rot6 = omxt + rot8;
          rot8 -= omxt;
-/* new velocity */
+/* new momentum */
          dx += (rot1*acx + rot2*acy + rot3*acz)*anorm;
          dy += (rot4*acx + rot5*acy + rot6*acz)*anorm;
          dz += (rot7*acx + rot8*acy + rot9*acz)*anorm;
@@ -5936,7 +5936,6 @@ private(i,j,k,l,k1,l1,kk,kj,ll,lj,at1)
    return;
 }
 
-
 /*--------------------------------------------------------------------*/
 void cwfft3rinit(int mixup[], float complex sct[], int indx, int indy,
                  int indz, int nxhyzd, int nxyzhd) {
@@ -6351,7 +6350,7 @@ local data                                                            */
    nrzb = nxhyz/nz;
    nrz = nxyz/nz;
 #pragma omp parallel for \
-private(i,j,k,l,n,ns,ns2,km,kmr,k1,k2,j1,j2,l1,i0,i1,ioff,t1,t2)
+private(i,j,k,l,n,ns,ns2,km,kmr,k1,k2,j1,j2,ll,l1,i0,i1,ioff,t1,t2)
    for (n = nyi-1; n < nyt; n++) {
       ioff = nxhd*n;
 /* bit-reverse array elements in z */
@@ -6440,7 +6439,7 @@ L90: nrzb = nxhyz/nz;
    }
 /* bit-reverse array elements in z */
 #pragma omp parallel for \
-private(i,j,k,l,n,ns,ns2,km,kmr,k1,k2,j1,j2,l1,i0,i1,ioff,t1,t2)
+private(i,j,k,l,n,ns,ns2,km,kmr,k1,k2,j1,j2,ll,l1,i0,i1,ioff,t1,t2)
    for (n = nyi-1; n < nyt; n++) {
       ioff = nxhd*n;
       for (l = 0; l < nz; l++) {
@@ -6945,7 +6944,8 @@ local data                                                            */
    nrz = nxyz/nz;
 /* bit-reverse array elements in z */
 #pragma omp parallel for \
-private(i,j,k,l,n,ns,ns2,km,kmr,k1,k2,j1,j2,l1,i0,i1,ioff,t1,t2,t3,t4)
+private(i,j,k,l,n,ns,ns2,km,kmr,k1,k2,j1,j2,ll,l1,i0,i1,ioff,t1,t2,t3, \
+t4)
    for (n = nyi-1; n < nyt; n++) {
       ioff = nxhd3*n;
       for (l = 0; l < nz; l++) {
@@ -7054,7 +7054,8 @@ L110: nrzb = nxhyz/nz;
    }
 /* bit-reverse array elements in z */
 #pragma omp parallel for \
-private(i,j,k,l,n,ns,ns2,km,kmr,k1,k2,j1,j2,l1,i0,i1,ioff,t1,t2,t3,t4)
+private(i,j,k,l,n,ns,ns2,km,kmr,k1,k2,j1,j2,ll,l1,i0,i1,ioff,t1,t2,t3, \
+t4)
    for (n = nyi-1; n < nyt; n++) {
       ioff = nxhd3*n;
       for (l = 0; l < nz; l++) {

@@ -669,7 +669,6 @@ void cgppushf3l(float ppart[], float fxyz[], int kpic[], int ncl[],
    nxv = second dimension of field array, must be >= nx+1
    nyv = third dimension of field array, must be >= ny+1
    nzv = fourth dimension of field array, must be >= nz+1
-   ipbc = particle boundary condition = (0,1,2,3) =
    mx1 = (system length in x direction - 1)/mx + 1
    my1 = (system length in y direction - 1)/my + 1
    mxyz1 = mx1*my1*mz1,
@@ -2445,7 +2444,7 @@ local data                                                            */
    nrzb = nxhyz/nz;
    nrz = nxyz/nz;
 #pragma omp parallel for \
-private(i,j,k,l,n,ns,ns2,km,kmr,k1,k2,j1,j2,l1,i0,i1,ioff,t1,t2)
+private(i,j,k,l,n,ns,ns2,km,kmr,k1,k2,j1,j2,ll,l1,i0,i1,ioff,t1,t2)
    for (n = nyi-1; n < nyt; n++) {
       ioff = nxhd*n;
 /* bit-reverse array elements in z */
@@ -2534,7 +2533,7 @@ L90: nrzb = nxhyz/nz;
    }
 /* bit-reverse array elements in z */
 #pragma omp parallel for \
-private(i,j,k,l,n,ns,ns2,km,kmr,k1,k2,j1,j2,l1,i0,i1,ioff,t1,t2)
+private(i,j,k,l,n,ns,ns2,km,kmr,k1,k2,j1,j2,ll,l1,i0,i1,ioff,t1,t2)
    for (n = nyi-1; n < nyt; n++) {
       ioff = nxhd*n;
       for (l = 0; l < nz; l++) {
@@ -3039,7 +3038,8 @@ local data                                                            */
    nrz = nxyz/nz;
 /* bit-reverse array elements in z */
 #pragma omp parallel for \
-private(i,j,k,l,n,ns,ns2,km,kmr,k1,k2,j1,j2,l1,i0,i1,ioff,t1,t2,t3,t4)
+private(i,j,k,l,n,ns,ns2,km,kmr,k1,k2,j1,j2,ll,l1,i0,i1,ioff,t1,t2,t3, \
+t4)
    for (n = nyi-1; n < nyt; n++) {
       ioff = nxhd3*n;
       for (l = 0; l < nz; l++) {
@@ -3148,7 +3148,8 @@ L110: nrzb = nxhyz/nz;
    }
 /* bit-reverse array elements in z */
 #pragma omp parallel for \
-private(i,j,k,l,n,ns,ns2,km,kmr,k1,k2,j1,j2,l1,i0,i1,ioff,t1,t2,t3,t4)
+private(i,j,k,l,n,ns,ns2,km,kmr,k1,k2,j1,j2,ll,l1,i0,i1,ioff,t1,t2,t3, \
+t4)
    for (n = nyi-1; n < nyt; n++) {
       ioff = nxhd3*n;
       for (l = 0; l < nz; l++) {

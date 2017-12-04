@@ -1231,7 +1231,7 @@ c calculate rotation matrix
       rot7 = omyt + rot7
       rot6 = omxt + rot8
       rot8 = -omxt + rot8
-c new velocity
+c new momentum
       dx = (rot1*acx + rot2*acy + rot3*acz)*anorm + dx
       dy = (rot4*acx + rot5*acy + rot6*acz)*anorm + dy
       dz = (rot7*acx + rot8*acy + rot9*acz)*anorm + dz
@@ -1561,7 +1561,7 @@ c calculate rotation matrix
       rot7 = omyt + rot7
       rot6 = omxt + rot8
       rot8 = -omxt + rot8
-c new velocity
+c new momentum
       dx = (rot1*acx + rot2*acy + rot3*acz)*anorm + dx
       dy = (rot4*acx + rot5*acy + rot6*acz)*anorm + dy
       dz = (rot7*acx + rot8*acy + rot9*acz)*anorm + dz
