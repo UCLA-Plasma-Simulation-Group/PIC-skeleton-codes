@@ -26,6 +26,8 @@
 #export CFLAGS = -O3 -fopenmp
 #export CFLAGS = -O3 -fopenmp -Wall
 
+#LOPTS = -liomp5 -lirc
+
 # Makefile Intel compiler with Linux
 
 #PFC = f2py --fcompiler=intelem
@@ -37,6 +39,8 @@
 
 #export CFLAGS = -O3 -openmp
 #export CFLAGS = -O3 -openmp -Wall
+
+#LOPTS = -liomp5 -lirc
 
 # Makefile gfortran compiler with Linux
 
@@ -63,6 +67,8 @@ LOPTS = -lgomp
 
 #export CFLAGS = -O3 -fopenmp
 #export CFLAGS = -O3 -fopenmp -Wall
+
+#LOPTS =
 
 #
 
