@@ -16,7 +16,7 @@ c g(kx,ky) = (affp/(kx**2+ky**2))*s(kx,ky),
 c s(kx,ky) = exp(-((kx*ax)**2+(ky*ay)**2)/2), except for
 c pot(kx=pi) = pot(ky=pi) = 0, and pot(kx=0,ky=0) = 0.
 c q(k,j) = complex charge density for fourier mode (jj-1,k-1)
-c pot(k,j) = x component of complex potential
+c pot(k,j) = complex potential
 c for fourier mode (jj-1,k-1), where jj = j + kxp*(kstrt - 1)
 c kxp = number of data values per block
 c kstrt = starting data block number
@@ -629,9 +629,9 @@ c where modesx <= nx/2+1, modesy <= ny/2+1
 c kstrt = starting data block number
 c nyv = first dimension of input array pot, nyv >= ny
 c kxp = number of data values per block
-c modesyd = second dimension of array pott,
+c modesyd = first dimension of array pott,
 c where modesyd >= min(2*modesy-1,ny)
-c modesxpd = third dimension of array pott, modesxpd >= min(modesx,kxp)
+c modesxpd = second dimension of array pott, modesxpd >= min(modesx,kxp)
 c unless modesx = nx/2+1, in which case modesxpd = kxp+1
       implicit none
       integer nx, ny, modesx, modesy, kstrt, nyv, kxp
@@ -712,9 +712,9 @@ c where modesx <= nx/2+1, modesy <= ny/2+1
 c kstrt = starting data block number
 c nyv = first dimension of input array pot, nyv >= ny
 c kxp = number of data values per block
-c modesyd = second dimension of array pott,
+c modesyd = first dimension of array pott,
 c where modesyd  >= min(2*modesy-1,ny)
-c modesxpd = third dimension of array pott, modesxpd >= min(modesx,kxp)
+c modesxpd = second dimension of array pott, modesxpd >= min(modesx,kxp)
 c unless modesx = nx/2+1, in which case modesxpd = kxp+1
       implicit none
       integer nx, ny, modesx, modesy, kstrt, nyv, kxp
@@ -822,9 +822,9 @@ c ndim = number of field arrays, must be >= 1
 c kstrt = starting data block number
 c nyv = second dimension of input array vpot, nyv >= ny
 c kxp = number of data values per block
-c modesyd = third dimension of array vpott,
+c modesyd = second dimension of array vpott,
 c where modesyd >= min(2*modesy-1,ny)
-c modesxpd = fourth dimension of array vpott,
+c modesxpd = third dimension of array vpott,
 c modesxpd >= min(modesx,kxp),  unless modesx = nx/2+1,
 c in which case modesxpd = kxp+1
       implicit none
@@ -916,9 +916,9 @@ c ndim = number of field arrays, must be >= 1
 c kstrt = starting data block number
 c nyv = second dimension of input array vpot, nyv >= ny
 c kxp = number of data values per block
-c modesyd = third dimension of array vpott,
+c modesyd = second dimension of array vpott,
 c where modesyd  >= min(2*modesy-1,ny)
-c modesxpd = fourth dimension of array vpott,
+c modesxpd = third dimension of array vpott,
 c modesxpd >= min(modesx,kxp) unless modesx = nx/2+1,
 c in which case modesxpd = kxp+1
       implicit none

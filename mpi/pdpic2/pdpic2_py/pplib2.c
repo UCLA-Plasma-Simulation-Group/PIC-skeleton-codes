@@ -28,7 +28,7 @@
             boundary conditions.  Assumes ihole list has been found.
    written by viktor k. decyk, ucla
    copyright 1995, regents of the university of california
-   update: april 21, 2013                                         */
+   update: february 26, 2018                                         */
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -111,12 +111,12 @@ local data */
 /* single precision real */
    if (ndprec==0) {
       mreal = MPI_FLOAT;
-      mcplx = MPI_COMPLEX;
+      mcplx = MPI_C_COMPLEX;
    }
 /* double precision real */
    else {
       mreal = MPI_DOUBLE;
-      mcplx = MPI_DOUBLE_COMPLEX;
+      mcplx = MPI_C_DOUBLE_COMPLEX;
    }
 /* single precision integer */
 /* if (idprec==0)           */

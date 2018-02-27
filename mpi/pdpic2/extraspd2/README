@@ -64,14 +64,17 @@ For Fortran:
 
 For C:
    modesx = nx/4; modesy = ny/4;
-   modesxd = modesx; modesyd = 2*modesy - 1;
+   modesxpd = modesx < kxp ? modesx : kxp;
+   modesyd = 2*modesy - 1;
    modesyd = modesyd < ny ? modesyd : ny;
    if (modesx==(nx/2+1))
       modesxpd += 1;
    potc = (float complex *) malloc(nye*kxp*sizeof(float complex));
    vpotc = (float complex *) malloc(ndim*nye*kxp*sizeof(float complex));
-   pott = (float complex *) malloc(modesyd*modesxpd*sizeof(float complex));
-   vpott = (float complex *) malloc(ndim*modesyd*modesxpd*sizeof(float complex));
+   pott = (float complex *) malloc(modesyd*modesxpd
+                                   *sizeof(float complex));
+   vpott = (float complex *) malloc(ndim*modesyd*modesxpd
+                                    *sizeof(float complex));
 
 Finally, in the main iteration loops just before the push procedures,
 one can add some diagnostics, such as:

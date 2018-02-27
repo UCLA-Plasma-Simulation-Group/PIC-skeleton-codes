@@ -192,7 +192,6 @@ vtx/vty/vtz = thermal velocity of electrons in x/y/z direction.
    a typical value is 1.0.
 vx0/vy0/vz0 = drift velocity of electrons in x/y/z direction.
 ci = reciprocal of velocity of light
-relativity = (no,yes) = (0,1) = relativity is used
 sortime = number of time steps between electron sorting.
    This is used to improve cache performance.  sortime=0 to suppress.
 omx/omy/omz = magnetic field electron cyclotron frequency in x/y/z
