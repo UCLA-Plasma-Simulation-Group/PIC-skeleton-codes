@@ -4110,7 +4110,7 @@ c unscramble coefficients and normalize
       return
 c forward fourier transform
    70 nrxb = nxhy/nxh
-      nrx = nxhy/nxh
+      nrx = nxy/nxh
 !$OMP PARALLEL DO
 !$OMP& PRIVATE(i,j,k,m,ns,ns2,km,kmr,k1,k2,j1,j2,s,t,t1)
       do 130 i = kypi, kypt
