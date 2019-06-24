@@ -1,6 +1,6 @@
 # PIC Skeleton Codes:  GPU
 
-##GPU Tutorial
+## GPU Tutorial
 
 Tutorial for Computing on GPUs: GPUTutorial
 
@@ -40,6 +40,14 @@ The __second family__ uses CUDA Fortran on the NVIDIA GPU, with a tiling techniq
 1. 2D Parallel Electrostatic Spectral code:  gpufppic2
 2. 2-1/2D Parallel Electromagnetic Spectral code:  gpufpbpic2
 
+
+### Instructions for Brian:
+
+The goal for the next two weeks (until 7/5/2019) is to benchmark both the serial and the parallel versions of the code on the NERSC GPU cluster.  To compile the code, type
+
+make -f Makefile.cori
+
+it will create a working binary code.  Then submit the program to the queue and run it.  (I think) after the run is finished a timing file is produced and you can record the timing results from Viktor's output files.
 
 
 ### Want to contact the developer?
